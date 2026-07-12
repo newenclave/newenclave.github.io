@@ -7,7 +7,8 @@
 <style>
   html, body { margin: 0; height: 100%; background: #05060a; color: #cdd6f4;
     font: 13px/1.5 ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace; overflow: hidden; }
-  #sky { display: block; width: 100vw; height: 100vh; }
+  #sky { display: block; width: 100vw; height: 100vh; cursor: grab; touch-action: none; }
+  #sky.drag { cursor: grabbing; }
   #hud { position: fixed; top: 12px; left: 14px; pointer-events: none;
     text-shadow: 0 0 6px #000; white-space: pre; }
   #hud b { color: #89b4fa; }
@@ -27,7 +28,7 @@
 <canvas id="map"></canvas>
 <div id="hud"></div>
 <div id="bar">
-  <span class="hint">move: <b>W A S D</b> / arrows &nbsp;·&nbsp; the viewport is an R-tree window query</span>
+  <span class="hint">move: <b>W A S D</b> / arrows &nbsp;·&nbsp; or <b>drag</b> to pan &nbsp;·&nbsp; the viewport is an R-tree window query</span>
   <span class="spacer"></span>
   <span id="msg"></span>
   <button id="new">new galaxy</button>
@@ -175,6 +176,42 @@ window.addEventListener("keydown", (e) => {
   refreshMap();
   msg.textContent = created > 0 ? `+${created} star(s) drift into view` : "";
 });
+
+// --- drag to pan (mouse + touch): screen delta → world delta ---
+let dragging = false, lastX = 0, lastY = 0;
+
+function panPixels(ddx, ddy) {
+  if (!wasm) return;
+  const ex = wasm.exports;
+  // grab-the-sky feel: content follows the pointer, so the camera moves opposite
+  // (and screen-y is flipped vs world-y).
+  const dx = -ddx * (ex.viewW() / innerWidth);
+  const dy =  ddy * (ex.viewH() / innerHeight);
+  if (ex.panBy(dx, dy) > 0) refreshMap();
+}
+
+canvas.addEventListener("mousedown", (e) => {
+  dragging = true; lastX = e.clientX; lastY = e.clientY; canvas.classList.add("drag");
+});
+window.addEventListener("mousemove", (e) => {
+  if (!dragging) return;
+  panPixels(e.clientX - lastX, e.clientY - lastY);
+  lastX = e.clientX; lastY = e.clientY;
+});
+window.addEventListener("mouseup", () => { dragging = false; canvas.classList.remove("drag"); });
+
+canvas.addEventListener("touchstart", (e) => {
+  if (e.touches.length !== 1) return;
+  dragging = true; lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+  e.preventDefault();
+}, { passive: false });
+window.addEventListener("touchmove", (e) => {
+  if (!dragging || e.touches.length !== 1) return;
+  panPixels(e.touches[0].clientX - lastX, e.touches[0].clientY - lastY);
+  lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+  e.preventDefault();
+}, { passive: false });
+window.addEventListener("touchend", () => { dragging = false; });
 
 function newGalaxy() {
   if (!wasm) return;
