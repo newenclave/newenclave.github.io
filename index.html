@@ -16,9 +16,9 @@
     .repo { color: var(--blue); }
     .repo:hover, .repo:focus-visible { color: #fff; }
     .demos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-    a { min-height: 250px; display: flex; flex-direction: column; padding: 22px; border: 1px solid var(--edge); border-radius: 10px; background: color-mix(in srgb, var(--panel) 92%, transparent); color: inherit; text-decoration: none; transition: transform .15s, border-color .15s, background .15s; }
-    a:hover, a:focus-visible { transform: translateY(-4px); border-color: var(--accent); background: #172234; outline: none; }
-    a:nth-child(1) { --accent: var(--gold); } a:nth-child(2) { --accent: var(--blue); } a:nth-child(3) { --accent: var(--pink); }
+    .demos a { min-height: 250px; display: flex; flex-direction: column; padding: 22px; border: 1px solid var(--edge); border-radius: 10px; background: color-mix(in srgb, var(--panel) 92%, transparent); color: inherit; text-decoration: none; transition: transform .15s, border-color .15s, background .15s; }
+    .demos a:hover, .demos a:focus-visible { transform: translateY(-4px); border-color: var(--accent); background: #172234; outline: none; }
+    .demos a:nth-child(1) { --accent: var(--gold); } .demos a:nth-child(2) { --accent: var(--blue); } .demos a:nth-child(3) { --accent: var(--pink); }
     .number { color: var(--accent); font-size: 13px; }
     h2 { margin: 16px 0 10px; color: var(--accent); font-size: 23px; }
     p { margin: 0; color: var(--muted); }
