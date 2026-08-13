@@ -82,6 +82,7 @@ const ROLE_COLOURS = ["#f87171", "#d946ef", "#ffb86c", "#7dd3fc", "#86efac", "#a
 const ROLE_NAMES = ["unknown", "superblock", "nodes", "chunks", "fsm", "free", "wasted"];
 
 let ex = null, dpr = 1, dirty = true, failure = "", seed = 0;
+let removing = false;
 // Chunk waste only changes when the point set does, not when the camera does:
 // finding it walks every entry in the tree, so it stays off the per-frame path.
 let storageDirty = true;
@@ -317,7 +318,26 @@ function newCloud() {
 
 el.reset.onclick = newCloud;
 el.add.onclick = () => { ex.insertPoints(10000); dirty = true; storageDirty = true; persist(); };
-el.remove.onclick = () => { ex.removePoints(5000); dirty = true; storageDirty = true; persist(); };
+el.remove.onclick = () => {
+  if (removing) return;
+  removing = true;
+  el.remove.disabled = true;
+  let remaining = 5000;
+  const removeBatch = () => {
+    const removed = ex.removePoints(Math.min(64, remaining));
+    remaining -= removed;
+    dirty = true;
+    storageDirty = true;
+    if (removed !== 0 && remaining !== 0) {
+      requestAnimationFrame(removeBatch);
+      return;
+    }
+    removing = false;
+    el.remove.disabled = false;
+    persist();
+  };
+  requestAnimationFrame(removeBatch);
+};
 el.invertMouse.checked = localStorage.getItem("cloud-invert-mouse") === "1";
 el.invertMouse.onchange = () => {
   localStorage.setItem("cloud-invert-mouse", el.invertMouse.checked ? "1" : "0");
