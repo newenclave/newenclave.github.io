@@ -15,10 +15,10 @@
     .intro { max-width: 640px; margin: 20px 0 42px; color: var(--muted); }
     .repo { color: var(--blue); }
     .repo:hover, .repo:focus-visible { color: #fff; }
-    .demos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .demos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
     .demos a { min-height: 250px; display: flex; flex-direction: column; padding: 22px; border: 1px solid var(--edge); border-radius: 10px; background: color-mix(in srgb, var(--panel) 92%, transparent); color: inherit; text-decoration: none; transition: transform .15s, border-color .15s, background .15s; }
     .demos a:hover, .demos a:focus-visible { transform: translateY(-4px); border-color: var(--accent); background: #172234; outline: none; }
-    .demos a:nth-child(1) { --accent: var(--gold); } .demos a:nth-child(2) { --accent: var(--blue); } .demos a:nth-child(3) { --accent: var(--pink); }
+    .demos a:nth-child(1) { --accent: var(--gold); } .demos a:nth-child(2) { --accent: var(--blue); } .demos a:nth-child(3) { --accent: var(--pink); } .demos a:nth-child(4) { --accent: #a7f3d0; }
     .number { color: var(--accent); font-size: 13px; }
     h2 { margin: 16px 0 10px; color: var(--accent); font-size: 23px; }
     p { margin: 0; color: var(--muted); }
@@ -49,6 +49,12 @@
         <h2>gravity</h2>
         <p>An interactive Barnes-Hut galaxy simulation powered by an in-memory 2D orthtree and node mass aggregates.</p>
         <span class="open">Run simulation &rarr;</span>
+      </a>
+      <a href="multiverse/">
+        <span class="number">04 / 4D exploration</span>
+        <h2>multiverse</h2>
+        <p>Navigate a persistent branching multiverse through a WebAssembly 4D R-tree with an interactive 3D galaxy view.</p>
+        <span class="open">Explore multiverse &rarr;</span>
       </a>
     </section>
     <footer>Select a demo to launch it in your browser.</footer>
