@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#080b12">
   <title>Multiverse Game</title>
-  <script type="module" crossorigin src="./assets/index-BFgpg9Xx.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-BKP6pCAT.css">
+  <script type="module" crossorigin src="./assets/index-DNd9RFbb.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-7gY7Pt-Y.css">
 </head>
 <body>
   <header>
@@ -20,6 +20,11 @@
     <div id="space-wrap">
       <canvas id="space" aria-label="Multiverse Canvas view"></canvas>
       <div id="state-panel" class="state-panel" hidden></div>
+      <div id="world-hud" class="world-hud" aria-label="World clock">
+        <span>U</span><strong id="hud-u">0.0000</strong>
+        <span>TICK</span><strong id="hud-tick">0</strong>
+        <label><input id="auto-ticks" type="checkbox"> AUTO</label>
+      </div>
       <div id="mobile-flight" aria-label="Touch flight controls">
         <button data-flight="thrust">thrust</button><button data-flight="brake">brake</button><button data-flight="boost">boost</button>
         <button data-flight="up">up</button><button data-flight="down">down</button>
@@ -45,7 +50,6 @@
         <section class="panel-view" data-panel-view="time" role="tabpanel" hidden>
           <h2>Time</h2><div id="tick-readout" class="details">tick loading...</div>
           <div class="buttons"><button id="advance">+1 tick</button></div>
-          <div class="field"><label for="auto-ticks">auto ticks</label><input id="auto-ticks" type="checkbox"></div>
           <div class="field"><label for="tick-rate">ticks / second</label><input id="tick-rate" type="range" min="1" max="60" value="10"></div>
           <p id="tick-rate-label" class="hint">10 ticks / second</p>
           <div id="catch-up" hidden><p id="catch-up-progress" class="hint">catching up...</p><div class="buttons"><button id="catch-up-run">continue catch-up</button><button id="catch-up-cancel" class="warn">cancel entry</button></div></div>
@@ -62,7 +66,7 @@
             <div class="buttons"><button data-camera-distance="far" aria-pressed="true">camera far</button><button data-camera-distance="medium" aria-pressed="false">camera medium</button><button data-camera-distance="close" aria-pressed="false">camera close</button></div>
             <p id="flight-hint" class="hint"></p><p id="flight-readout" class="hint">flight: standby</p>
             <div class="field"><label for="u">universe U</label><input id="u" inputmode="decimal"></div><button id="shift">shift U</button>
-            <div class="field"><label for="u-step">U step</label><input id="u-step" value="100" inputmode="decimal"></div>
+            <div class="field"><label for="u-step">U step</label><input id="u-step" value="1" inputmode="decimal"></div>
             <div class="buttons"><button id="u-back">U -</button><button id="u-forward">U +</button></div><p class="hint">Q / E shift U by step</p>
           </div>
         </section>
