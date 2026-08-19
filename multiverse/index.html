@@ -1,218 +1,87 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Multiverse Game</title>
-<style>
-  :root { --ink:#10151d; --paper:#edf1e8; --void:#080b12; --panel:#121926; --line:#324052; --cyan:#6bd3e5; --amber:#f4b45f; --rose:#ff7f93; --muted:#8d9aaa; }
-  * { box-sizing:border-box; } html, body { height:100%; overflow:hidden; } body { margin:0; min-width:320px; display:flex; flex-direction:column; background:var(--void); color:var(--paper); font:14px/1.4 ui-monospace, "Cascadia Mono", Consolas, monospace; }
-  header { flex:0 0 58px; min-height:58px; display:flex; align-items:center; gap:14px; padding:10px 16px; border-bottom:1px solid var(--line); background:#0d131e; }
-  h1 { margin:0; font-size:16px; letter-spacing:.08em; } h1 b { color:var(--cyan); } #status { color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .spacer { flex:1; }
-  button, label.file { font:inherit; color:var(--paper); background:#182232; border:1px solid var(--line); padding:6px 9px; cursor:pointer; border-radius:3px; } button:hover, label.file:hover { border-color:var(--cyan); color:#fff; } button.warn:hover { border-color:var(--rose); } input[type=file] { display:none; }
-  main { position:relative; flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 310px; } #space-wrap { position:relative; min-width:0; min-height:0; } #space { width:100%; height:100%; display:block; cursor:grab; touch-action:none; background:radial-gradient(circle at 40% 35%, #14213a, #080b12 56%); } #space.dragging { cursor:grabbing; } .three-space { position:absolute; inset:0; width:100%; height:100%; touch-action:none; } .three-space[hidden] { display:none; }
-  aside { min-height:0; display:flex; border-left:1px solid var(--line); background:var(--panel); overflow:hidden; } .panel-tabs { flex:0 0 48px; display:flex; flex-direction:column; gap:4px; padding:8px 5px; border-right:1px solid var(--line); background:#0d131e; } .panel-tab { min-height:42px; padding:4px; color:var(--muted); background:transparent; border:1px solid transparent; font-size:10px; letter-spacing:.04em; } .panel-tab:hover { background:#182232; } .panel-tab.active { color:var(--cyan); border-color:var(--line); background:#182232; } .panel-content { min-width:0; flex:1; overflow:auto; padding:14px; } .panel-view[hidden] { display:none; } .rule { border:0; border-top:1px solid var(--line); margin:15px 0; } h2 { margin:0 0 8px; font-size:11px; letter-spacing:.12em; color:var(--amber); text-transform:uppercase; }
-  .readout { white-space:pre; color:#c9d3de; min-height:105px; } .state-toggle { display:flex; gap:7px; align-items:center; margin-bottom:8px; color:#c9d3de; } .state-toggle input { width:auto; } .state-panel[hidden] { display:none; } .state-panel { position:absolute; z-index:1; top:14px; left:14px; width:min(390px,calc(100vw - 28px)); padding:10px 12px; border:1px solid var(--line); border-radius:3px; background:rgba(11,16,25,.94); box-shadow:0 8px 24px rgba(0,0,0,.28); color:#c9d3de; font-size:12px; line-height:1.55; pointer-events:none; } .state-section { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:2px 14px; } .state-section+.state-section { margin-top:12px; } .state-label { color:#c9d3de; } .state-value { min-width:0; overflow-wrap:anywhere; text-align:right; } .branch-tree { max-height:220px; margin-bottom:8px; overflow:auto; border:1px solid var(--line); border-radius:3px; background:#0b1019; } .branch-row { width:100%; display:flex; align-items:center; gap:6px; border:0; border-left:2px solid transparent; border-radius:0; padding:5px 7px; text-align:left; font-size:12px; } .branch-row:hover { background:#182232; } .branch-row.current { border-left-color:var(--cyan); } .branch-row.selected { background:#243448; color:#fff; } .branch-row.historical { color:var(--muted); } .branch-row .branch-id { min-width:48px; } .branch-row .branch-range { margin-left:auto; font-size:11px; } .branch-details { min-height:94px; margin:8px 0; padding:8px; border:1px solid var(--line); border-radius:3px; background:#0b1019; white-space:pre; color:#c9d3de; font-size:12px; line-height:1.45; } .field { display:grid; grid-template-columns:1fr 92px; gap:7px; margin:7px 0; align-items:center; } input, select { width:100%; min-width:0; color:var(--paper); background:#0b1019; border:1px solid var(--line); border-radius:3px; padding:6px; font:inherit; } input[type=checkbox] { width:auto; justify-self:start; } input[type=range] { padding:0; } .buttons { display:flex; flex-wrap:wrap; gap:7px; } .hint { color:var(--muted); font-size:12px; } #events { margin:0; padding-left:18px; color:#c9d3de; } #events li { margin:4px 0; }
-  #body-inspector[hidden] { display:none; }
-  @media (max-width:800px) { header { flex:0 0 auto; flex-wrap:wrap; } #status { width:100%; order:3; } main { grid-template-columns:1fr; grid-template-rows:minmax(260px,64vh) minmax(0,1fr); } #space { height:100%; } aside { border-left:0; border-top:1px solid var(--line); } }
-</style>
-  <script type="module" crossorigin src="./assets/index-kwx9sOnt.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#080b12">
+  <title>Multiverse Game</title>
+  <script type="module" crossorigin src="./assets/index-B1mEywWe.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-gmEGU80Q.css">
 </head>
 <body>
-<header>
-  <h1><b>MULTIVERSE</b> / 4D R-tree</h1><span id="status">loading WASM...</span><span class="spacer"></span>
-  <label class="hint">new physics <select id="new-physics"><option value="0">local 3D</option><option value="1">true 4D</option></select></label><button id="new" class="warn">new world</button><label class="file">import image<input id="import" type="file" accept="application/octet-stream,.mvg" /></label><button id="download">export .mvg</button>
-</header>
-<main>
-  <div id="space-wrap"><canvas id="space"></canvas></div>
-  <div id="state-panel" class="state-panel" hidden></div>
-  <aside>
-    <nav class="panel-tabs" aria-label="Control sections" role="tablist"><button class="panel-tab active" data-panel="branches" role="tab" aria-selected="true" title="Branches">BR</button><button class="panel-tab" data-panel="time" role="tab" aria-selected="false" title="Time">TK</button><button class="panel-tab" data-panel="navigation" role="tab" aria-selected="false" title="Navigation">NAV</button><button class="panel-tab" data-panel="events" role="tab" aria-selected="false" title="Events">EV</button><button class="panel-tab" data-panel="system" role="tab" aria-selected="false" title="System">SYS</button></nav>
-    <div class="panel-content">
-    <section class="panel-view" data-panel-view="branches" role="tabpanel"><h2>Current Branch</h2><div id="readout" class="readout"></div><label class="state-toggle"><input id="show-state" type="checkbox" /> show state details</label><hr class="rule" /><h2>Branch Inspector</h2><div id="branch-tree" class="branch-tree">loading branches...</div><div id="branch-details" class="branch-details">loading selected branch...</div><div class="buttons"><button id="branch-parent" disabled>parent</button><button id="branch-left" disabled>left child</button><button id="branch-right" disabled>right child</button><button id="branch-travel" disabled>travel selected</button><button id="branch-sibling" disabled>travel sibling</button><button id="branch-focus" disabled>focus player</button><button id="split">split branch</button></div></section>
-    <section class="panel-view" data-panel-view="time" role="tabpanel" hidden><h2>Time</h2><div id="tick-readout" class="branch-details">tick loading...</div><div class="buttons"><button id="advance">+1 tick</button></div><div class="field"><label for="auto-ticks">auto ticks</label><input id="auto-ticks" type="checkbox" /></div><div class="field"><label for="tick-rate">ticks / second</label><input id="tick-rate" type="range" min="1" max="60" value="10" /></div><span id="tick-rate-label" class="hint">10 ticks / second</span><div id="catch-up" hidden><p id="catch-up-progress" class="hint">catching up...</p><div class="buttons"><button id="catch-up-run">continue catch-up</button><button id="catch-up-cancel" class="warn">cancel entry</button></div></div></section>
-    <section class="panel-view" data-panel-view="navigation" role="tabpanel" hidden><div id="galaxy-controls"><h2>Navigation</h2>
-    <div class="field"><span>move step</span><input id="step" value="5" inputmode="decimal" /></div>
-    <div class="field"><label for="flight-mode">flight controls</label><select id="flight-mode"><option value="nms">NMS flight</option><option value="keyboard">keyboard flight</option></select></div>
-    <div class="field"><span>XY scan range</span><input id="xy-range" value="50" min="10" max="250" inputmode="decimal" /></div>
-    <div class="field"><span>Z scan range</span><input id="z-range" value="50" min="10" max="250" inputmode="decimal" /></div>
-    <div class="buttons"><button data-move="0,1">north</button><button data-move="-1,0">west</button><button data-move="1,0">east</button><button data-move="0,-1">south</button></div>
-    <div class="buttons"><button data-move-z="1">up / R</button><button data-move-z="-1">down / F</button><button id="view-toggle">2D fallback</button><button id="grid-toggle">grid: on</button></div>
-    <p id="flight-hint" class="hint">drag to steer · W/S thrust/brake · A/D roll · Space boost</p><div id="flight-readout" class="hint">flight: standby</div>
-    <div class="field"><span>universe U</span><input id="u" inputmode="decimal" /></div><button id="shift">shift U</button>
-    <div class="field"><span>U step</span><input id="u-step" value="0.1" inputmode="decimal" /></div>
-    <div class="buttons"><button id="u-back">U -</button><button id="u-forward">U +</button></div><p class="hint">Q / E shift U by step</p></div></section>
-    <section class="panel-view" data-panel-view="events" role="tabpanel" hidden><h2>Spatial Events</h2><div class="field"><span>marker color</span><input id="color" value="f4b45f" maxlength="6" /></div><div class="buttons"><button id="mode">mode: marker</button><button id="survey">survey anomalies</button></div><p id="mode-hint" class="hint">Marker mode: click creates a branch-scoped marker.</p><h2>Visible Events</h2><ol id="events"></ol></section>
-    <section class="panel-view" data-panel-view="system" role="tabpanel" hidden><h2>Active System</h2><div class="buttons"><button id="step-system" disabled>orbit step</button><button id="exit-system" disabled>exit system</button></div><section id="body-inspector" hidden><hr class="rule" /><h2>Selected Body</h2><div id="body-details" class="branch-details">click a body on the canvas</div><div class="buttons"><button id="destroy-body" class="warn" disabled>destroy selected</button></div><div class="field"><span>impulse X</span><input id="impulse-x" value="0" inputmode="decimal" /></div><div class="field"><span>impulse Y</span><input id="impulse-y" value="0" inputmode="decimal" /></div><div class="field"><span>impulse Z</span><input id="impulse-z" value="0" inputmode="decimal" /></div><button id="apply-impulse" disabled>apply impulse</button><hr class="rule" /><h2>Stations</h2><div class="field"><span>local X</span><input id="station-x" value="12" inputmode="decimal" /></div><div class="field"><span>local Y</span><input id="station-y" value="0" inputmode="decimal" /></div><div class="field"><span>local Z</span><input id="station-z" value="0" inputmode="decimal" /></div><div class="field"><span>station color</span><input id="station-color" value="6bd3e5" maxlength="6" /></div><button id="place-station">place station</button><ol id="stations"></ol><hr class="rule" /><h2>Resolved Effects</h2><ol id="effect-audit"></ol></section></section>
+  <header>
+    <h1><b>MULTIVERSE</b> / XYZ NAV</h1>
+    <span id="status" role="status">loading WASM...</span><span class="spacer"></span>
+    <button id="new" class="warn">new world</button>
+    <label class="file">import image<input id="import" type="file" accept="application/octet-stream,.mvg"></label>
+    <button id="download">export .mvg</button>
+  </header>
+  <main>
+    <div id="space-wrap">
+      <canvas id="space" aria-label="Multiverse Canvas view"></canvas>
+      <div id="state-panel" class="state-panel" hidden></div>
+      <div id="mobile-flight" aria-label="Touch flight controls">
+        <button data-flight="thrust">thrust</button><button data-flight="brake">brake</button><button data-flight="boost">boost</button>
+        <button data-flight="up">up</button><button data-flight="down">down</button>
+      </div>
     </div>
-  </aside>
-</main>
-<script>
-const canvas = document.getElementById("space"), ctx = canvas.getContext("2d"), text = new TextEncoder(), decode = new TextDecoder();
-const panelTabs=[...document.querySelectorAll(".panel-tab")],panelViews=[...document.querySelectorAll(".panel-view")];function selectPanel(name){for(const tab of panelTabs){const active=tab.dataset.panel===name;tab.classList.toggle("active",active);tab.setAttribute("aria-selected",String(active));}for(const view of panelViews)view.hidden=view.dataset.panelView!==name;localStorage.setItem("multiverse-panel",name);}for(const tab of panelTabs)tab.onclick=()=>selectPanel(tab.dataset.panel);selectPanel(localStorage.getItem("multiverse-panel")||"branches");
-const el = { status:document.getElementById("status"), readout:document.getElementById("readout"), tickReadout:document.getElementById("tick-readout"), statePanel:document.getElementById("state-panel"), showState:document.getElementById("show-state"), branchTree:document.getElementById("branch-tree"), branchDetails:document.getElementById("branch-details"), branchParent:document.getElementById("branch-parent"), branchLeft:document.getElementById("branch-left"), branchRight:document.getElementById("branch-right"), branchTravel:document.getElementById("branch-travel"), branchSibling:document.getElementById("branch-sibling"), branchFocus:document.getElementById("branch-focus"), events:document.getElementById("events"), stations:document.getElementById("stations"), effectAudit:document.getElementById("effect-audit"), step:document.getElementById("step"), u:document.getElementById("u"), uStep:document.getElementById("u-step"), color:document.getElementById("color"), autoTicks:document.getElementById("auto-ticks"), tickRate:document.getElementById("tick-rate"), tickRateLabel:document.getElementById("tick-rate-label"), galaxyControls:document.getElementById("galaxy-controls"), mode:document.getElementById("mode"), modeHint:document.getElementById("mode-hint"), bodyInspector:document.getElementById("body-inspector"), bodyDetails:document.getElementById("body-details"), destroyBody:document.getElementById("destroy-body"), impulseX:document.getElementById("impulse-x"), impulseY:document.getElementById("impulse-y"), impulseZ:document.getElementById("impulse-z"), applyImpulse:document.getElementById("apply-impulse"), stationX:document.getElementById("station-x"), stationY:document.getElementById("station-y"), stationZ:document.getElementById("station-z"), stationColor:document.getElementById("station-color"), placeStation:document.getElementById("place-station"), catchUp:document.getElementById("catch-up"), catchUpProgress:document.getElementById("catch-up-progress"), catchUpRun:document.getElementById("catch-up-run"), catchUpCancel:document.getElementById("catch-up-cancel") };
-let ex, dpr = 1, snapshot = new Float64Array(), systems = new Float64Array(), bodies = new Float64Array(), stations = new Float64Array(), effectAudit = new Float64Array(), bodyIds = new Uint32Array(), branches = [], branchesById = new Map(), branchChildren = new Map(), branchesTotal = 0, branchesTruncated = false, selectedBranchId = null, selectedBodyId = null, viewRange = 50, zRange = 50, clickMode = "marker";const minScanRange=10,maxScanRange=250;
-const savedFlight=JSON.parse(localStorage.getItem("multiverse-flight")||"{}");let flightHeading=Number.isFinite(savedFlight.heading)?savedFlight.heading:Math.PI/2,flightPitch=Number.isFinite(savedFlight.pitch)?savedFlight.pitch:0,flightRoll=Number.isFinite(savedFlight.roll)?savedFlight.roll:0,flightSpeed=Number.isFinite(savedFlight.speed)?savedFlight.speed:0;const flightKeys=new Set();
-let flightMode=localStorage.getItem("multiverse-flight-mode")||"nms";document.getElementById("flight-mode").value=flightMode;
-function renderFlightHint(){document.getElementById("flight-hint").textContent=flightMode==="nms"?"drag to steer · W/S thrust/brake · A/D roll · Space boost":"W/S thrust/brake · A/D yaw · Space/C pitch · drag orbit";}renderFlightHint();
-const db = new Promise((resolve,reject) => { const req=indexedDB.open("multiverse-game",1); req.onupgradeneeded=()=>req.result.createObjectStore("worlds"); req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error); });
-function status(message, bad=false) { el.status.textContent=message; el.status.style.color=bad ? "#ff7f93" : ""; }
-function errorText() { return decode.decode(new Uint8Array(ex.memory.buffer, ex.lastErrorPtr(), ex.lastErrorLen())); }
-function ensure(ok) { if (!ok) throw new Error(errorText() || "WASM operation failed"); }
-function resize() { dpr=devicePixelRatio||1; canvas.width=Math.floor(canvas.clientWidth*dpr); canvas.height=Math.floor(canvas.clientHeight*dpr); draw(); }
-function decodeBranches(rows) { branches=[]; branchesById=new Map(); branchChildren=new Map(); for(let offset=0;offset<rows.length;offset+=7){ const branch={id:Math.trunc(rows[offset]),parentId:Math.trunc(rows[offset+1])||null,low:rows[offset+2],high:rows[offset+3],splitTick:Math.trunc(rows[offset+4]),lifecycle:Math.trunc(rows[offset+5]),origin:rows[offset+6]}; branches.push(branch);branchesById.set(branch.id,branch); } branches.sort((a,b)=>a.id-b.id); for(const branch of branches){if(branch.parentId!==null&&branchesById.has(branch.parentId)){const children=branchChildren.get(branch.parentId)||[];children.push(branch);branchChildren.set(branch.parentId,children);}} for(const children of branchChildren.values())children.sort((a,b)=>a.low-b.low||a.id-b.id); }
-function activeBranchAncestors() { const ids=new Set(), visited=new Set(); let branch=branchesById.get(ex.activeBranch()); while(branch&&!visited.has(branch.id)){ids.add(branch.id);visited.add(branch.id);branch=branch.parentId===null?null:branchesById.get(branch.parentId);} return ids; }
-function eventExplanation(ownerId, low, high) { const activeId=ex.activeBranch(), ancestors=activeBranchAncestors(), source=ownerId===activeId?`owned by branch ${ownerId}`:ancestors.has(ownerId)?`inherited from branch ${ownerId}`:`range match from branch ${ownerId}`; return `${source}${low===high?" · point-U":""}`; }
-function stateSection(rows) { const section=document.createElement("div");section.className="state-section";for(const [label,value] of rows){const key=document.createElement("span"),data=document.createElement("span");key.className="state-label";data.className="state-value";key.textContent=label;data.textContent=value;section.append(key,data);}return section; }
-function renderStatePanel(x,y,z,u,active) { const system=active?`${ex.activeSystemX().toFixed(3)}, ${ex.activeSystemY().toFixed(3)}, ${ex.activeSystemZ().toFixed(3)}, ${u.toFixed(4)}`:"none";el.statePanel.replaceChildren(stateSection([["scan range",viewRange.toFixed(1)],["visible stars",String(systems.length/5)],["saved systems",String(ex.savedSystemsCount())],["visible events",String(snapshot.length/10)],["page image",`${ex.blocksAllocated()} pages`]]),stateSection([["player XYZU",`${x.toFixed(3)}, ${y.toFixed(3)}, ${z.toFixed(3)}, ${u.toFixed(4)}`],["active branch",String(ex.activeBranch())],["global tick",ex.globalTick().toFixed(0)]]),stateSection([["active system",system],["active bodies",String(active?bodies.length/5:0)],["radiation",active?ex.radiationSeverity().toFixed(2):"none"],["stations",String(stations.length/4)]])); }
-function renderBodyInspector(active) { const index=bodyIds.indexOf(selectedBodyId); el.galaxyControls.querySelectorAll("input,button").forEach(control=>control.disabled=active); el.galaxyControls.style.opacity=active?".45":""; el.bodyInspector.hidden=!active; el.destroyBody.disabled=index<0; el.applyImpulse.disabled=index<0; el.bodyDetails.textContent=index<0?"click a body on the canvas":`body ID  ${selectedBodyId}\nXYZ      ${bodies[index*5].toFixed(3)}, ${bodies[index*5+1].toFixed(3)}, ${bodies[index*5+2].toFixed(3)}\nradius   ${bodies[index*5+3].toFixed(3)}`; }
-function renderTickReadout(){const active=bodies.length>0,pending=ex.catchUpTaskPending()!==0;el.tickReadout.textContent=`global tick  ${ex.globalTick().toFixed(0)}\nmode         ${pending?"catch-up pending":active?"active system":"galaxy map"}`;}
-function pullSnapshot() { ensure(ex.snapshot(viewRange,zRange)); const count=ex.snapshotCount(), branchCount=ex.branchesCount(), systemCount=ex.systemsCount(), bodyCount=ex.bodiesCount(), stationCount=ex.stationsCount(), effectCount=ex.effectAuditCount(); snapshot=count ? new Float64Array(ex.memory.buffer,ex.snapshotPtr(),count*10).slice() : new Float64Array(); decodeBranches(branchCount ? new Float64Array(ex.memory.buffer,ex.branchesPtr(),branchCount*7).slice() : new Float64Array()); branchesTotal=ex.branchesTotalCount(); branchesTruncated=ex.branchesTruncated()!==0; systems=systemCount ? new Float64Array(ex.memory.buffer,ex.systemsPtr(),systemCount*5).slice() : new Float64Array(); bodies=bodyCount ? new Float64Array(ex.memory.buffer,ex.bodiesPtr(),bodyCount*5).slice() : new Float64Array(); stations=stationCount ? new Float64Array(ex.memory.buffer,ex.stationsPtr(),stationCount*4).slice() : new Float64Array(); effectAudit=effectCount ? new Float64Array(ex.memory.buffer,ex.effectAuditPtr(),effectCount*7).slice() : new Float64Array(); bodyIds=bodyCount ? new Uint32Array(ex.memory.buffer,ex.bodyIdsPtr(),bodyCount).slice() : new Uint32Array(); if(!bodyIds.includes(selectedBodyId))selectedBodyId=null; document.getElementById("step-system").disabled=bodyCount===0; document.getElementById("exit-system").disabled=bodyCount===0; renderInfo(); renderTickReadout();el.tickReadout.textContent+=`\nphysics      ${ex.physicsMode()===1?"true 4D inverse-cube":"local 3D inverse-square"}`; draw(); window.dispatchEvent(new CustomEvent("multiverse:snapshot",{detail:{ex,snapshot,systems,bodies,stations,bodyIds,viewRange,zRange,selectedBodyId,flightHeading,flightPitch,flightRoll,flightMode}})); }
-function formatBranchRange(branch) { return `[${(branch.origin+branch.low).toFixed(4)}, ${(branch.origin+branch.high).toFixed(4)})`; }
-function renderBranchInspector() { const activeId=ex.activeBranch(); if(!branchesById.has(selectedBranchId))selectedBranchId=activeId; const rendered=new Set(), fragment=document.createDocumentFragment(); function visit(branch,depth){if(rendered.has(branch.id))return;rendered.add(branch.id);const row=document.createElement("button"), id=document.createElement("span"), lifecycle=document.createElement("span"), range=document.createElement("span");row.className=`branch-row ${branch.lifecycle===0?"active":"historical"}${branch.id===activeId?" current":""}${branch.id===selectedBranchId?" selected":""}`;row.style.paddingLeft=`${7+depth*14}px`;id.className="branch-id";id.textContent=`#${branch.id}`;lifecycle.textContent=branch.lifecycle===0?"active":"history";range.className="branch-range";range.textContent=formatBranchRange(branch);row.append(id,lifecycle,range);row.onclick=()=>{selectedBranchId=branch.id;renderBranchInspector();};fragment.append(row);for(const child of branchChildren.get(branch.id)||[])visit(child,depth+1);} for(const branch of branches)if(branch.parentId===null||!branchesById.has(branch.parentId))visit(branch,0);for(const branch of branches)visit(branch,0);if(branchesTruncated){const notice=document.createElement("p");notice.className="hint";notice.textContent=`showing ${branches.length} of ${branchesTotal} branches`;fragment.append(notice);}el.branchTree.replaceChildren(fragment);const selected=branchesById.get(selectedBranchId), children=selected?(branchChildren.get(selected.id)||[]):[], siblings=selected&&selected.lifecycle===0&&selected.parentId!==null?(branchChildren.get(selected.parentId)||[]).filter(branch=>branch.id!==selected.id&&branch.lifecycle===0):[];el.branchDetails.textContent=selected?`branch          #${selected.id} · ${selected.lifecycle===0?"active":"historical"}\nparent          ${selected.parentId===null?"none":`#${selected.parentId}`}\nchildren        ${children.length?children.map(child=>`#${child.id}`).join(", "):"none"}\ncanonical U     ${formatBranchRange(selected)}\nlocal origin    ${selected.origin.toFixed(4)}\nlocal U range   [${selected.low.toFixed(4)}, ${selected.high.toFixed(4)})\nsplit tick      ${selected.splitTick}\n${selected.lifecycle===0?"active leaf: travel available":"read-only at split tick"}`:"no selected branch";el.branchParent.disabled=!selected||selected.parentId===null||!branchesById.has(selected.parentId);el.branchLeft.disabled=children.length===0;el.branchRight.disabled=children.length<2;el.branchTravel.disabled=!selected||selected.lifecycle!==0;el.branchSibling.disabled=siblings.length===0;el.branchFocus.disabled=!selected||selected.id===activeId; }
-const renderBranchInspectorWithIntervals = renderBranchInspector;
-renderBranchInspector = function renderBranchInspectorWithoutIntervals() {
-  renderBranchInspectorWithIntervals();
-  for (const range of el.branchTree.querySelectorAll(".branch-range")) range.remove();
-  el.branchDetails.textContent = el.branchDetails.textContent
-    .split("\n")
-    .filter(line => !line.startsWith("canonical range") && !line.startsWith("local U origin"))
-    .join("\n");
-};
-function renderInfo() { const x=ex.playerX(), y=ex.playerY(), z=ex.playerZ(), u=ex.playerU(), pending=ex.catchUpTaskPending()!==0, active=bodies.length>0; el.catchUp.hidden=!pending; if(pending)el.catchUpProgress.textContent=`catching up: ${Math.trunc(ex.catchUpTaskCompleted())} / ${Math.trunc(ex.catchUpTaskTotal())} ticks`; el.u.value=u.toFixed(4); el.readout.textContent=`branch  ${ex.activeBranch()}\ntick    ${ex.globalTick().toFixed(0)}\nXYZ     ${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)}\nU       ${u.toFixed(4)}\npages   ${ex.blocksAllocated()}\nsystems ${systems.length/4}\nevents  ${snapshot.length/10}\nactive  ${pending ? "catch-up pending" : active ? `${bodies.length/5} bodies` : "galaxy map"}`; renderStatePanel(x,y,z,u,active); renderBodyInspector(active); renderBranchInspector(); el.events.replaceChildren(); for(let i=0;i<snapshot.length;i+=10){ const item=document.createElement("li"), kind=["anomaly","hazard","marker"][snapshot[i+3]]||"event", branch=Math.trunc(snapshot[i+5]), low=snapshot[i+6], high=snapshot[i+7], radius=snapshot[i+8], strength=snapshot[i+9]; item.textContent=`${kind} @ (${snapshot[i].toFixed(1)}, ${snapshot[i+1].toFixed(1)}) · branch ${branch} · U [${low.toFixed(4)}, ${high.toFixed(4)}) · ${eventExplanation(branch,low,high)}${kind==="anomaly"?` · radius ${radius.toFixed(1)} · strength ${strength.toFixed(2)}`:""}`; el.events.append(item); } el.stations.replaceChildren(); for(let i=0;i<stations.length;i+=4){const item=document.createElement("li");item.textContent=`(${stations[i].toFixed(1)}, ${stations[i+1].toFixed(1)}, ${stations[i+2].toFixed(1)}) · #${Math.round(stations[i+3]).toString(16).padStart(6,"0")}`;el.stations.append(item);} el.effectAudit.replaceChildren(); for(let i=0;i<effectAudit.length;i+=7){const item=document.createElement("li"),kind=["anomaly","hazard","marker","destroy body","change orbit","station"][effectAudit[i+1]]||"effect",system=Math.trunc(effectAudit[i+4]),body=Math.trunc(effectAudit[i+5]);item.textContent=`#${Math.trunc(effectAudit[i])} · ${kind} · tick ${Math.trunc(effectAudit[i+2])} · ${effectAudit[i+6]?"owned":"inherited"} branch ${Math.trunc(effectAudit[i+3])} · system ${system<0?"none":system}${body<0?"":` / body ${body}`}`;el.effectAudit.append(item);} }
-function draw() { if (bodies.length) { drawSystem(); return; } const W=canvas.width,H=canvas.height; ctx.fillStyle="#080b12"; ctx.fillRect(0,0,W,H); const px=ex?.playerX?.()||0, py=ex?.playerY?.()||0, scale=Math.min(W,H)/(viewRange*2); ctx.strokeStyle="rgba(107,211,229,.13)"; ctx.lineWidth=dpr; for(let i=-50;i<=50;i+=10){ const x=W/2+i*scale,y=H/2-i*scale; ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.lineTo(x,H);ctx.stroke(); } for(let i=0;i<systems.length;i+=4){ const x=W/2+(systems[i]-px)*scale,y=H/2-(systems[i+1]-py)*scale,color=["#d97878","#f4e3a1","#8dbcf4"][systems[i+3]]||"#fff"; ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,2.5*dpr,0,Math.PI*2);ctx.fill(); } for(let i=0;i<snapshot.length;i+=10){ const x=W/2+(snapshot[i]-px)*scale,y=H/2-(snapshot[i+1]-py)*scale,kind=snapshot[i+3],radius=snapshot[i+8]*scale;if(kind>=3)continue;if(kind===0&&radius>0){ctx.fillStyle=`rgba(180,92,255,${Math.min(.55,.12+snapshot[i+9]*.2)})`;ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#c58bff";ctx.stroke();}const color=snapshot[i+4] ? `#${Math.round(snapshot[i+4]).toString(16).padStart(6,"0")}` : "#c58bff";ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,5*dpr,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#fff";ctx.stroke(); } ctx.strokeStyle="#6bd3e5";ctx.lineWidth=2*dpr;ctx.beginPath();ctx.arc(W/2,H/2,8*dpr,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(W/2-15*dpr,H/2);ctx.lineTo(W/2+15*dpr,H/2);ctx.moveTo(W/2,H/2-15*dpr);ctx.lineTo(W/2,H/2+15*dpr);ctx.stroke(); ctx.fillStyle="#8d9aaa";ctx.font=`${12*dpr}px ui-monospace`;ctx.fillText("XY scan / current U",14*dpr,22*dpr); }
-const drawGalaxy = function drawGalaxyMap() {
-  const W = canvas.width, H = canvas.height;
-  ctx.fillStyle = "#080b12";
-  ctx.fillRect(0, 0, W, H);
-  const px = ex?.playerX?.() || 0, py = ex?.playerY?.() || 0;
-  const scale = Math.min(W, H) / (viewRange * 2);
-  ctx.strokeStyle = "rgba(107,211,229,.13)";
-  ctx.lineWidth = dpr;
-  for (let i = -50; i <= 50; i += 10) {
-    const x = W / 2 + i * scale, y = H / 2 - i * scale;
-    ctx.beginPath();
-    ctx.moveTo(x, 0); ctx.lineTo(x, H);
-    ctx.moveTo(0, y); ctx.lineTo(W, y);
-    ctx.stroke();
-  }
-  for (let i = 0; i < systems.length; i += 4) {
-    const x = W / 2 + (systems[i] - px) * scale;
-    const y = H / 2 - (systems[i + 1] - py) * scale;
-    ctx.fillStyle = ["#d97878", "#f4e3a1", "#8dbcf4"][systems[i + 3]] || "#fff";
-    ctx.beginPath(); ctx.arc(x, y, 2.5 * dpr, 0, Math.PI * 2); ctx.fill();
-  }
-  for (let i = 0; i < snapshot.length; i += 10) {
-    const kind = snapshot[i + 3];
-    if (kind >= 3) continue;
-    const x = W / 2 + (snapshot[i] - px) * scale;
-    const y = H / 2 - (snapshot[i + 1] - py) * scale;
-    const radius = snapshot[i + 8] * scale;
-    if (kind === 0 && radius > 0) {
-      ctx.fillStyle = `rgba(180,92,255,${Math.min(.55, .12 + snapshot[i + 9] * .2)})`;
-      ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = "#c58bff"; ctx.stroke();
-    }
-    const color = snapshot[i + 4] ? `#${Math.round(snapshot[i + 4]).toString(16).padStart(6, "0")}` : "#c58bff";
-    ctx.fillStyle = color;
-    ctx.beginPath(); ctx.arc(x, y, 5 * dpr, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = "#fff"; ctx.stroke();
-  }
-  ctx.strokeStyle = "#6bd3e5";
-  ctx.lineWidth = 2 * dpr;
-  ctx.beginPath(); ctx.arc(W / 2, H / 2, 8 * dpr, 0, Math.PI * 2); ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(W / 2 - 15 * dpr, H / 2); ctx.lineTo(W / 2 + 15 * dpr, H / 2);
-  ctx.moveTo(W / 2, H / 2 - 15 * dpr); ctx.lineTo(W / 2, H / 2 + 15 * dpr);
-  ctx.stroke();
-  ctx.fillStyle = "#8d9aaa";
-  ctx.font = `${12 * dpr}px ui-monospace`;
-  ctx.fillText("XY scan / current U", 14 * dpr, 22 * dpr);
-};
-draw = function drawWithAffectedStars() {
-  drawGalaxy();
-  if (!ex || bodies.length) return;
-  const W = canvas.width, H = canvas.height, px = ex.playerX(), py = ex.playerY();
-  const scale = Math.min(W, H) / (viewRange * 2);
-  let affected = 0;
-  for (let system = 0; system < systems.length; system += 4) {
-    let severity = 0;
-    for (let event = 0; event < snapshot.length; event += 10) {
-      if (snapshot[event + 3] !== 0 || snapshot[event + 8] <= 0) continue;
-      const dx = systems[system] - snapshot[event];
-      const dy = systems[system + 1] - snapshot[event + 1];
-      const dz = systems[system + 2] - snapshot[event + 2];
-      if (dx * dx + dy * dy + dz * dz <= snapshot[event + 8] ** 2) {
-        severity = Math.max(severity, snapshot[event + 9]);
-      }
-    }
-    if (severity === 0) continue;
-    affected += 1;
-    const x = W / 2 + (systems[system] - px) * scale;
-    const y = H / 2 - (systems[system + 1] - py) * scale;
-    ctx.strokeStyle = `rgba(176, 255, 106, ${Math.min(.95, .4 + severity * .2)})`;
-    ctx.lineWidth = 2 * dpr;
-    ctx.beginPath();
-    ctx.arc(x, y, 6 * dpr, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-  if (affected > 0) {
-    ctx.fillStyle = "#b0ff6a";
-    ctx.font = `${12 * dpr}px ui-monospace`;
-    ctx.fillText(`${affected} star${affected === 1 ? "" : "s"} inside anomaly volume`, 14 * dpr, 40 * dpr);
-  }
-};
-function drawSystem() { const W=canvas.width,H=canvas.height; ctx.fillStyle="#080b12";ctx.fillRect(0,0,W,H); let extent=20;for(let i=0;i<bodies.length;i+=5)extent=Math.max(extent,Math.abs(bodies[i]),Math.abs(bodies[i+1]));for(let i=0;i<stations.length;i+=4)extent=Math.max(extent,Math.abs(stations[i]),Math.abs(stations[i+1]));const scale=Math.min(W,H)/(extent*2.4),radiation=ex.radiationSeverity();if(radiation>0){ctx.fillStyle=`rgba(116,255,106,${Math.min(.4,.06+radiation*.08)})`;ctx.fillRect(0,0,W,H);}ctx.strokeStyle="rgba(107,211,229,.12)";ctx.lineWidth=dpr;ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();for(let i=0;i<bodies.length;i+=5){const x=W/2+bodies[i]*scale,y=H/2-bodies[i+1]*scale,r=Math.max(2*dpr,bodies[i+3]*scale),color=`#${Math.round(bodies[i+4]).toString(16).padStart(6,"0")}`;ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();if(bodyIds[i/5]===selectedBodyId){ctx.strokeStyle="#6bd3e5";ctx.lineWidth=2*dpr;ctx.beginPath();ctx.arc(x,y,r+4*dpr,0,Math.PI*2);ctx.stroke();}}for(let i=0;i<stations.length;i+=4){const x=W/2+stations[i]*scale,y=H/2-stations[i+1]*scale,r=6*dpr;ctx.fillStyle=`#${Math.round(stations[i+3]).toString(16).padStart(6,"0")}`;ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r,y);ctx.lineTo(x,y+r);ctx.lineTo(x-r,y);ctx.closePath();ctx.fill();ctx.strokeStyle="#fff";ctx.stroke();}ctx.fillStyle="#8d9aaa";ctx.font=`${12*dpr}px ui-monospace`;ctx.fillText(`active system / radiation ${radiation.toFixed(2)}`,14*dpr,22*dpr); }
-async function dbPut(bytes) { const store=(await db).transaction("worlds","readwrite").objectStore("worlds"); return new Promise((resolve,reject)=>{const req=store.put(bytes,"default");req.onsuccess=()=>resolve();req.onerror=()=>reject(req.error);}); }
-async function dbGet() { const store=(await db).transaction("worlds","readonly").objectStore("worlds"); return new Promise((resolve,reject)=>{const req=store.get("default");req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);}); }
-async function persist() { const ptr=ex.imagePtr(), len=ex.imageLen(); ensure(ptr!==0 || len===0); await dbPut(new Uint8Array(ex.memory.buffer,ptr,len).slice().buffer); }
-function importBytes(bytes) { const ptr=ex.allocate(bytes.byteLength); if(!ptr) throw new Error("WASM allocation failed"); try { new Uint8Array(ex.memory.buffer).set(new Uint8Array(bytes),ptr); ensure(ex.importImage(ptr,bytes.byteLength)); } finally { ex.freeAllocation(ptr,bytes.byteLength); } }
-let mutationInFlight=false;
-function mutate(action,message="saved to IndexedDB") { if(mutationInFlight)return;mutationInFlight=true;Promise.resolve().then(action).then(async()=>{await persist();pullSnapshot();status(typeof message==="function"?message():message);}).catch(err=>status(String(err.message||err),true)).finally(()=>mutationInFlight=false); }
-document.getElementById("new").onclick=()=>mutate(()=>{ensure(ex.formatWithPhysics((Math.random()*0xffffffff)>>>0,Number(document.getElementById("new-physics").value)));selectedBranchId=null;});
-document.getElementById("split").onclick=()=>mutate(()=>{ensure(ex.split());selectedBranchId=ex.activeBranch();}); document.getElementById("advance").onclick=()=>mutate(()=>ensure(bodies.length ? ex.advanceSystem(1) : ex.advance(1))); document.getElementById("survey").onclick=()=>mutate(()=>ensure(ex.surveyAnomalies(viewRange)),()=>`survey resolved ${ex.lastSurveyCount()} anomalies`);
-document.getElementById("shift").onclick=()=>mutate(()=>{ensure(ex.shiftUniverse(Number(el.u.value)));selectedBranchId=ex.activeBranch();});
-function shiftByUniverseStep(direction){if(bodies.length){status("exit the active system to navigate the galaxy",true);return;}mutate(()=>{const step=Number(el.uStep.value);if(!Number.isFinite(step)||step<=0)throw new Error("U step must be positive");ensure(ex.shiftUniverse(ex.playerU()+direction*step));selectedBranchId=ex.activeBranch();});}
-document.getElementById("u-back").onclick=()=>shiftByUniverseStep(-1);document.getElementById("u-forward").onclick=()=>shiftByUniverseStep(1);
-function movePlayer(x,y,z){mutate(()=>{const step=Number(el.step.value);if(!Number.isFinite(step)||step<=0)throw new Error("move step must be positive");ensure(ex.moveBy(x*step,y*step,z*step));});}
-document.querySelectorAll("[data-move]").forEach(button=>button.onclick=()=>{const [x,y]=button.dataset.move.split(",").map(Number);movePlayer(x,y,0);});
-document.querySelectorAll("[data-move-z]").forEach(button=>button.onclick=()=>movePlayer(0,0,Number(button.dataset.moveZ)));
-function scanRange(value,label){if(!Number.isFinite(value)||value<=0)throw new Error(`${label} scan range must be positive`);return Math.min(maxScanRange,Math.max(minScanRange,value));}
-document.getElementById("xy-range").onchange=event=>{try{viewRange=scanRange(Number(event.target.value),"XY");event.target.value=viewRange;pullSnapshot();}catch(error){status(error.message,true);}};
-document.getElementById("z-range").onchange=event=>{try{zRange=scanRange(Number(event.target.value),"Z");event.target.value=zRange;pullSnapshot();}catch(error){status(error.message,true);}};
-el.mode.onclick=()=>{clickMode=clickMode==="marker"?"system":"marker";el.mode.textContent=`mode: ${clickMode==="marker"?"marker":"enter system"}`;el.modeHint.textContent=clickMode==="marker"?"Marker mode: click creates a branch-scoped marker.":"Enter-system mode: click the center of a base star to materialize its planets.";};
-document.getElementById("step-system").onclick=()=>mutate(()=>ensure(ex.advanceSystem(8))); document.getElementById("exit-system").onclick=()=>mutate(()=>ensure(ex.exitSystem()));
-function runCatchUp(){if(mutationInFlight)return;mutationInFlight=true;const step=()=>{try{ensure(ex.advanceCatchUpTask());pullSnapshot();if(ex.catchUpTaskPending())requestAnimationFrame(step);else persist().then(()=>status("catch-up complete")).catch(err=>status(String(err.message||err),true)).finally(()=>mutationInFlight=false);}catch(err){mutationInFlight=false;status(String(err.message||err),true);}};requestAnimationFrame(step);} function enterSystem(x,y,z){mutate(()=>ensure(ex.enterNearestSystem(x,y,z)),()=>{if(ex.catchUpTaskPending()){requestAnimationFrame(runCatchUp);return "catch-up started";}return "system entered";});} el.catchUpRun.onclick=runCatchUp;el.catchUpCancel.onclick=()=>mutate(()=>ensure(ex.cancelCatchUpTask()),"entry catch-up cancelled");
-window.multiverse={enterSystem,marker:(x,y,z)=>mutate(()=>{const color=Number.parseInt(el.color.value,16);if(!Number.isInteger(color))throw new Error("color must be rrggbb hex");ensure(ex.marker(x,y,z,color));}),refresh:()=>{if(ex)pullSnapshot();},selectBody:(id)=>{selectedBodyId=id;renderInfo();draw();},setRanges:(xy,z)=>{viewRange=scanRange(xy,"XY");zRange=scanRange(z,"Z");document.getElementById("xy-range").value=viewRange;document.getElementById("z-range").value=zRange;pullSnapshot();},steer:(yaw,pitch)=>{flightHeading+=yaw;flightPitch=Math.max(-Math.PI/3,Math.min(Math.PI/3,flightPitch+pitch));window.dispatchEvent(new CustomEvent("multiverse:flight",{detail:{heading:flightHeading,pitch:flightPitch,roll:flightRoll}}));},setStatus:status};
-el.destroyBody.onclick=()=>mutate(()=>ensure(ex.destroyBody(selectedBodyId))); el.applyImpulse.onclick=()=>mutate(()=>{const impulse=[Number(el.impulseX.value),Number(el.impulseY.value),Number(el.impulseZ.value)];if(impulse.some(value=>!Number.isFinite(value)))throw new Error("impulse components must be finite");ensure(ex.changeOrbit(selectedBodyId,...impulse));});
-el.placeStation.onclick=()=>mutate(()=>{const position=[Number(el.stationX.value),Number(el.stationY.value),Number(el.stationZ.value)],color=Number.parseInt(el.stationColor.value,16);if(position.some(value=>!Number.isFinite(value))||!Number.isInteger(color))throw new Error("station position and color are invalid");ensure(ex.placeStation(...position,color));});
-el.branchParent.onclick=()=>{const selected=branchesById.get(selectedBranchId);if(selected&&selected.parentId!==null&&branchesById.has(selected.parentId)){selectedBranchId=selected.parentId;renderBranchInspector();}};
-el.branchLeft.onclick=()=>{const child=(branchChildren.get(selectedBranchId)||[])[0];if(child){selectedBranchId=child.id;renderBranchInspector();}};
-el.branchRight.onclick=()=>{const child=(branchChildren.get(selectedBranchId)||[])[1];if(child){selectedBranchId=child.id;renderBranchInspector();}};
-el.branchFocus.onclick=()=>{selectedBranchId=ex.activeBranch();renderBranchInspector();};
-el.branchTravel.onclick=()=>mutate(()=>{const selected=branchesById.get(selectedBranchId);if(!selected||selected.lifecycle!==0)throw new Error("SelectedBranchNotActive");ensure(ex.switchBranch(selected.id));selectedBranchId=ex.activeBranch();});
-el.branchSibling.onclick=()=>mutate(()=>{const selected=branchesById.get(selectedBranchId), siblings=selected&&selected.lifecycle===0&&selected.parentId!==null?(branchChildren.get(selected.parentId)||[]).filter(branch=>branch.id!==selected.id&&branch.lifecycle===0):[];const sibling=siblings[0];if(!sibling)throw new Error("NoActiveSibling");ensure(ex.switchBranch(sibling.id));selectedBranchId=ex.activeBranch();});
-let dragging=false, dragged=false, startPointerX=0, startPointerY=0, lastPointerX=0, lastPointerY=0;
-canvas.onpointerdown=event=>{if(bodies.length)return;dragging=true;dragged=false;startPointerX=lastPointerX=event.clientX;startPointerY=lastPointerY=event.clientY;canvas.setPointerCapture(event.pointerId);canvas.classList.add("dragging");};
-canvas.onpointermove=event=>{if(!dragging||bodies.length)return;const dx=event.clientX-lastPointerX,dy=event.clientY-lastPointerY;if(!dragged&&Math.hypot(event.clientX-startPointerX,event.clientY-startPointerY)>4)dragged=true;if(dragged&&(dx!==0||dy!==0)){const scale=Math.min(canvas.width,canvas.height)/(viewRange*2);try{ensure(ex.moveBy(-dx*dpr/scale,dy*dpr/scale,0));pullSnapshot();}catch(err){status(String(err.message||err),true);}}lastPointerX=event.clientX;lastPointerY=event.clientY;};
-canvas.onpointerup=event=>{if(!dragging)return;dragging=false;canvas.releasePointerCapture(event.pointerId);canvas.classList.remove("dragging");if(dragged)persist().then(()=>status("saved to IndexedDB")).catch(err=>status(String(err.message||err),true));};
-canvas.onclick=(event)=>{if(dragged)return;if(bodies.length){const rect=canvas.getBoundingClientRect(), px=(event.clientX-rect.left)*dpr, py=(event.clientY-rect.top)*dpr;let extent=20;for(let i=0;i<bodies.length;i+=5)extent=Math.max(extent,Math.abs(bodies[i]),Math.abs(bodies[i+1]));const scale=Math.min(canvas.width,canvas.height)/(extent*2.4);let closest=-1, distance=Infinity;for(let i=0;i<bodies.length;i+=5){const dx=px-(canvas.width/2+bodies[i]*scale),dy=py-(canvas.height/2-bodies[i+1]*scale),distanceSquared=dx*dx+dy*dy,hit=Math.max(8*dpr,bodies[i+3]*scale+4*dpr);if(distanceSquared<=hit*hit&&distanceSquared<distance){closest=i/5;distance=distanceSquared;}}if(closest>=0){selectedBodyId=bodyIds[closest];renderInfo();draw();}return;}const rect=canvas.getBoundingClientRect(), scale=Math.min(canvas.width,canvas.height)/(viewRange*2), x=ex.playerX()+(event.clientX-rect.left-rect.width/2)*dpr/scale, y=ex.playerY()-(event.clientY-rect.top-rect.height/2)*dpr/scale;if(clickMode==="system"){enterSystem(x,y,ex.playerZ());return;}mutate(()=>{const color=Number.parseInt(el.color.value,16);if(!Number.isInteger(color))throw new Error("color must be rrggbb hex");ensure(ex.marker(x,y,ex.playerZ(),color));});};
-canvas.onwheel=event=>{if(bodies.length)return;event.preventDefault();viewRange=Math.min(250,Math.max(10,viewRange*(event.deltaY<0?1/1.2:1.2)));try{pullSnapshot();}catch(err){status(String(err.message||err),true);}};
-document.getElementById("flight-mode").onchange=event=>{flightMode=event.target.value;flightKeys.clear();localStorage.setItem("multiverse-flight-mode",flightMode);renderFlightHint();pullSnapshot();};
-window.onkeydown=(event)=>{if(event.target instanceof HTMLInputElement||event.target instanceof HTMLSelectElement)return;const key=event.key.toLowerCase(),keys=flightMode==="nms"?["w","a","s","d"," "]:["w","a","s","d","c"," "];if(keys.includes(key)){event.preventDefault();flightKeys.add(key);return;}if(key==="r"){event.preventDefault();movePlayer(0,0,1);return;}if(key==="f"){event.preventDefault();movePlayer(0,0,-1);return;}if(key==="q"){event.preventDefault();shiftByUniverseStep(-1);}if(key==="e"){event.preventDefault();shiftByUniverseStep(1);}};
-window.onkeyup=event=>flightKeys.delete(event.key.toLowerCase());window.onblur=()=>flightKeys.clear();
-document.getElementById("import").onchange=event=>{const file=event.target.files[0];if(!file)return;file.arrayBuffer().then(bytes=>{importBytes(bytes);selectedBranchId=null;return persist();}).then(()=>{pullSnapshot();status(`imported ${file.name}`);}).catch(err=>status(String(err.message||err),true));event.target.value="";};
-document.getElementById("download").onclick=()=>{try{const bytes=new Uint8Array(ex.memory.buffer,ex.imagePtr(),ex.imageLen()).slice(),link=Object.assign(document.createElement("a"),{href:URL.createObjectURL(new Blob([bytes],{type:"application/octet-stream"})),download:"multiverse-world.mvg"});link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);}catch(err){status(String(err.message||err),true);}};
-let autoCredit=0,lastAutoFrame=0,lastAutoPersist=0,autoPersisting=false;
-el.tickRate.oninput=()=>{el.tickRateLabel.textContent=`${el.tickRate.value} ticks / second`;};
-el.autoTicks.onchange=()=>{if(!el.autoTicks.checked)persist().catch(err=>status(String(err.message||err),true));};
-el.showState.onchange=()=>{el.statePanel.hidden=!el.showState.checked;};
-function autoClock(now){requestAnimationFrame(autoClock);if(!ex||!el.autoTicks.checked||mutationInFlight){lastAutoFrame=now;autoCredit=0;return;}const elapsed=Math.min(now-lastAutoFrame,250);lastAutoFrame=now;autoCredit+=elapsed*Number(el.tickRate.value)/1000;const steps=Math.floor(autoCredit);if(!steps)return;autoCredit-=steps;try{ensure(bodies.length?ex.advanceSystem(steps):ex.advance(steps));pullSnapshot();if(now-lastAutoPersist>750&&!autoPersisting){autoPersisting=true;lastAutoPersist=now;persist().then(()=>status(`auto: ${el.tickRate.value} ticks / second`)).catch(err=>status(String(err.message||err),true)).finally(()=>autoPersisting=false);}}catch(err){el.autoTicks.checked=false;status(String(err.message||err),true);}}
-let lastFlightFrame=0,lastFlightPersist=0,lastFlightSnapshot=0;function flightClock(now){requestAnimationFrame(flightClock);const dt=Math.min((now-lastFlightFrame)/1000,.1);lastFlightFrame=now;if(!ex||bodies.length||mutationInFlight)return;const keyboard=flightMode==="keyboard",turning=(flightKeys.has("a")?1:0)-(flightKeys.has("d")?1:0),rollInput=keyboard?0:(flightKeys.has("d")?1:0)-(flightKeys.has("a")?1:0),thrust=flightKeys.has("w"),brake=flightKeys.has("s"),boost=!keyboard&&flightKeys.has(" "),pitching=keyboard?((flightKeys.has(" ")?1:0)-(flightKeys.has("c")?1:0)):0;if(keyboard){flightHeading+=turning*2.4*dt;flightPitch=Math.max(-Math.PI/3,Math.min(Math.PI/3,flightPitch+pitching*1.6*dt));flightRoll*=Math.max(0,1-2.5*dt);}else{flightRoll=Math.max(-Math.PI/2,Math.min(Math.PI/2,flightRoll+rollInput*2.2*dt));if(!rollInput)flightRoll*=Math.max(0,1-2.5*dt);}if(thrust)flightSpeed=Math.min(boost?60:30,flightSpeed+(boost?30:12)*dt);if(brake)flightSpeed=Math.max(-8,flightSpeed-30*dt);flightSpeed*=Math.max(0,1-.55*dt);const horizontalSpeed=Math.cos(flightPitch)*flightSpeed,dx=Math.cos(flightHeading)*horizontalSpeed*dt,dy=Math.sin(flightHeading)*horizontalSpeed*dt,dz=Math.sin(flightPitch)*flightSpeed*dt;document.getElementById("flight-readout").textContent=`flight: ${flightSpeed.toFixed(1)} / ${boost?60:30} · heading ${(flightHeading*180/Math.PI%360+360)%360|0}° · pitch ${(flightPitch*180/Math.PI)|0}°`;localStorage.setItem("multiverse-flight",JSON.stringify({heading:flightHeading,pitch:flightPitch,roll:flightRoll,speed:flightSpeed}));window.dispatchEvent(new CustomEvent("multiverse:flight",{detail:{heading:flightHeading,pitch:flightPitch,roll:flightRoll,flightMode}}));try{if(Math.abs(dx)+Math.abs(dy)+Math.abs(dz)>=.001)ensure(ex.flyBy(dx,dy,dz));if(now-lastFlightSnapshot>=100){lastFlightSnapshot=now;pullSnapshot();}if(now-lastFlightPersist>750){lastFlightPersist=now;persist().catch(err=>status(String(err.message||err),true));}}catch(err){flightSpeed=0;status(String(err.message||err),true);}}
-requestAnimationFrame(autoClock);
-requestAnimationFrame(flightClock);
-(async()=>{try{resize();const {instance}=await WebAssembly.instantiate(await (await fetch("multiverse_game.wasm?v=11")).arrayBuffer(),{});ex=instance.exports;const saved=await dbGet();if(saved){try{importBytes(saved);status("restored IndexedDB world");}catch(_){ensure(ex.format(1));await persist();status("saved image was invalid; created a new world",true);}}else{ensure(ex.format(1));await persist();status("new world saved to IndexedDB");}pullSnapshot();}catch(err){status(String(err.message||err),true);}})();
-window.onresize=resize;
-</script>
+    <aside>
+      <nav class="panel-tabs" aria-label="Control sections" role="tablist">
+        <button class="panel-tab active" data-panel="branches" role="tab" aria-selected="true">BR</button>
+        <button class="panel-tab" data-panel="time" role="tab" aria-selected="false">TIME</button>
+        <button class="panel-tab" data-panel="navigation" role="tab" aria-selected="false">NAV</button>
+        <button class="panel-tab" data-panel="events" role="tab" aria-selected="false">EV</button>
+        <button class="panel-tab" data-panel="system" role="tab" aria-selected="false">SYS</button>
+      </nav>
+      <div class="panel-content">
+        <section class="panel-view" data-panel-view="branches" role="tabpanel">
+          <h2>Current Branch</h2><div id="readout" class="readout"></div>
+          <label class="state-toggle"><input id="show-state" type="checkbox"> show state details</label>
+          <hr><h2>Branch Inspector</h2><div id="branch-tree" class="branch-tree">loading branches...</div>
+          <div id="branch-details" class="details">loading selected branch...</div>
+          <div class="buttons"><button id="branch-parent" disabled>parent</button><button id="branch-left" disabled>left child</button><button id="branch-right" disabled>right child</button><button id="branch-travel" disabled>travel selected</button><button id="branch-sibling" disabled>travel sibling</button><button id="branch-focus" disabled>focus player</button><button id="split">split branch</button></div>
+        </section>
+        <section class="panel-view" data-panel-view="time" role="tabpanel" hidden>
+          <h2>Time</h2><div id="tick-readout" class="details">tick loading...</div>
+          <div class="buttons"><button id="advance">+1 tick</button></div>
+          <div class="field"><label for="auto-ticks">auto ticks</label><input id="auto-ticks" type="checkbox"></div>
+          <div class="field"><label for="tick-rate">ticks / second</label><input id="tick-rate" type="range" min="1" max="60" value="10"></div>
+          <p id="tick-rate-label" class="hint">10 ticks / second</p>
+          <div id="catch-up" hidden><p id="catch-up-progress" class="hint">catching up...</p><div class="buttons"><button id="catch-up-run">continue catch-up</button><button id="catch-up-cancel" class="warn">cancel entry</button></div></div>
+        </section>
+        <section class="panel-view" data-panel-view="navigation" role="tabpanel" hidden>
+          <div id="galaxy-controls"><h2>Navigation</h2>
+            <div class="field"><label for="flight-mode">flight controls</label><select id="flight-mode"><option value="nms">NMS flight</option><option value="keyboard">keyboard/orbit</option></select></div>
+            <div class="field"><label for="step">move step</label><input id="step" value="5" inputmode="decimal"></div>
+            <div class="buttons"><button data-move="0,1,0">north</button><button data-move="-1,0,0">west</button><button data-move="1,0,0">east</button><button data-move="0,-1,0">south</button><button data-move="0,0,1">up</button><button data-move="0,0,-1">down</button></div>
+            <h2>Query Volume</h2>
+            <div class="field"><label for="xy-range">XY half-range</label><input id="xy-range" type="number" value="100" min="10" max="250"></div>
+            <div class="field"><label for="z-range">Z half-range</label><input id="z-range" type="number" value="100" min="1" max="250"></div>
+            <div class="buttons"><button id="view-toggle">Canvas fallback</button><button id="grid-toggle">grid: on</button></div>
+            <div class="buttons"><button data-camera-distance="far" aria-pressed="true">camera far</button><button data-camera-distance="medium" aria-pressed="false">camera medium</button><button data-camera-distance="close" aria-pressed="false">camera close</button></div>
+            <p id="flight-hint" class="hint"></p><p id="flight-readout" class="hint">flight: standby</p>
+            <div class="field"><label for="u">universe U</label><input id="u" inputmode="decimal"></div><button id="shift">shift U</button>
+            <div class="field"><label for="u-step">U step</label><input id="u-step" value="100" inputmode="decimal"></div>
+            <div class="buttons"><button id="u-back">U -</button><button id="u-forward">U +</button></div><p class="hint">Q / E shift U by step</p>
+          </div>
+        </section>
+        <section class="panel-view" data-panel-view="events" role="tabpanel" hidden>
+          <h2>Spatial Events</h2><div class="field"><label for="color">marker color</label><input id="color" value="f4b45f" maxlength="6"></div>
+          <div class="buttons"><button id="mode">mode: select</button><button id="survey">survey anomalies</button></div>
+          <p id="mode-hint" class="hint">Select mode: click inspects a star; double-click enters it.</p><h2>Visible Events</h2><ol id="events"></ol>
+        </section>
+        <section class="panel-view" data-panel-view="system" role="tabpanel" hidden>
+          <h2>Object Inspector</h2><div id="object-details" class="details">select a star, event, body, or station</div>
+          <div class="buttons"><button id="enter-selected" disabled>enter selected system</button><button id="step-system" disabled>orbit step</button><button id="exit-system" disabled>exit system</button></div>
+          <section id="body-inspector" hidden><hr><h2>Selected Body</h2><div id="body-details" class="details"></div>
+            <div class="buttons"><button id="destroy-body" class="warn" disabled>destroy selected</button></div>
+            <div class="field"><label for="impulse-x">impulse X</label><input id="impulse-x" value="0"></div><div class="field"><label for="impulse-y">impulse Y</label><input id="impulse-y" value="0"></div><div class="field"><label for="impulse-z">impulse Z</label><input id="impulse-z" value="0"></div><button id="apply-impulse" disabled>apply impulse</button>
+            <hr><h2>Stations</h2><div class="field"><label for="station-x">local X</label><input id="station-x" value="12"></div><div class="field"><label for="station-y">local Y</label><input id="station-y" value="0"></div><div class="field"><label for="station-z">local Z</label><input id="station-z" value="0"></div><div class="field"><label for="station-color">station color</label><input id="station-color" value="6bd3e5" maxlength="6"></div><button id="place-station">place station</button><ol id="stations"></ol>
+            <hr><h2>Resolved Effects</h2><ol id="effect-audit"></ol>
+          </section>
+        </section>
+      </div>
+    </aside>
+  </main>
 </body>
 </html>

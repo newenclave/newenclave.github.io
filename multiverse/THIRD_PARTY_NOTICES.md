@@ -1,10 +1,8 @@
-# Third-party notices
+# Third-Party Notices
 
-This browser bundle includes [three.js](https://threejs.org/) version 0.185.1.
+## Three.js 0.185.1
 
-three.js is distributed under the MIT License:
-
-Copyright 2010-2026 three.js authors
+Copyright (c) 2010-2026 three.js authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
