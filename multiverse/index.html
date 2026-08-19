@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#080b12">
   <title>Multiverse Game</title>
-  <script type="module" crossorigin src="./assets/index-B1mEywWe.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-gmEGU80Q.css">
+  <script type="module" crossorigin src="./assets/index-BFgpg9Xx.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BKP6pCAT.css">
 </head>
 <body>
   <header>
@@ -32,6 +32,7 @@
         <button class="panel-tab" data-panel="navigation" role="tab" aria-selected="false">NAV</button>
         <button class="panel-tab" data-panel="events" role="tab" aria-selected="false">EV</button>
         <button class="panel-tab" data-panel="system" role="tab" aria-selected="false">SYS</button>
+        <button class="panel-tab" data-panel="ship" role="tab" aria-selected="false">SHIP</button>
       </nav>
       <div class="panel-content">
         <section class="panel-view" data-panel-view="branches" role="tabpanel">
@@ -79,6 +80,17 @@
             <hr><h2>Stations</h2><div class="field"><label for="station-x">local X</label><input id="station-x" value="12"></div><div class="field"><label for="station-y">local Y</label><input id="station-y" value="0"></div><div class="field"><label for="station-z">local Z</label><input id="station-z" value="0"></div><div class="field"><label for="station-color">station color</label><input id="station-color" value="6bd3e5" maxlength="6"></div><button id="place-station">place station</button><ol id="stations"></ol>
             <hr><h2>Resolved Effects</h2><ol id="effect-audit"></ol>
           </section>
+        </section>
+        <section class="panel-view" data-panel-view="ship" role="tabpanel" hidden>
+          <h2>Ship Resources</h2>
+          <div class="gauge-row"><label for="fuel-gauge">fuel</label><meter id="fuel-gauge" min="0" max="1000" value="0"></meter><span id="fuel-text">-- / --</span></div>
+          <div class="gauge-row"><label for="energy-gauge">energy</label><meter id="energy-gauge" min="0" max="100" value="0"></meter><span id="energy-text">-- / --</span></div>
+          <div id="ship-stats" class="details">ship loading...</div>
+          <div class="buttons"><button id="scan-discoveries">scan surroundings</button><button id="install-u-drive" disabled>install U-drive</button><button id="rescue" class="warn">emergency rescue to origin</button></div>
+          <p class="hint">Scanning costs 5 energy. Rescue preserves branch/U, restores 25% resources, and advances 100 ticks.</p>
+          <hr><h2>Inventory &amp; Upgrades</h2><div id="inventory" class="details">inventory loading...</div><div id="upgrades" class="details">upgrades loading...</div>
+          <hr><h2>Discoveries</h2><div id="discovery-summary" class="details">discoveries loading...</div><ol id="discoveries"></ol>
+          <hr><h2>Objective</h2><div id="objective" class="details">no active objective</div>
         </section>
       </div>
     </aside>
