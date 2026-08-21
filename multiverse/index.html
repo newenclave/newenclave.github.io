@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#080b12">
-  <title>Multiverse Game</title>
-  <script type="module" crossorigin src="./assets/index-D-0tU2WL.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-7gY7Pt-Y.css">
+  <title>Multiverse Game</title>
+  <script type="module" crossorigin src="./assets/index-DBVegbTW.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BG5VjOkw.css">
 </head>
 <body>
   <header>
     <h1><b>MULTIVERSE</b> / XYZ NAV</h1>
-    <span id="status" role="status">loading WASM...</span><span class="spacer"></span>
+    <span id="status" role="status">loading WASM...</span><span id="demo-build" aria-label="Loaded demo build">WASM pending</span><span class="spacer"></span>
     <button id="new" class="warn">new world</button>
     <label class="file">import image<input id="import" type="file" accept="application/octet-stream,.mvg"></label>
     <button id="download">export .mvg</button>
@@ -36,8 +36,9 @@
         <button class="panel-tab" data-panel="time" role="tab" aria-selected="false">TIME</button>
         <button class="panel-tab" data-panel="navigation" role="tab" aria-selected="false">NAV</button>
         <button class="panel-tab" data-panel="events" role="tab" aria-selected="false">EV</button>
-        <button class="panel-tab" data-panel="system" role="tab" aria-selected="false">SYS</button>
-        <button class="panel-tab" data-panel="ship" role="tab" aria-selected="false">SHIP</button>
+         <button class="panel-tab" data-panel="system" role="tab" aria-selected="false">SYS</button>
+         <button class="panel-tab" data-panel="ship" role="tab" aria-selected="false">SHIP</button>
+         <button class="panel-tab" data-panel="lab" role="tab" aria-selected="false">LAB</button>
       </nav>
       <div class="panel-content">
         <section class="panel-view" data-panel-view="branches" role="tabpanel">
@@ -79,13 +80,13 @@
           <h2>Object Inspector</h2><div id="object-details" class="details">select a star, event, body, or station</div>
           <div class="buttons"><button id="enter-selected" disabled>enter selected system</button><button id="step-system" disabled>orbit step</button><button id="exit-system" disabled>exit system</button></div>
           <section id="body-inspector" hidden><hr><h2>Selected Body</h2><div id="body-details" class="details"></div>
-            <div class="buttons"><button id="destroy-body" class="warn" disabled>destroy selected</button></div>
+            <div class="buttons"><button id="destroy-body" class="warn" disabled>remove body (release stations)</button><button id="destroy-body-catastrophically" class="warn" disabled>catastrophic destruction</button></div>
             <div class="field"><label for="impulse-x">impulse X</label><input id="impulse-x" value="0"></div><div class="field"><label for="impulse-y">impulse Y</label><input id="impulse-y" value="0"></div><div class="field"><label for="impulse-z">impulse Z</label><input id="impulse-z" value="0"></div><button id="apply-impulse" disabled>apply impulse</button>
-            <hr><h2>Stations</h2><div class="field"><label for="station-x">local X</label><input id="station-x" value="12"></div><div class="field"><label for="station-y">local Y</label><input id="station-y" value="0"></div><div class="field"><label for="station-z">local Z</label><input id="station-z" value="0"></div><div class="field"><label for="station-color">station color</label><input id="station-color" value="6bd3e5" maxlength="6"></div><button id="place-station">place station</button><ol id="stations"></ol>
+            <hr><h2>Stations</h2><div class="field"><label for="station-host">host body</label><select id="station-host" disabled></select></div><div class="field"><label for="station-radius">orbit radius</label><input id="station-radius" type="number" value="12" min="0" step="any"></div><div class="field"><label for="station-direction">direction</label><select id="station-direction"><option value="0">prograde</option><option value="1">retrograde</option></select></div><div class="field"><label for="station-color">station color</label><input id="station-color" value="6bd3e5" maxlength="6"></div><button id="place-station" disabled>place hosted station</button><ol id="stations"></ol>
             <hr><h2>Resolved Effects</h2><ol id="effect-audit"></ol>
           </section>
         </section>
-        <section class="panel-view" data-panel-view="ship" role="tabpanel" hidden>
+         <section class="panel-view" data-panel-view="ship" role="tabpanel" hidden>
           <h2>Ship Resources</h2>
           <div class="gauge-row"><label for="fuel-gauge">fuel</label><meter id="fuel-gauge" min="0" max="1000" value="0"></meter><span id="fuel-text">-- / --</span></div>
           <div class="gauge-row"><label for="energy-gauge">energy</label><meter id="energy-gauge" min="0" max="100" value="0"></meter><span id="energy-text">-- / --</span></div>
@@ -95,9 +96,16 @@
           <hr><h2>Inventory &amp; Upgrades</h2><div id="inventory" class="details">inventory loading...</div><div id="upgrades" class="details">upgrades loading...</div>
           <hr><h2>Discoveries</h2><div id="discovery-summary" class="details">discoveries loading...</div><ol id="discoveries"></ol>
           <hr><h2>Objective</h2><div id="objective" class="details">no active objective</div>
-        </section>
+         </section>
+         <section class="panel-view" data-panel-view="lab" role="tabpanel" hidden>
+           <h2>Intercept Trial</h2>
+           <div id="trial-briefing" class="details">A browser-only navigation experiment. Scan an unknown moving distress contact, read its future positions, and intercept it before the window closes. Your saved world will be restored afterwards.</div>
+           <div class="buttons"><button id="trial-start">start trial</button><button id="trial-cancel" class="warn" disabled>cancel trial</button><button id="trial-retry" disabled>retry</button></div>
+           <p id="trial-state" class="hint">idle: no world state is changed</p>
+           <div id="trial-telemetry" class="details">start a trial to show distance, fuel spent, and timing.</div>
+         </section>
       </div>
     </aside>
-  </main>
+  </main>
 </body>
 </html>
