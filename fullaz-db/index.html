@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A small practical introduction to fullaz-db, a typed Zig database composition layer.">
+  <title>fullaz-db</title>
+  <style>
+    :root { color-scheme: dark; --bg:#080b12; --panel:#111827; --edge:#263449; --text:#dce7f5; --muted:#91a3ba; --blue:#7dd3fc; --gold:#f6c453; --green:#86efac; --pink:#f5a9e6; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; min-width:320px; background:radial-gradient(circle at top right,#162843 0,transparent 34%),var(--bg); color:var(--text); font:16px/1.6 ui-monospace,"Cascadia Mono",Consolas,monospace; }
+    main { width:min(1040px,100%); margin:0 auto; padding:28px 20px 72px; }
+    nav { display:flex; justify-content:space-between; gap:16px; align-items:center; color:var(--muted); font-size:13px; }
+    a { color:var(--blue); } a:hover,a:focus-visible { color:#fff; }
+    .brand { color:var(--text); text-decoration:none; } .brand span { color:var(--blue); }
+    .hero { display:grid; grid-template-columns:minmax(0,1fr) 290px; gap:28px; padding:72px 0 42px; align-items:end; }
+    h1 { margin:0; font-size:clamp(42px,8vw,76px); letter-spacing:-.07em; line-height:.95; } h1 span { color:var(--blue); }
+    h2 { margin:0 0 14px; color:var(--blue); font-size:26px; letter-spacing:-.04em; } h3 { margin:0 0 8px; color:var(--gold); font-size:16px; }
+    p { margin:0 0 14px; color:var(--muted); } .lead { max-width:650px; margin-top:22px; color:#c6d5e5; font-size:19px; }
+    .hero-card,.card { padding:20px; border:1px solid var(--edge); border-radius:12px; background:color-mix(in srgb,var(--panel) 94%,transparent); }
+    .hero-card strong { display:block; color:var(--gold); font-size:13px; } .hero-card p { margin:10px 0 0; font-size:13px; }
+    .cta { display:inline-flex; gap:10px; align-items:center; margin-top:12px; padding:12px 16px; border:1px solid #4b78af; border-radius:8px; background:#173050; color:#fff; text-decoration:none; font-weight:700; }
+    .cta:hover { background:#245084; color:#fff; } .cta.gold { border-color:#a87927; background:#4a3511; }
+    section { padding:38px 0; border-top:1px solid var(--edge); }
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; } .card p { font-size:14px; }
+    .api { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; } .api div { padding:13px; border:1px solid var(--edge); border-radius:8px; background:#0d1420; } .api b { color:var(--green); display:block; } .api span { color:var(--muted); font-size:12px; }
+    .example { margin:22px 0; padding:20px; border-left:3px solid var(--blue); background:#0d1420; } .example p { font-size:14px; }
+    pre { margin:14px 0 0; overflow:auto; padding:16px; border:1px solid #203049; border-radius:8px; background:#060a10; color:#c9d9eb; font:13px/1.55 ui-monospace,"Cascadia Mono",Consolas,monospace; } code { color:#c9d9eb; } .note { color:#86efac; }
+    .tok-keyword { color:#c792ea; } .tok-type { color:#7dd3fc; } .tok-function { color:#86efac; } .tok-string { color:#f6c453; } .tok-number { color:#f5a9e6; } .tok-comment { color:#63758c; font-style:italic; } .tok-builtin { color:#22d3ee; } .tok-command { color:#86efac; font-weight:700; } .tok-flag { color:#7dd3fc; }
+    .cli { display:grid; grid-template-columns:130px 1fr; gap:0; border:1px solid var(--edge); border-radius:8px; overflow:hidden; } .cli div { padding:10px 13px; border-bottom:1px solid var(--edge); } .cli div:nth-last-child(-n+2) { border-bottom:0; } .cli code { color:var(--gold); }
+    footer { padding-top:28px; color:#63758c; font-size:13px; }
+    @media (max-width:760px) { .hero { grid-template-columns:1fr; padding-top:48px; } .grid,.api { grid-template-columns:1fr; } .cli { grid-template-columns:105px 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <nav><a class="brand" href="../"><span>fullaz</span> demos</a><a href="demo/">open live demo &rarr;</a></nav>
+
+    <header class="hero">
+      <div>
+        <h1><span>fullaz</span>-db</h1>
+        <p class="lead">A typed database composition layer for Zig. Pick a few page-backed data structures, put them in one schema, and update them inside one explicit transaction.</p>
+        <a class="cta gold" href="demo/">Open the Helsinki dispatch demo &rarr;</a>
+      </div>
+      <aside class="hero-card"><strong>What it is not</strong><p>Not SQL, not an ORM, not a production-ready general DBMS. It is a small, explicit building block for durable indexed applications.</p></aside>
+    </header>
+
+    <section>
+      <h2>Why use it?</h2>
+      <div class="grid">
+        <article class="card"><h3>One transaction</h3><p>Change a primary index, a spatial index, a queue, an audit stream, and a document together. Commit or roll back the entire operation.</p></article>
+        <article class="card"><h3>Typed at compile time</h3><p>Your schema, page kinds, component options, and durable layout are known before the program starts.</p></article>
+        <article class="card"><h3>Small primitives</h3><p>Use the structure that fits: ordered keys, map windows, priority work, append-only bytes, or editable text.</p></article>
+      </div>
+    </section>
+
+    <section>
+      <h2>The small API surface</h2>
+      <div class="api">
+        <div><b>Schema</b><span>Names the components in one database.</span></div>
+        <div><b>bpt</b><span>Ordered unique key/value index.</span></div>
+        <div><b>rtree</b><span>2D or N-dimensional area index.</span></div>
+        <div><b>slotHeap</b><span>Persistent priority queue.</span></div>
+        <div><b>chainStore</b><span>One durable appendable byte stream.</span></div>
+        <div><b>weightedSequence</b><span>One editable byte document.</span></div>
+        <div><b>MemoryDatabase</b><span>Fast, ephemeral, browser-friendly backend.</span></div>
+        <div><b>StaticDatabase</b><span>Persistent image with dirty-image detection.</span></div>
+        <div><b>StaticDatabaseWithWal</b><span>Persistent image with a small redo WAL.</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Start small</h2>
+      <article class="example">
+        <h3>1. Create a database</h3>
+        <p>A schema can be empty. This is the smallest useful shape for learning the lifecycle.</p>
+        <pre><code>const std = @import("std");
+const fullaz_db = @import("fullaz-db");
+
+const Schema = fullaz_db.Schema(.{ .page_id = u32 });
+const Database = fullaz_db.MemoryDatabase(Schema);
+
+pub fn main() !void {
+    var database = try Database.init(std.heap.page_allocator, .{
+        .page_size = 4096,
+        .cache_frames = 16,
+    });
+    defer database.deinit();
+}</code></pre>
+      </article>
+
+      <article class="example">
+        <h3>2. Add one ordered index</h3>
+        <p>`bpt` stores unique byte keys in comparator order. This complete example creates an in-memory database from the schema before opening a transaction.</p>
+        <pre><code>const std = @import("std");
+const fullaz = @import("fullaz");
+const fullaz_db = @import("fullaz-db");
+
+fn compare(_: void, left: []const u8, right: []const u8) fullaz.core.algorithm.Order {
+    return switch (std.mem.order(u8, left, right)) {
+        .lt =&gt; .lt, .eq =&gt; .eq, .gt =&gt; .gt,
+    };
+}
+
+const Schema = fullaz_db.Schema(.{ .page_id = u32 }).add("users", fullaz_db.bpt(.{
+    .compare = compare,
+    .CompareContext = void,
+    .comparator_id = 1,
+    .maximum_key_size = 32,
+    .maximum_value_size = 128,
+}));
+
+const Database = fullaz_db.MemoryDatabase(Schema);
+
+pub fn main() !void {
+    var database = try Database.init(std.heap.page_allocator, .{
+        .page_size = 4096,
+        .cache_frames = 16,
+    });
+    defer database.deinit();
+
+    var tx = try database.begin();
+    defer tx.deinit();
+    _ = try tx.get("users").insert("ada", "Ada Lovelace");
+    try tx.commit();
+}</code></pre>
+      </article>
+
+      <article class="example">
+        <h3>3. Change several indexes atomically</h3>
+        <p>Add a primary B+ tree, an R-tree for areas, and a priority queue. This Helsinki pump order enters all three indexes in one transaction, or none of them.</p>
+        <pre><code>const std = @import("std");
+const fullaz = @import("fullaz");
+const fullaz_db = @import("fullaz-db");
+
+fn compare(_: void, left: []const u8, right: []const u8) fullaz.core.algorithm.Order {
+    return switch (std.mem.order(u8, left, right)) {
+        .lt =&gt; .lt, .eq =&gt; .eq, .gt =&gt; .gt,
+    };
+}
+
+fn heapCompare(_: void, left: []const u8, right: []const u8) std.math.Order {
+    return std.mem.order(u8, left, right);
+}
+
+const Schema = fullaz_db.Schema(.{ .page_id = u32 })
+    .add("orders", fullaz_db.bpt(.{
+        .compare = compare, .CompareContext = void, .comparator_id = 1,
+        .maximum_key_size = 8, .maximum_value_size = 64,
+    }))
+    .add("areas", fullaz_db.rtree(.{
+        .Coord = f32, .dimensions = 2,
+        .maximum_entries = 8, .maximum_value_size = 8,
+    }))
+    .add("queue", fullaz_db.slotHeap(.{
+        .compare = heapCompare, .CompareContext = void, .comparator_id = 2,
+        .maximum_key_size = 8, .maximum_value_size = 0, .maximum_level = 8,
+    }));
+
+const Database = fullaz_db.MemoryDatabase(Schema);
+
+pub fn main() !void {
+    var database = try Database.init(std.heap.page_allocator, .{
+        .page_size = 4096,
+        .cache_frames = 16,
+    });
+    defer database.deinit();
+
+    const order_id = "20260822"; // sortable due key
+    const record = "open|high|north pump";
+    const AreaBox = Schema.trait("areas").Binding(Database.BackendType).Proxy.BoundingBox;
+    const area = AreaBox.initWith(.{ 60.1650, 24.9300 }, .{ 60.1750, 24.9500 });
+
+    var tx = try database.begin();
+    defer tx.deinit();
+    _ = try tx.get("orders").insert(order_id, record);
+    try tx.get("areas").insert(area, order_id);
+    try tx.get("queue").push(order_id, "");
+    try tx.commit();
+}</code></pre>
+      </article>
+
+      <article class="example">
+        <h3>4. Roll back deliberately</h3>
+        <p>Nothing is committed until `commit()`. Use `rollback()` for an intentional abort; an active transaction is also rolled back during cleanup.</p>
+        <pre><code>var tx = try database.begin();
+defer tx.deinit();
+_ = try tx.get("users").insert("temporary", "will disappear");
+try tx.rollback();</code></pre>
+      </article>
+
+      <article class="example">
+        <h3>5. The dispatch application</h3>
+        <p>The live demo combines six components: orders and due-time indexes (`bpt`), service areas (`rtree`), next work (`slotHeap`), audit history (`chainStore`), and an operator runbook (`weightedSequence`).</p>
+        <p class="note">Try it: add a Helsinki order, drag a map area, inspect the next due item, complete it, then open the physical page inspector.</p>
+        <a class="cta" href="demo/">Launch the live database &rarr;</a>
+      </article>
+
+      <article class="example">
+        <h3>6. Persist an image with a WAL</h3>
+        <p>Format creates both the database image and its redo log. Later, open the same pair with the identical schema options; the WAL recovers committed work before the database is exposed.</p>
+        <pre><code>const std = @import("std");
+const fullaz = @import("fullaz");
+const fullaz_db = @import("fullaz-db");
+
+const Schema = fullaz_db.Schema(.{ .page_id = u32 })
+    .add("notes", fullaz_db.chainStore(.{}));
+const Device = fullaz.device.FileBlock(u32);
+const Log = fullaz.device.FileLog(u32);
+const Database = fullaz_db.StaticDatabaseWithWal(Schema, Device, Log);
+const options: Database.InitOptions = .{
+    .image_id = [_]u8{0x42} ** 16,
+    .components = .{ .notes = .{} },
+};
+
+pub fn formatAndWrite(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    image_path: []const u8,
+    wal_path: []const u8,
+) !void {
+    var database = try Database.format(
+        allocator,
+        try Device.create(io, image_path, 512),
+        try Log.create(io, wal_path),
+        options,
+    );
+    defer database.deinit();
+
+    var tx = try database.begin();
+    defer tx.deinit();
+    try tx.get("notes").append("Helsinki dispatch started");
+    try tx.commit();
+}
+
+pub fn reopenAndRead(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    image_path: []const u8,
+    wal_path: []const u8,
+) !void {
+    var database = try Database.open(
+        allocator,
+        try Device.open(io, image_path, 512),
+        try Log.open(io, wal_path),
+        options,
+    );
+    defer database.deinit();
+
+    var bytes: [64]u8 = undefined;
+    const count = try database.getConst("notes").readAt(0, &amp;bytes);
+    std.debug.print("{s}\n", .{bytes[0..count]});
+}</code></pre>
+      </article>
+    </section>
+
+    <section>
+      <h2>Persistent CLI</h2>
+      <p>The native dispatch program uses <code>StaticDatabaseWithWal</code>. It keeps an image and a sidecar WAL, and offers a small shell around the same application operations.</p>
+      <pre><code>zig build run-dispatch -- dispatch.img --format add 20260822 60.1699 24.9384 0.01 open|high|north-pump
+zig build run-dispatch -- dispatch.img top
+zig build run-dispatch -- dispatch.img area 60.1699 24.9384 0.02</code></pre>
+      <div class="cli" aria-label="Dispatch CLI commands">
+        <div><code>add</code></div><div><code>add &lt;id&gt; &lt;lat&gt; &lt;lng&gt; &lt;radius&gt; &lt;value...&gt;</code> — insert an order and its indexes.</div>
+        <div><code>top</code></div><div>Show the next due order without removing it.</div>
+        <div><code>complete</code></div><div>Remove the next due order from every relevant component and append an audit entry.</div>
+        <div><code>list</code></div><div>List the orders and their areas in ID order.</div>
+        <div><code>area</code></div><div><code>area &lt;lat&gt; &lt;lng&gt; &lt;radius&gt;</code> — query intersecting service areas.</div>
+        <div><code>help</code></div><div>Print all commands. In the interactive shell, <code>quit</code> or <code>exit</code> closes it.</div>
+      </div>
+      <p>Generate a deterministic global test dataset after building the CLI:</p>
+      <pre><code>python3 demos/dispatch/tools/generate_locations.py dispatch.img 1000 --format
+python3 demos/dispatch/tools/generate_locations.py dispatch.img 1000 --dry-run --seed 42</code></pre>
+    </section>
+
+    <section>
+      <h2>Try it for real</h2>
+      <div class="hero-card"><strong>Helsinki dispatch board</strong><p>Create orders on an OpenStreetMap view, query an area, complete the next item, load or download an image, keep it in IndexedDB, and inspect the database pages.</p><a class="cta gold" href="demo/">Open the live demo &rarr;</a></div>
+    </section>
+
+    <footer>Built with <a href="https://github.com/newenclave/fullaz">fullaz</a>. The API is educational and evolving; treat file compatibility and durability guarantees according to the current library documentation.</footer>
+  </main>
+  <script>
+    const zigKeywords = new Set(["const", "var", "fn", "pub", "return", "switch", "defer", "try", "catch", "if", "else", "for", "while", "comptime", "struct", "enum", "error"]);
+    const zigTypes = new Set(["void", "bool", "u8", "u16", "u32", "u64", "usize", "i8", "i16", "i32", "i64", "f32", "f64"]);
+
+    function appendToken(fragment, text, className) {
+      if (!className) { fragment.append(text); return; }
+      const token = document.createElement("span");
+      token.className = className;
+      token.textContent = text;
+      fragment.append(token);
+    }
+
+    function highlightZig(code, source) {
+      const fragment = document.createDocumentFragment();
+      const tokens = /\/\/[^\n]*|"(?:\\.|[^"\\])*"|@\w+|\b\d+(?:\.\d+)?\b|\b[A-Za-z_]\w*\b/g;
+      let offset = 0;
+      for (const match of source.matchAll(tokens)) {
+        const text = match[0], index = match.index;
+        fragment.append(source.slice(offset, index));
+        const following = source.slice(index + text.length);
+        const className = text.startsWith("//") ? "tok-comment"
+          : text.startsWith('"') ? "tok-string"
+          : text.startsWith("@") ? "tok-builtin"
+          : /^\d/.test(text) ? "tok-number"
+          : zigKeywords.has(text) ? "tok-keyword"
+          : zigTypes.has(text) || /^[A-Z]/.test(text) ? "tok-type"
+          : /^\s*\(/.test(following) ? "tok-function" : "";
+        appendToken(fragment, text, className);
+        offset = index + text.length;
+      }
+      fragment.append(source.slice(offset));
+      code.replaceChildren(fragment);
+    }
+
+    function highlightShell(code, source) {
+      const fragment = document.createDocumentFragment();
+      const tokens = /--[\w-]+|\b(?:zig|python3)\b|\b\d+(?:\.\d+)?\b/g;
+      let offset = 0;
+      for (const match of source.matchAll(tokens)) {
+        const text = match[0], index = match.index;
+        fragment.append(source.slice(offset, index));
+        appendToken(fragment, text, text.startsWith("--") ? "tok-flag" : text === "zig" || text === "python3" ? "tok-command" : "tok-number");
+        offset = index + text.length;
+      }
+      fragment.append(source.slice(offset));
+      code.replaceChildren(fragment);
+    }
+
+    for (const code of document.querySelectorAll("pre code")) {
+      const source = code.textContent;
+      if (/^\s*(zig|python3)\b/.test(source)) highlightShell(code, source);
+      else highlightZig(code, source);
+    }
+  </script>
+</body>
+</html>
