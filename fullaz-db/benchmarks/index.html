@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Five-run Fullaz and redb ordered-table benchmark matrix.">
+  <title>fullaz-db benchmarks | ordered table matrix</title>
+  <style>
+    :root { color-scheme:dark; --bg:#080b12; --panel:#101925; --panel-strong:#0c131e; --edge:#2a3a50; --text:#e5edf7; --muted:#9aacc1; --blue:#7dd3fc; --blue-dim:#245073; --gold:#f6c453; --green:#86efac; --pink:#f5a9e6; --red:#fca5a5; }
+    * { box-sizing:border-box; } html { scroll-behavior:smooth; } body { min-width:320px; margin:0; background:radial-gradient(circle at 85% 0,#18304e 0,transparent 30%),var(--bg); color:var(--text); font:16px/1.6 ui-monospace,"Cascadia Mono",Consolas,monospace; }
+    main { width:min(1180px,100%); margin:0 auto; padding:28px 20px 72px; } a { color:var(--blue); } a:hover,a:focus-visible { color:#fff; }
+    nav { display:flex; align-items:center; justify-content:space-between; gap:16px; color:var(--muted); font-size:13px; } .brand { color:var(--text); text-decoration:none; } .brand span { color:var(--blue); } .nav-links { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:14px; }
+    .hero { display:grid; grid-template-columns:minmax(0,1fr) 290px; gap:32px; align-items:end; padding:70px 0 44px; } .eyebrow { display:inline-block; margin-bottom:10px; color:var(--pink); font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; } h1 { margin:0; font-size:clamp(42px,7vw,72px); letter-spacing:-.075em; line-height:.94; } h1 span,h2 { color:var(--blue); } h2 { margin:0 0 10px; font-size:27px; letter-spacing:-.045em; } h3 { margin:0; color:var(--gold); font-size:14px; } p { margin:0 0 14px; color:var(--muted); } .lead { max-width:750px; margin-top:22px; color:#cbd9e8; font-size:18px; }
+    section { padding:38px 0; border-top:1px solid var(--edge); } .callout,.card { border:1px solid var(--edge); border-radius:12px; background:color-mix(in srgb,var(--panel) 94%,transparent); } .callout { padding:18px; } .callout strong { display:block; color:var(--gold); font-size:13px; } .callout p { margin:10px 0 0; font-size:13px; }
+    .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:12px; border:1px solid #31506f; border-radius:14px; background:linear-gradient(135deg,#10233a,#0b121d 58%); } .kpi { padding:14px; border-right:1px solid var(--edge); } .kpi:last-child { border-right:0; } .kpi strong { display:block; color:var(--text); font-size:20px; letter-spacing:-.04em; } .kpi span { color:var(--muted); font-size:11px; }
+    .tabs,.picker { display:flex; flex-wrap:wrap; gap:8px; } .tabs { margin:18px 0; } button { font:inherit; } .tab,.pick { padding:8px 12px; border:1px solid var(--edge); border-radius:999px; background:var(--panel-strong); color:var(--muted); font-size:13px; cursor:pointer; } .tab:hover,.tab:focus-visible,.pick:hover,.pick:focus-visible { border-color:#4b78af; color:#fff; } .tab[aria-selected="true"],.pick[aria-pressed="true"] { border-color:#6bc1ee; background:#173c60; color:#fff; }
+    .chart-shell { min-height:465px; padding:18px; border:1px solid #31506f; border-radius:14px; background:linear-gradient(135deg,#101d2b,#0b121d 60%); } .chart-head { display:flex; justify-content:space-between; align-items:end; gap:16px; margin-bottom:14px; } .chart-head p { margin:0; font-size:13px; } .chart-caption { margin-top:14px; padding:12px 14px; border-left:2px solid var(--gold); background:rgba(246,196,83,.07); color:#c6d3e0; font-size:13px; }
+    .bar-list { display:grid; gap:9px; } .bar-row { display:grid; grid-template-columns:minmax(170px,220px) minmax(100px,1fr) 94px; gap:12px; align-items:center; } .bar-label { overflow:hidden; color:#c5d5e5; font-size:12px; text-overflow:ellipsis; white-space:nowrap; } .bar-track { height:15px; overflow:hidden; border:1px solid #284058; border-radius:999px; background:#07101a; } .bar { height:100%; min-width:2px; border-radius:inherit; background:linear-gradient(90deg,#317eae,#7dd3fc); } .bar.wal { background:linear-gradient(90deg,#876723,#f6c453); } .bar.cow { background:linear-gradient(90deg,#8b3d79,#f5a9e6); } .bar.redb { background:linear-gradient(90deg,#347c57,#86efac); } .bar-value { color:var(--text); font-size:12px; text-align:right; white-space:nowrap; }
+    .rail-wrap { position:relative; } .strategy-rail { display:grid; grid-auto-columns:minmax(265px,1fr); grid-auto-flow:column; gap:12px; overflow-x:auto; padding:2px 2px 14px; scroll-behavior:smooth; scroll-snap-type:x mandatory; scrollbar-color:#406789 transparent; } .strategy { min-height:220px; padding:20px; scroll-snap-align:start; } .strategy p { margin-top:10px; font-size:13px; } .strategy strong { color:var(--green); font-size:12px; } .rail-control { margin:12px 8px 0 0; padding:7px 10px; border:1px solid #406789; border-radius:8px; background:#11243a; color:var(--blue); cursor:pointer; } .rail-control:hover,.rail-control:focus-visible { background:#1a3a5c; color:#fff; }
+    .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; } .card { padding:20px; } .card p { margin:10px 0 0; font-size:13px; } .card ul { margin:10px 0 0; padding-left:20px; color:var(--muted); font-size:13px; } .card li + li { margin-top:6px; }
+    .table-wrap { overflow:auto; border:1px solid var(--edge); border-radius:10px; background:var(--panel-strong); } table { width:100%; min-width:760px; border-collapse:collapse; font-size:12px; } th,td { padding:11px 13px; border-bottom:1px solid var(--edge); text-align:left; vertical-align:middle; } tr:last-child td { border-bottom:0; } th { color:var(--gold); font-size:11px; } td { color:var(--muted); } td:first-child { color:var(--text); font-weight:700; } .status { display:inline-block; margin:6px 0 0; color:var(--muted); font-size:12px; } .error { color:var(--red); }
+    .button { display:inline-flex; align-items:center; gap:8px; margin:8px 10px 0 0; padding:11px 14px; border:1px solid #4b78af; border-radius:8px; background:#173050; color:#fff; font-weight:700; text-decoration:none; } .button:hover,.button:focus-visible { background:#245084; color:#fff; } .button.gold { border-color:#a87927; background:#4a3511; }
+    footer { padding-top:28px; color:#63758c; font-size:13px; } [hidden] { display:none !important; }
+    @media (max-width:760px) { main { padding:20px 14px 52px; } .hero,.grid,.kpis { grid-template-columns:1fr; } .hero { padding:48px 0 36px; } .kpi { border-right:0; border-bottom:1px solid var(--edge); } .kpi:last-child { border-bottom:0; } .chart-head { display:block; } .bar-row { grid-template-columns:105px minmax(70px,1fr) 78px; gap:8px; } .bar-label,.bar-value { font-size:11px; } .chart-shell { padding:13px; } }
+    @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } .strategy-rail { scroll-behavior:auto; } }
+  </style>
+</head>
+<body>
+  <main>
+    <nav>
+      <a class="brand" href="../../"><span>fullaz</span> demos</a>
+      <div class="nav-links"><a href="../">about</a><a href="#matrix">matrix</a><a href="#strategies">strategies</a><a href="#method">method</a></div>
+    </nav>
+
+    <header class="hero">
+      <div>
+        <span class="eyebrow">Benchmark / 2026-08-30</span>
+        <h1><span>ordered</span> table matrix</h1>
+        <p class="lead">A five-run comparison of Fullaz storage choices and redb 4.2.0 on one durable byte-key table. It is a useful engineering snapshot, not a general database ranking.</p>
+        <a class="button gold" href="standard-20260830.json">Open result JSON &rarr;</a>
+        <a class="button" href="../">Back to fullaz-db &larr;</a>
+      </div>
+      <aside class="callout">
+        <strong>Exploratory environment</strong>
+        <p>AMD Ryzen AI 7 PRO 360, WSL2, and a native ext4 virtual disk. The process is pinned to one logical CPU. Repeat on clean native Linux hardware before making public performance claims.</p>
+      </aside>
+    </header>
+
+    <section>
+      <div class="kpis">
+        <div class="kpi"><strong>5</strong><span>fresh repetitions</span></div>
+        <div class="kpi"><strong>11</strong><span>database configurations</span></div>
+        <div class="kpi"><strong>1.101M</strong><span>records after writes</span></div>
+        <div class="kpi"><strong>440</strong><span>isolated read processes</span></div>
+      </div>
+    </section>
+
+    <section id="matrix">
+      <span class="eyebrow">Measured results</span>
+      <h2>Compare the whole matrix</h2>
+      <p>Bars show the median of five fresh runs. Hover is not required: the exact value stays beside every bar.</p>
+      <div class="tabs" role="tablist" aria-label="Benchmark matrix">
+        <button class="tab" id="write-tab" type="button" role="tab" aria-selected="true" aria-controls="write-panel" data-tab="write-panel">Write</button>
+        <button class="tab" id="read-tab" type="button" role="tab" aria-selected="false" aria-controls="read-panel" data-tab="read-panel">Read</button>
+        <button class="tab" id="storage-tab" type="button" role="tab" aria-selected="false" aria-controls="storage-panel" data-tab="storage-panel">Storage</button>
+        <button class="tab" id="method-tab" type="button" role="tab" aria-selected="false" aria-controls="method-panel" data-tab="method-panel">Method</button>
+      </div>
+
+      <div id="write-panel" class="chart-shell" role="tabpanel" aria-labelledby="write-tab">
+        <div class="chart-head"><div><h3>Durable write throughput</h3><p>Every one-key transaction starts and commits independently.</p></div><div class="picker" role="group" aria-label="Write phase"><button class="pick" type="button" aria-pressed="true" data-write="bulk_load_ns">Bulk load</button><button class="pick" type="button" aria-pressed="false" data-write="individual_writes_ns">One key</button><button class="pick" type="button" aria-pressed="false" data-write="batch_writes_ns">1,000-key batch</button></div></div>
+        <div id="write-chart" class="bar-list" aria-live="polite"><span class="status">Loading benchmark data...</span></div>
+        <p id="write-caption" class="chart-caption">Bulk loading uses one durable transaction for 1,000,000 keys.</p>
+      </div>
+
+      <div id="read-panel" class="chart-shell" role="tabpanel" aria-labelledby="read-tab" hidden>
+        <div class="chart-head"><div><h3>Read throughput</h3><p>Each point and range phase uses a separate read-only process.</p></div><div class="picker" role="group" aria-label="Read setup"><button class="pick" type="button" aria-pressed="true" data-read="67108864.os_warm.point">64 MiB / warm / point</button><button class="pick" type="button" aria-pressed="false" data-read="67108864.fadvise_cold.point">64 MiB / cold / point</button><button class="pick" type="button" aria-pressed="false" data-read="1073741824.os_warm.point">1 GiB / warm / point</button><button class="pick" type="button" aria-pressed="false" data-read="1073741824.fadvise_cold.point">1 GiB / cold / point</button><button class="pick" type="button" aria-pressed="false" data-read="67108864.os_warm.range">64 MiB / warm / range</button><button class="pick" type="button" aria-pressed="false" data-read="67108864.fadvise_cold.range">64 MiB / cold / range</button><button class="pick" type="button" aria-pressed="false" data-read="1073741824.os_warm.range">1 GiB / warm / range</button><button class="pick" type="button" aria-pressed="false" data-read="1073741824.fadvise_cold.range">1 GiB / cold / range</button></div></div>
+        <div id="read-chart" class="bar-list" aria-live="polite"></div>
+        <p id="read-caption" class="chart-caption">Warm means the orchestrator sequentially reads the database files before the runner opens them.</p>
+      </div>
+
+      <div id="storage-panel" class="chart-shell" role="tabpanel" aria-labelledby="storage-tab" hidden>
+        <div class="chart-head"><div><h3>Final database footprint</h3><p>Allocated bytes are the physical-space metric.</p></div><div class="picker" role="group" aria-label="Storage metric"><button class="pick" type="button" aria-pressed="true" data-storage="allocated_bytes">Allocated</button><button class="pick" type="button" aria-pressed="false" data-storage="logical_bytes">Logical</button></div></div>
+        <div id="storage-chart" class="bar-list" aria-live="polite"></div>
+        <p id="storage-caption" class="chart-caption">The redb file is sparse. Its logical size and allocated size are deliberately shown as different values.</p>
+      </div>
+
+      <div id="method-panel" class="chart-shell" role="tabpanel" aria-labelledby="method-tab" hidden>
+        <div class="grid">
+          <article class="card"><h3>Same table workload</h3><p>Every cell stores 24-byte keys and 150-byte values. The key stream is deterministic and unique. The final table contains 1,101,000 records.</p></article>
+          <article class="card"><h3>Durability is explicit</h3><p>redb sets <code>Durability::Immediate</code> for every measured write transaction. Fullaz durable paths also synchronize commit data, but recovery semantics differ by backend.</p></article>
+          <article class="card"><h3>Reads are isolated</h3><p>Build, point read, range read, and verify run in separate processes. The matrix uses 64 MiB and 1 GiB application-cache settings.</p></article>
+          <article class="card"><h3>Correctness is checked</h3><p>Every cell reopens in a final process. The runner checks count, sorted-data digest, and point samples. The orchestrator compares read checksums across cells.</p></article>
+        </div>
+        <p class="chart-caption">“Cold” calls <code>POSIX_FADV_DONTNEED</code> as a best-effort request. It is not a hardware-cold or cache-free guarantee.</p>
+      </div>
+    </section>
+
+    <section id="strategies">
+      <span class="eyebrow">Storage choices</span>
+      <h2>Five page lifecycles, two B+ tree policies</h2>
+      <p>Use the rail to compare the choices. It scrolls horizontally on small screens because these differences are easier to scan as cards than as a narrow table.</p>
+      <div class="rail-wrap">
+        <div id="strategy-rail" class="strategy-rail" tabindex="0" aria-label="Fullaz storage configurations">
+          <article class="card strategy"><h3>Static</h3><p>A compiled schema stores roots and free-list metadata in a page-zero superblock. It uses physical page IDs and updates pages in place.</p><strong>No WAL. Controlled images and experiments.</strong></article>
+          <article class="card strategy"><h3>Static WAL</h3><p>The same physical-page static schema writes redo records before home-page changes. Recovery replays committed records after an interruption.</p><strong>Normal durable Fullaz starting point.</strong></article>
+          <article class="card strategy"><h3>Virtual static CoW</h3><p>Components keep stable virtual page IDs. Mutations copy backing pages and update a copy-on-write virtual-page map, then select an alternating superblock.</p><strong>Crash-consistent experimental storage path.</strong></article>
+          <article class="card strategy"><h3>Dynamic</h3><p>A persistent component catalog, name indexes, and component metadata sit around the compiled benchmark schema. Pages update in place.</p><strong>Measures catalog metadata cost, not dynamic key types.</strong></article>
+          <article class="card strategy"><h3>Dynamic WAL</h3><p>The dynamic catalog path uses the same redo recovery approach as Static WAL.</p><strong>Durable catalog-oriented configuration.</strong></article>
+        </div>
+        <button class="rail-control" type="button" data-rail="previous" aria-label="Show previous storage choices">&larr; Previous</button>
+        <button class="rail-control" type="button" data-rail="next" aria-label="Show next storage choices">Next &rarr;</button>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <article class="card"><h3>Neighbor share</h3><p>When an insertion does not fit, move entries into a sibling first. Split only when sharing cannot make enough room. This produced denser files and generally stronger reads in this workload.</p></article>
+        <article class="card"><h3>Force split</h3><p>Skip insertion-time sharing and split the overflowing node. It improved Fullaz bulk and batch writes here, while using roughly 15–19% more allocated space and usually lowering read throughput.</p></article>
+      </div>
+    </section>
+
+    <section id="method">
+      <span class="eyebrow">How to read this</span>
+      <h2>A database path comparison, not a B+ tree shootout</h2>
+      <div class="grid">
+        <article class="card"><h3>What redb represents</h3><p>redb 4.2.0 is a mature embedded ACID key-value database for Rust. It stores tables in copy-on-write B+ trees, but also has its own MVCC, cache, allocator, transaction protocol, and file layout.</p></article>
+        <article class="card"><h3>What this isolates</h3><p>The workload compares one identical ordered byte-table path. It exposes the combined effect of each implementation's B+ tree, schema layer, transaction work, cache, allocator, and durable storage path.</p></article>
+        <article class="card"><h3>What is not measured</h3><ul><li>Concurrency, snapshots, MVCC behavior, or deletes.</li><li>Crash injection or recovery time.</li><li>Tail latency, write amplification, or syscall counts.</li><li>Different value sizes, skew, or data larger than memory.</li></ul></article>
+        <article class="card"><h3>One-key writes</h3><p>redb reaches 726 individual durable transactions per second; Fullaz's best configuration reaches 129. The benchmark does not explain why. A separate I/O trace and syscall benchmark is needed before assigning a cause.</p></article>
+      </div>
+    </section>
+
+    <footer>Source data: five-run standard matrix from 2026-08-30. <a href="standard-20260830.json">Download the measurement JSON</a>. Fullaz remains an educational, evolving project.</footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
