@@ -130,13 +130,9 @@ const Database = fullaz_db.MemoryDatabase(Schema);</code></pre>
       <pre><code>const fullaz = @import("fullaz");
 
 fn compare(_: void, left: []const u8, right: []const u8)
-    fullaz.core.algorithm.Order
+    std.math.Order
 {
-    return switch (std.mem.order(u8, left, right)) {
-        .lt =&gt; .lt,
-        .eq =&gt; .eq,
-        .gt =&gt; .gt,
-    };
+    return std.mem.order(u8, left, right);
 }
 
 const Schema = fullaz_db.Schema(.{ .page_id = u32 })
