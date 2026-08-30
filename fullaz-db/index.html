@@ -32,6 +32,7 @@
     .step-body { min-width:0; } .step-body h3 { margin-top:7px; }
     pre { margin:14px 0 0; overflow:auto; padding:16px; border:1px solid #203049; border-radius:8px; background:#060a10; color:#c9d9eb; font:13px/1.55 ui-monospace,"Cascadia Mono",Consolas,monospace; tab-size:4; }
     code { color:#c9d9eb; } .code-note,.muted-small { margin-top:12px; font-size:13px; }
+    .zig .tok-keyword { color:#f5a9e6; } .zig .tok-builtin { color:#7dd3fc; } .zig .tok-string { color:#86efac; } .zig .tok-type { color:#f6c453; } .zig .tok-module { color:#a5d8ff; } .zig .tok-call { color:#c4b5fd; }
     .table-wrap { overflow:auto; border:1px solid var(--edge); border-radius:8px; background:var(--panel-strong); }
     table { width:100%; min-width:760px; border-collapse:collapse; font-size:13px; } th,td { padding:12px 14px; border-bottom:1px solid var(--edge); text-align:left; vertical-align:top; } tr:last-child td { border-bottom:0; } th { color:var(--gold); font-size:12px; font-weight:700; } td { color:var(--muted); } td code { color:var(--green); }
     .compare th:first-child,.compare td:first-child { position:sticky; left:0; z-index:1; background:var(--panel-strong); color:var(--text); font-weight:700; }
@@ -79,7 +80,7 @@
     </section>
 
     <section id="why">
-      <span class="eyebrow">Why FullAZ</span>
+      <span class="eyebrow">Why fullaz</span>
       <h2>Compose the database from structures</h2>
       <p>A <code>Schema</code> is a Zig type. Each selected component owns its root and page kinds. The database type builds bindings, runtime state, and transaction state for those schema fields.</p>
       <div class="grid two">
@@ -92,9 +93,9 @@
 
     <section id="example">
       <span class="eyebrow">60-second example</span>
-      <h2>Declare two structures, commit one change</h2>
-      <p>This database has an ordered users map and an append-only audit stream. Both names and component options are known when the program is compiled.</p>
-      <pre><code>const std = @import("std");
+      <h2>Declare three structures, commit one change</h2>
+      <p>This database has an ordered users map, a spatial service-area index, and an append-only audit stream. All names and component options are known when the program is compiled.</p>
+      <pre><code class="zig">const std = @import("std");
 const fullaz_db = @import("fullaz-db");
 
 fn compare(_: void, left: []const u8, right: []const u8) std.math.Order {
@@ -109,8 +110,16 @@ const Schema = fullaz_db.Schema(.{ .page_id = u32 })
         .maximum_key_size = 32,
         .maximum_value_size = 128,
     }))
+    .add("service_areas", fullaz_db.rtree(.{
+        .Coord = f32,
+        .dimensions = 2,
+        .maximum_entries = 8,
+        .maximum_value_size = 32,
+    }))
     .add("audit", fullaz_db.chainStore(.{}));
 const Database = fullaz_db.MemoryDatabase(Schema);
+const AreaBox = Schema.trait("service_areas")
+    .Binding(Database.BackendType).Proxy.BoundingBox;
 
 pub fn main() !void {
     var database = try Database.init(std.heap.page_allocator, .{
@@ -124,10 +133,14 @@ pub fn main() !void {
     if (!try tx.get("users").insert("ada", "Ada Lovelace")) {
         return error.UserAlreadyExists;
     }
+    try tx.get("service_areas").insert(
+        AreaBox.initWith(.{ 60.16, 24.93 }, .{ 60.18, 24.96 }),
+        "helsinki",
+    );
     try tx.get("audit").append("created ada\n");
     try tx.commit();
 }</code></pre>
-      <p class="code-note">Replace <code>MemoryDatabase</code> with <code>StaticDatabaseWithWal</code> when this schema needs a persistent image. The component declarations and transaction calls stay the same.</p>
+      <p class="code-note">The R-tree indexes 2D bounding boxes. Replace <code>MemoryDatabase</code> with <code>StaticDatabaseWithWal</code> when this schema needs a persistent image. The component declarations and transaction calls stay the same.</p>
     </section>
 
     <section id="components">
@@ -146,7 +159,7 @@ pub fn main() !void {
           </tbody>
         </table>
       </div>
-      <p class="muted-small">The low-level FullAZ library has more structures than the current database adapter catalog. A low-level structure is not automatically a durable <code>fullaz-db</code> component: it also needs metadata, page-kind allocation, lifecycle, transaction state, and recovery integration.</p>
+      <p class="muted-small">The low-level fullaz library has more structures than the current database adapter catalog. A low-level structure is not automatically a durable <code>fullaz-db</code> component: it also needs metadata, page-kind allocation, lifecycle, transaction state, and recovery integration.</p>
       <div class="grid" style="margin-top:14px">
         <article class="card"><span class="tag">Adapter candidates</span><h3>Queues and stacks</h3><p>Persistent FIFO and LIFO byte collections. The low-level slot queue and slot stack already exist.</p><span class="badge plan">planned adapter</span></article>
         <article class="card"><span class="tag">Adapter candidates</span><h3>Ordered indexes</h3><p>Skip list and direct weighted B+ tree components. Weighted B+ trees already power <code>weightedSequence</code>.</p><span class="badge plan">planned adapter</span></article>
@@ -239,13 +252,14 @@ pub fn main() !void {
             <tr><td><code>MemoryDatabase</code></td><td>Learning, tests, and short-lived data</td><td>No image exists after <code>deinit()</code>.</td></tr>
             <tr><td><code>StaticDatabaseWithWal</code></td><td>One compiled schema owns one persistent image</td><td>Components use physical page IDs. Keep the image and WAL together.</td></tr>
             <tr><td><code>VirtualStaticDatabaseWithWal</code></td><td>Logical page IDs matter to the storage design</td><td>Components use VIDs. The engine resolves each VID to a physical PID.</td></tr>
+            <tr><td><code>VirtualStaticDatabaseWithCow</code></td><td>Stable logical IDs and copy-on-write commits matter</td><td>Components use VIDs. Mutations copy backing pages and virtual-map paths, then select an alternating checksummed superblock.</td></tr>
             <tr><td><code>DynamicSchemaDatabaseWithWal</code></td><td>Typed components need durable catalog identity and metadata</td><td>The catalog persists, but component names still come from the compiled schema.</td></tr>
           </tbody>
         </table>
       </div>
       <div class="grid two" style="margin-top:14px">
         <article class="card"><h3>Normal persistent path</h3><p>Start with <code>StaticDatabaseWithWal</code>. A write-ahead log records redo data before image changes, so <code>open()</code> can recover committed work after an interruption.</p></article>
-        <article class="card"><h3>Advanced only</h3><p>No-WAL factories are for controlled images and experiments. Raw <code>DynamicDatabase</code> APIs are for low-level catalog work, not the normal typed application path.</p></article>
+        <article class="card"><h3>Experimental storage paths</h3><p>No-WAL factories update pages in place and are for controlled images. <code>VirtualStaticDatabaseWithCow</code> is an experimental crash-consistent copy-on-write path without WAL, snapshots, or MVCC. Raw <code>DynamicDatabase</code> APIs are for low-level catalog work.</p></article>
       </div>
     </section>
 
@@ -280,6 +294,28 @@ page cache -- optional virtual page map -- device + WAL</div>
     <footer>Built with <a href="https://github.com/newenclave/fullaz">fullaz</a>. This project is educational and evolving. The benchmark results describe one reproducible workload, not a general database ranking.</footer>
   </main>
   <script>
+    function escapeHtml(value) {
+      return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+    }
+
+    function highlightZig(code) {
+      const token = /("(?:\\.|[^"\\])*")|(@[A-Za-z_][A-Za-z0-9_]*)|\b(const|defer|else|fn|if|pub|return|try|var)\b|\b(f32|u32|void)\b|\b(std|fullaz_db)\b|\b([A-Za-z_][A-Za-z0-9_]*)(?=\()/g;
+      let output = "";
+      let position = 0;
+      for (const match of code.textContent.matchAll(token)) {
+        output += escapeHtml(code.textContent.slice(position, match.index));
+        const value = escapeHtml(match[0]);
+        const className = match[1] ? "tok-string" : match[2] ? "tok-builtin" : match[3] ? "tok-keyword" : match[4] ? "tok-type" : match[5] ? "tok-module" : "tok-call";
+        output += `<span class="${className}">${value}</span>`;
+        position = match.index + match[0].length;
+      }
+      code.innerHTML = output + escapeHtml(code.textContent.slice(position));
+    }
+
+    for (const code of document.querySelectorAll("code.zig")) {
+      highlightZig(code);
+    }
+
     const benchmarkTabs = document.querySelectorAll("[data-benchmark-tab]");
     for (const tab of benchmarkTabs) {
       tab.addEventListener("click", () => {
