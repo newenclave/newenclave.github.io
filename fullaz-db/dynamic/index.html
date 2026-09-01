@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A 60-second DynamicSchemaDatabaseWithWal example for fullaz-db.">
+  <title>fullaz-db dynamic database in 60 seconds</title>
+  <style>
+    :root { color-scheme:dark; --bg:#080b12; --panel:#101925; --edge:#2a3a50; --text:#e5edf7; --muted:#9aacc1; --blue:#7dd3fc; --gold:#f6c453; --green:#86efac; --pink:#f5a9e6; --red:#fca5a5; }
+    * { box-sizing:border-box; } html { scroll-behavior:smooth; }
+    body { min-width:320px; margin:0; background:radial-gradient(circle at 86% 0,#18304e 0,transparent 30%),var(--bg); color:var(--text); font:16px/1.6 ui-monospace,"Cascadia Mono",Consolas,monospace; }
+    main { width:min(960px,100%); margin:0 auto; padding:28px 20px 72px; }
+    a { color:var(--blue); } a:hover,a:focus-visible { color:#fff; }
+    nav { display:flex; align-items:center; justify-content:space-between; gap:16px; color:var(--muted); font-size:13px; }
+    .brand { color:var(--text); text-decoration:none; } .brand span { color:var(--blue); }
+    .nav-links { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:14px; }
+    .hero { padding:72px 0 46px; } h1 { max-width:760px; margin:0; font-size:clamp(42px,8vw,72px); letter-spacing:-.07em; line-height:.96; } h1 span { color:var(--blue); }
+    h2 { margin:0 0 12px; color:var(--blue); font-size:28px; letter-spacing:-.045em; } h3 { margin:0 0 8px; color:var(--gold); font-size:16px; }
+    p { margin:0 0 14px; color:var(--muted); } .lead { max-width:760px; margin-top:22px; color:#cbd9e8; font-size:19px; }
+    section { padding:42px 0; border-top:1px solid var(--edge); } .eyebrow { display:inline-block; margin-bottom:10px; color:var(--pink); font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; } .grid.two { grid-template-columns:repeat(2,1fr); }
+    .card,.callout { padding:20px; border:1px solid var(--edge); border-radius:12px; background:color-mix(in srgb,var(--panel) 94%,transparent); } .card p { font-size:14px; }
+    .callout { margin-top:22px; border-left:3px solid var(--gold); } .callout strong { color:var(--gold); font-size:13px; } .callout p { margin:8px 0 0; font-size:13px; }
+    .step { display:grid; grid-template-columns:40px minmax(0,1fr); gap:14px; align-items:start; margin-top:22px; } .step-number { display:grid; place-items:center; width:40px; height:40px; border:1px solid #4b78af; border-radius:50%; color:var(--blue); font-weight:700; } .step-body { min-width:0; } .step-body h3 { margin-top:7px; }
+    pre { margin:14px 0 0; overflow:auto; padding:16px; border:1px solid #203049; border-radius:8px; background:#060a10; color:#c9d9eb; font:13px/1.55 ui-monospace,"Cascadia Mono",Consolas,monospace; tab-size:4; } code { color:#c9d9eb; }
+    .zig .tok-keyword { color:#f5a9e6; } .zig .tok-builtin { color:#7dd3fc; } .zig .tok-string { color:#86efac; } .zig .tok-type { color:#f6c453; } .zig .tok-module { color:#a5d8ff; } .zig .tok-call { color:#c4b5fd; }
+    ul { margin:0; padding-left:20px; color:var(--muted); } li + li { margin-top:7px; } footer { padding-top:28px; color:#63758c; font-size:13px; }
+    @media (max-width:760px) { .hero { padding-top:48px; } .grid,.grid.two { grid-template-columns:1fr; } .step { grid-template-columns:1fr; gap:8px; } .step-number { width:32px; height:32px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <nav>
+      <a class="brand" href="../"><span>fullaz</span>-db</a>
+      <div class="nav-links"><a href="#why">why dynamic</a><a href="#example">example</a><a href="#catalog">catalog</a><a href="#hierarchy">hierarchy</a><a href="#limits">limits</a></div>
+    </nav>
+
+    <header class="hero">
+      <span class="eyebrow">60-second example</span>
+      <h1><span>Dynamic</span> schema with a durable catalog</h1>
+      <p class="lead">Use a normal compiled Zig schema. Store its component identity and metadata in a durable catalog. Reopen the image through the same typed API.</p>
+      <aside class="callout"><strong>Dynamic does not mean runtime SQL.</strong><p>The schema below is still compiled into the program. Dynamic schema storage gives those compiled components durable catalog records. It does not let Python, C++, or application input invent a new <code>transaction.get("name")</code> component.</p></aside>
+    </header>
+
+    <section id="why">
+      <span class="eyebrow">Why use it</span>
+      <h2>Keep typed calls and persist component identity</h2>
+      <p>A static database stores one closed-world schema in its superblock. A dynamic schema database also keeps a catalog. The catalog records a component ID, page-kind range, descriptor fingerprint, and metadata for every active compiled component.</p>
+      <div class="grid two">
+        <article class="card"><h3>Use it when</h3><p>You need typed components with durable catalog identity and metadata. The same application code can still call <code>transaction.get("notes")</code>.</p></article>
+        <article class="card"><h3>Use WAL for files</h3><p><code>DynamicSchemaDatabaseWithWal</code> writes redo data before home pages. The log helps <code>open()</code> recover a committed change after an interruption.</p></article>
+      </div>
+    </section>
+
+    <section id="example">
+      <span class="eyebrow">Complete example</span>
+      <h2>Format, write, reopen, read</h2>
+      <p>This program formats an image and WAL, appends one note, opens both files again, and prints the note.</p>
+      <pre><code class="zig">const std = @import("std");
+const fullaz = @import("fullaz");
+const fullaz_db = @import("fullaz-db");
+
+const image_path = "catalog.img";
+const wal_path = "catalog.wal";
+const page_size = 4096;
+
+const Schema = fullaz_db.Schema(.{ .page_id = u32 })
+    .add("notes", fullaz_db.chainStore(.{}));
+
+const Device = fullaz.device.FileBlock(u32);
+const Log = fullaz.device.FileLog(u32);
+const Database = fullaz_db.DynamicSchemaDatabaseWithWal(Schema, Device, Log);
+
+const options: Database.InitOptions = .{
+    .image_id = [_]u8{0xB1} ** 16,
+    .cache_frames = 64,
+    .components = .{ .notes = .{} },
+};
+
+fn formatAndWrite(allocator: std.mem.Allocator, io: std.Io) !void {
+    var database = try Database.format(
+        allocator,
+        try Device.create(io, image_path, page_size),
+        try Log.create(io, wal_path),
+        options,
+    );
+    defer database.deinit();
+
+    var transaction = try database.begin();
+    defer transaction.deinit();
+    try transaction.get("notes").append("catalog-backed note\n");
+    try transaction.commit();
+}
+
+fn reopenAndRead(allocator: std.mem.Allocator, io: std.Io) !void {
+    var database = try Database.open(
+        allocator,
+        try Device.open(io, image_path, page_size),
+        try Log.open(io, wal_path),
+        options,
+    );
+    defer database.deinit();
+
+    var output: [128]u8 = undefined;
+    const count = try database.getConst("notes").readAt(0, &output);
+    std.debug.print("{s}", .{output[0..count]});
+}
+
+pub fn main(init: std.process.Init) !void {
+    try formatAndWrite(init.gpa, init.io);
+    try reopenAndRead(init.gpa, init.io);
+}</code></pre>
+      <p>The expected output is:</p>
+      <pre><code>catalog-backed note</code></pre>
+    </section>
+
+    <section>
+      <span class="eyebrow">What each part does</span>
+      <h2>Four steps, one typed component</h2>
+      <div class="step"><div class="step-number">1</div><div class="step-body"><h3>Declare the schema</h3><p><code>Schema</code> names one <code>notes</code> ChainStore. The name and component type are known at compile time.</p></div></div>
+      <div class="step"><div class="step-number">2</div><div class="step-body"><h3>Format the image and log</h3><p><code>Database.format</code> creates the database boot state, catalog, component metadata, image, and WAL.</p></div></div>
+      <div class="step"><div class="step-number">3</div><div class="step-body"><h3>Commit one transaction</h3><p>The transaction appends bytes through the typed ChainStore proxy. Commit writes the normal database changes and catalog-backed metadata through the WAL path.</p></div></div>
+      <div class="step"><div class="step-number">4</div><div class="step-body"><h3>Open and validate</h3><p><code>Database.open</code> opens the image and WAL. It checks that the active catalog component agrees with the compiled name, kind, format, and settings before returning <code>notes</code>.</p></div></div>
+    </section>
+
+    <section id="catalog">
+      <span class="eyebrow">The catalog</span>
+      <h2>Why this is different from a static schema image</h2>
+      <p>The typed application calls look similar for static and dynamic databases. The difference is durable control-plane data.</p>
+      <div class="grid">
+        <article class="card"><h3>Component ID</h3><p>The catalog gives the active <code>notes</code> component a durable identity. The identity is not only its field position in the current process.</p></article>
+        <article class="card"><h3>Metadata record</h3><p>Each component stores the state needed to reopen it, such as roots or byte-stream endpoints.</p></article>
+        <article class="card"><h3>Schema check</h3><p>Open rejects a catalog entry that does not match the current compiled descriptor, name, version, or fingerprint.</p></article>
+      </div>
+    </section>
+
+    <section id="hierarchy">
+      <span class="eyebrow">Nested components</span>
+      <h2>Let one B+ tree entry own another B+ tree</h2>
+      <p><code>hierarchyBpt</code> and <code>hierarchyStore</code> work with typed memory, static, static WAL, virtual static, and dynamic schema databases. The outer tree stores a fixed envelope. That envelope can own the root of an embedded component.</p>
+      <p>This small example defines one recursive <code>folder</code> type. A folder may contain another folder. With a dynamic schema database, the typed catalog also validates the whole compiled hierarchy when the database opens.</p>
+      <pre><code class="zig">fn compare(_: void, left: []const u8, right: []const u8) std.math.Order {
+    return std.mem.order(u8, left, right);
+}
+
+const raw_payload_capacity = 32;
+const folder_value_size = fullaz_db.value_envelope.envelope_byte_size +
+    @max(@sizeOf(u32), raw_payload_capacity);
+
+const Folder = fullaz_db.bpt(.{
+    .compare = compare,
+    .CompareContext = void,
+    .comparator_id = 2,
+    .maximum_key_size = 32,
+    .maximum_value_size = folder_value_size,
+    .fixed_value_size = folder_value_size,
+});
+
+const Types = fullaz_db.Hierarchy(.{
+    .registry_id = 1,
+    .types = &.{.{
+        .tag = "folder",
+        .type_id = 1,
+        .type_version = 1,
+        .metadata_format_version = 1,
+        .descriptor = Folder,
+        .allowed_child_type_ids = &.{1},
+    }},
+});
+
+const Tree = fullaz_db.hierarchyBpt(Types, fullaz_db.bpt(.{
+    .compare = compare,
+    .CompareContext = void,
+    .comparator_id = 3,
+    .maximum_key_size = 32,
+    .maximum_value_size = folder_value_size,
+    .fixed_value_size = folder_value_size,
+}));
+
+const Schema = fullaz_db.Schema(.{ .page_id = u32 })
+    .add("tree", Tree);</code></pre>
+      <p><code>allowed_child_type_ids = &amp;.{1}</code> means that a <code>folder</code> may embed another <code>folder</code>. An empty list would make the type a leaf.</p>
+      <div class="step"><div class="step-number">1</div><div class="step-body"><h3>Create the root folder</h3><p>Insert an embedded folder envelope into the outer typed tree.</p><pre><code class="zig">var tree = transaction.get("tree");
+try tree.insert("root", tree.embed("folder"));</code></pre></div></div>
+      <div class="step"><div class="step-number">2</div><div class="step-body"><h3>Open the folder in place</h3><p>The editor writes the child root into the parent value. It does not copy the value out and write it back later.</p><pre><code class="zig">var root = (try tree.openEmbeddedForEdit("root", "folder")).?;
+defer root.deinit();
+
+try root.insert("readme", root.raw("folder", "Hello from a folder"));
+try root.insert("child", try root.embed("folder"));</code></pre></div></div>
+      <div class="step"><div class="step-number">3</div><div class="step-body"><h3>Finish nested editors from inside out</h3><p>An open editor holds the parent entry stable. Close the deepest editor first, then commit the database transaction.</p><pre><code class="zig">var child = (try root.openEmbeddedForEdit("child", "folder")).?;
+defer child.deinit();
+
+try child.insert("message", child.raw("folder", "Nested value"));
+try child.finish();
+try root.finish();
+try transaction.commit();</code></pre></div></div>
+      <aside class="callout"><strong>GC follows ownership edges.</strong><p>Removing <code>root</code> removes its ownership edge. A later Dynamic GC cycle can reclaim the nested folder pages that are no longer reachable. Raw payload bytes stay opaque to GC.</p></aside>
+    </section>
+
+    <section id="limits">
+      <span class="eyebrow">Important boundary</span>
+      <h2>Dynamic catalog, compiled schema</h2>
+      <p>The word <em>dynamic</em> describes the persistent catalog and metadata layer. It does not remove Zig <code>comptime</code> schema composition.</p>
+      <ul>
+        <li>Use <code>DynamicSchemaDatabaseWithWal</code> for normal typed application data with a durable catalog and redo recovery.</li>
+        <li>Use raw <code>DynamicDatabase</code> only for low-level catalog tools such as provisioning, rename, drop, or inspection.</li>
+        <li>Do not treat this API as SQL <code>CREATE TABLE</code> or a runtime component factory.</li>
+        <li>Keep <code>catalog.img</code> and <code>catalog.wal</code> together.</li>
+      </ul>
+    </section>
+
+    <footer>Built with <a href="https://github.com/newenclave/fullaz">fullaz</a>. This project is educational and evolving.</footer>
+  </main>
+  <script>
+    function escapeHtml(value) {
+      return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+    }
+    const token = /("(?:\\.|[^"\\])*")|(@[A-Za-z_][A-Za-z0-9_]*)|\b(const|defer|else|fn|if|pub|return|try|var)\b|\b(f32|u32|void)\b|\b(std|fullaz|fullaz_db)\b|\b([A-Za-z_][A-Za-z0-9_]*)(?=\()/g;
+    for (const code of document.querySelectorAll("code.zig")) {
+      let output = "";
+      let position = 0;
+      for (const match of code.textContent.matchAll(token)) {
+        output += escapeHtml(code.textContent.slice(position, match.index));
+        const value = escapeHtml(match[0]);
+        const className = match[1] ? "tok-string" : match[2] ? "tok-builtin" : match[3] ? "tok-keyword" : match[4] ? "tok-type" : match[5] ? "tok-module" : "tok-call";
+        output += `<span class="${className}">${value}</span>`;
+        position = match.index + match[0].length;
+      }
+      code.innerHTML = output + escapeHtml(code.textContent.slice(position));
+    }
+  </script>
+</body>
+</html>
