@@ -51,7 +51,7 @@
   <main>
     <nav>
       <a class="brand" href="../"><span>fullaz</span> demos</a>
-      <div class="nav-links"><a href="#why">why</a><a href="#example">example</a><a href="dynamic/">dynamic</a><a href="#components">components</a><a href="#benchmarks">benchmarks</a><a href="#compare">compare</a><a href="#backends">backends</a></div>
+      <div class="nav-links"><a href="#why">why</a><a href="#docs">docs</a><a href="#example">example</a><a href="dynamic/">dynamic</a><a href="#components">components</a><a href="#benchmarks">benchmarks</a><a href="#compare">compare</a><a href="#backends">backends</a></div>
     </nav>
 
     <header class="hero">
@@ -60,6 +60,7 @@
         <h1><span>fullaz</span>-db</h1>
         <p class="lead">Build an embedded database from the page-backed data structures your application needs. Define the schema in Zig. Change different structures in one transaction. Start in memory, then move to files and a WAL.</p>
         <a class="button gold" href="demo/">Open dispatch &rarr;</a>
+        <a class="button" href="https://github.com/newenclave/fullaz/tree/master/docs/fullaz-db">Read the docs &rarr;</a>
         <a class="button" href="#example">See the 60-second example &darr;</a>
         <a class="button" href="dynamic/">Dynamic database in 60 seconds &rarr;</a>
       </div>
@@ -89,6 +90,16 @@
         <article class="card"><h3>One transaction</h3><p>A transaction can update a B+ tree, a spatial index, a heap, and a byte store together. The backend owns the commit and rollback boundary.</p></article>
         <article class="card"><h3>Same component API</h3><p>Use the same typed component calls with <code>MemoryDatabase</code>, a static WAL image, or a virtual-page backend. The factory changes storage rules, not the schema shape.</p></article>
         <article class="card"><h3>Format is explicit</h3><p>Page IDs, comparators, component metadata, page kinds, and durable fingerprints are part of the typed configuration. They are not hidden behind an ORM.</p></article>
+      </div>
+    </section>
+
+    <section id="docs">
+      <span class="eyebrow">Documentation</span>
+      <h2>Start with the current API guides</h2>
+      <p>The public guides explain project setup, schema design, transactions, persistent storage, built-in components, and typed component hierarchies.</p>
+      <div class="grid two">
+        <article class="card"><h3>Getting started</h3><p>Build a small typed database in memory, then choose a persistent backend and learn its recovery rules.</p><a class="button gold" href="https://github.com/newenclave/fullaz/tree/master/docs/fullaz-db">Open fullaz-db docs &rarr;</a></article>
+        <article class="card"><h3>Components and hierarchies</h3><p>Choose a B+ tree, R-tree, heap, blob, or editable sequence. Then see how one entry can own a typed child component.</p><a class="button" href="https://github.com/newenclave/fullaz/blob/master/docs/fullaz-db/getting-started/08-components-and-hierarchy.md">Read the examples &rarr;</a></article>
       </div>
     </section>
 
@@ -157,6 +168,7 @@ pub fn main() !void {
             <tr><td><code>slotHeap</code></td><td>Next job by priority</td><td>Priority keys and byte values</td><td><span class="badge">available</span></td></tr>
             <tr><td><code>chainStore</code></td><td>One growing byte stream</td><td>Appendable and mutable bytes</td><td><span class="badge">available</span></td></tr>
             <tr><td><code>weightedSequence</code></td><td>Editable text or binary content</td><td>Bytes with insert, erase, and replace by offset</td><td><span class="badge">available</span></td></tr>
+            <tr><td><code>hierarchyStore</code></td><td>Typed child components owned by entries</td><td>Named owners with raw or embedded envelopes</td><td><span class="badge">available</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -254,7 +266,7 @@ pub fn main() !void {
             <tr><td><code>StaticDatabaseWithWal</code></td><td>One compiled schema owns one persistent image</td><td>Components use physical page IDs. Keep the image and WAL together.</td></tr>
             <tr><td><code>VirtualStaticDatabaseWithWal</code></td><td>Logical page IDs matter to the storage design</td><td>Components use VIDs. The engine resolves each VID to a physical PID.</td></tr>
             <tr><td><code>VirtualStaticDatabaseWithCow</code></td><td>Stable logical IDs and copy-on-write commits matter</td><td>Components use VIDs. Mutations copy backing pages and virtual-map paths, then select an alternating checksummed superblock.</td></tr>
-            <tr><td><code>DynamicSchemaDatabaseWithWal</code></td><td>Typed components need durable catalog identity and metadata</td><td>The catalog persists, but component names still come from the compiled schema.</td></tr>
+            <tr><td><code>DynamicSchemaDatabaseWithWal</code></td><td>Advanced typed catalog storage</td><td>The catalog persists, but component names still come from the compiled schema. Keep its image and WAL paired by deployment controls.</td></tr>
           </tbody>
         </table>
       </div>
