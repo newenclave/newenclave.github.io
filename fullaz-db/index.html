@@ -99,14 +99,14 @@
       <p>The public guides explain project setup, schema design, transactions, persistent storage, built-in components, and typed component hierarchies.</p>
       <div class="grid two">
         <article class="card"><h3>Getting started</h3><p>Build a small typed database in memory, then choose a persistent backend and learn its recovery rules.</p><a class="button gold" href="https://github.com/newenclave/fullaz/tree/master/docs/fullaz-db">Open fullaz-db docs &rarr;</a></article>
-        <article class="card"><h3>Components and hierarchies</h3><p>Choose a B+ tree, R-tree, heap, blob, or editable sequence. Then see how one entry can own a typed child component.</p><a class="button" href="https://github.com/newenclave/fullaz/blob/master/docs/fullaz-db/getting-started/08-components-and-hierarchy.md">Read the examples &rarr;</a></article>
+        <article class="card"><h3>Components and hierarchies</h3><p>Choose a B+ tree, R-tree, heap, append list, FIFO queue, LIFO stack, blob, or editable sequence. Then see how one entry can own a typed child component.</p><a class="button" href="https://github.com/newenclave/fullaz/blob/master/docs/fullaz-db/getting-started/08-components-and-hierarchy.md">Read the examples &rarr;</a></article>
       </div>
     </section>
 
     <section id="example">
       <span class="eyebrow">60-second example</span>
       <h2>Declare a schema, commit one change</h2>
-      <p>This database combines an ordered users map, a spatial service-area index, and an append-only audit stream. All names and component options are known when the program is compiled.</p>
+      <p>This database combines an ordered users map, a spatial service-area index, and an append-ordered event list. All names and component options are known when the program is compiled.</p>
       <pre><code class="zig">const std = @import("std");
 const fullaz_db = @import("fullaz-db");
 
@@ -128,7 +128,9 @@ const Schema = fullaz_db.Schema(.{ .page_id = u32 })
         .maximum_entries = 8,
         .maximum_value_size = 32,
     }))
-    .add("audit", fullaz_db.chainStore(.{}));
+    .add("history", fullaz_db.slotList(.{
+        .maximum_value_size = 128,
+    }));
 const Database = fullaz_db.MemoryDatabase(Schema);
 const AreaBox = Schema.trait("service_areas")
     .Binding(Database.BackendType).Proxy.BoundingBox;
@@ -149,7 +151,7 @@ pub fn main() !void {
         AreaBox.initWith(.{ 60.16, 24.93 }, .{ 60.18, 24.96 }),
         "helsinki",
     );
-    try tx.get("audit").append("created ada\n");
+    try tx.get("history").append("created ada");
     try tx.commit();
 }</code></pre>
       <p class="code-note">The R-tree indexes 2D bounding boxes. Replace <code>MemoryDatabase</code> with <code>StaticDatabaseWithWal</code> when this schema needs a persistent image. The component declarations and transaction calls stay the same.</p>
@@ -166,6 +168,9 @@ pub fn main() !void {
             <tr><td><code>bpt</code></td><td>Sorted records and range scans</td><td>Byte keys and byte values</td><td><span class="badge">available</span></td></tr>
             <tr><td><code>rtree</code></td><td>Maps, areas, overlap queries</td><td>N-dimensional bounding boxes and byte values</td><td><span class="badge">available</span></td></tr>
             <tr><td><code>slotHeap</code></td><td>Next job by priority</td><td>Priority keys and byte values</td><td><span class="badge">available</span></td></tr>
+            <tr><td><code>slotList</code></td><td>Appended events and history</td><td>Bounded byte values in slot-chain chunks</td><td><span class="badge">available</span></td></tr>
+            <tr><td><code>slotQueue</code></td><td>FIFO work and requests</td><td>Bounded byte values in slot-chain chunks</td><td><span class="badge">available</span></td></tr>
+            <tr><td><code>slotStack</code></td><td>LIFO resume and undo work</td><td>Bounded byte values in slot-chain chunks</td><td><span class="badge">available</span></td></tr>
             <tr><td><code>chainStore</code></td><td>One growing byte stream</td><td>Appendable and mutable bytes</td><td><span class="badge">available</span></td></tr>
             <tr><td><code>weightedSequence</code></td><td>Editable text or binary content</td><td>Bytes with insert, erase, and replace by offset</td><td><span class="badge">available</span></td></tr>
             <tr><td><code>hierarchyStore</code></td><td>Typed child components owned by entries</td><td>Named owners with raw or embedded envelopes</td><td><span class="badge">available</span></td></tr>
@@ -174,7 +179,7 @@ pub fn main() !void {
       </div>
       <p class="muted-small">The low-level fullaz library has more structures than the current database adapter catalog. A low-level structure is not automatically a durable <code>fullaz-db</code> component: it also needs metadata, page-kind allocation, lifecycle, transaction state, and recovery integration.</p>
       <div class="grid" style="margin-top:14px">
-        <article class="card"><span class="tag">Adapter candidates</span><h3>Queues and stacks</h3><p>Persistent FIFO and LIFO byte collections. The low-level slot queue and slot stack already exist.</p><span class="badge plan">planned adapter</span></article>
+        <article class="card"><span class="tag">Available adapters</span><h3>Slot sequences</h3><p>Append values with <code>slotList</code>, take FIFO work from <code>slotQueue</code>, or resume LIFO work from <code>slotStack</code>.</p><span class="badge">available</span></article>
         <article class="card"><span class="tag">Adapter candidates</span><h3>Ordered indexes</h3><p>Skip list and direct weighted B+ tree components. Weighted B+ trees already power <code>weightedSequence</code>.</p><span class="badge plan">planned adapter</span></article>
         <article class="card"><span class="tag">Adapter candidates</span><h3>Spatial and immutable data</h3><p>Orthtree, AABB tree, and SSTable components are candidates for specific spatial and immutable workloads.</p><span class="badge plan">planned adapter</span></article>
       </div>
@@ -235,7 +240,7 @@ pub fn main() !void {
           <tbody>
             <tr><td>Primary model</td><td>Compile-time composition</td><td>General SQL database</td><td>Analytical SQL database</td><td>Sorted byte KV / LSM</td><td>Ordered byte KV / mmap</td><td>Typed tables / copy-on-write B+ trees</td></tr>
             <tr><td>Application API</td><td>Typed Zig component calls</td><td>SQL and C API</td><td>SQL and multi-language APIs</td><td>C++ byte KV API</td><td>C byte KV API</td><td>Rust typed table API</td></tr>
-            <tr><td>Specialized structures</td><td>B+ tree, R-tree, heap, blob, sequence; more adapters planned</td><td>Tables and indexes</td><td>Tables, analytical operators, extensions</td><td>Sorted KV, column families</td><td>Sorted KV, named sub-databases</td><td>Ordered tables</td></tr>
+            <tr><td>Specialized structures</td><td>B+ tree, R-tree, heap, list, FIFO queue, LIFO stack, blob, sequence; more adapters planned</td><td>Tables and indexes</td><td>Tables, analytical operators, extensions</td><td>Sorted KV, column families</td><td>Sorted KV, named sub-databases</td><td>Ordered tables</td></tr>
             <tr><td>One transaction across</td><td>Selected schema components</td><td>Tables, indexes, SQL changes</td><td>Relational tables</td><td>Keys and column families</td><td>Named databases</td><td>Tables</td></tr>
             <tr><td>Schema time</td><td>Compile time for typed schemas</td><td>Runtime SQL</td><td>Runtime SQL</td><td>Runtime configuration</td><td>Runtime named DBs</td><td>Compile-time table definitions, runtime open</td></tr>
             <tr><td>Browser WASM</td><td>Yes: current demos use <code>wasm32-freestanding</code></td><td>Official WASM APIs</td><td>DuckDB-Wasm</td><td>Not a documented browser target</td><td>Not a documented browser target</td><td>Custom backend in experimental <code>no_std</code> mode</td></tr>
@@ -299,7 +304,7 @@ page cache -- optional virtual page map -- device + WAL</div>
       <span class="eyebrow">Try it</span>
       <h2>See the storage paths in a browser</h2>
       <div class="grid two">
-        <article class="card"><h3>Helsinki dispatch</h3><p>An application demo with B+ trees, an R-tree, a priority heap, an audit stream, and an editable runbook.</p><a class="button gold" href="demo/">Open dispatch &rarr;</a></article>
+        <article class="card"><h3>Helsinki dispatch</h3><p>A durable repair simulation with B+ trees, an R-tree, a FIFO work queue, a LIFO interruption stack, and an append-only event list.</p><a class="button gold" href="demo/">Open dispatch &rarr;</a></article>
         <article class="card"><h3>DB Lab</h3><p>Compare memory, static WAL, and virtual WAL. Write a value, download an image, and inspect physical pages and raw bytes.</p><a class="button" href="db-lab/">Open DB Lab &rarr;</a></article>
       </div>
     </section>
