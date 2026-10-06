@@ -13,13 +13,13 @@ const speedCost = owned => 12 * owned * owned; // price of the next tier when 'o
 /* ---------------- save ---------------- */
 const SAVE_KEY = 'td_save_v2';
 function freshSave() {
-  return { gems: 0, unlocked: { gun: 1 }, seen: {}, up: { gold: 0, dmg: 0, life: 0, inc: 0, luck: 0, arm: 0, reg: 0, cmd: 0 }, tech: {}, best: {}, levels: {}, spd: 1, tier: 1, abil: {} };
+  return { gems: 0, unlocked: { gun: 1 }, seen: {}, up: { gold: 0, dmg: 0, life: 0, inc: 0, luck: 0, arm: 0, reg: 0, cmd: 0 }, tech: {}, best: {}, levels: {}, spd: 1, lastSpeed: 1, tier: 1, abil: {} };
 }
 function loadSave() {
   const s = freshSave();
   try {
     const r = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
-    if (r) { s.gems = r.gems | 0; Object.assign(s.unlocked, r.unlocked); Object.assign(s.seen, r.seen); Object.assign(s.up, r.up); Object.assign(s.tech, r.tech); Object.assign(s.best, r.best); Object.assign(s.levels, r.levels); s.spd = r.spd ? clamp(r.spd | 0, 1, SPEED_MAX) : ({ 2: 5, 3: 9 })[r.speed | 0] || 1; /* old saves stored x1/x2/x3 as 1/2/3 */ s.tier = clamp(r.tier | 0, 1, 10); Object.assign(s.abil, r.abil); }
+    if (r) { s.gems = r.gems | 0; Object.assign(s.unlocked, r.unlocked); Object.assign(s.seen, r.seen); Object.assign(s.up, r.up); Object.assign(s.tech, r.tech); Object.assign(s.best, r.best); Object.assign(s.levels, r.levels); s.spd = r.spd ? clamp(r.spd | 0, 1, SPEED_MAX) : ({ 2: 5, 3: 9 })[r.speed | 0] || 1; /* old saves stored x1/x2/x3 as 1/2/3 */ s.tier = clamp(r.tier | 0, 1, 10); Object.assign(s.abil, r.abil); s.lastSpeed = clamp(r.lastSpeed | 0, 1, SPEED_MAX); }
   } catch (e) { /* no storage */ }
   return s;
 }
@@ -110,10 +110,10 @@ const LEVELS = [
     wps: [[0, 1], [12, 1], [12, 3], [1, 3], [1, 5], [12, 5], [12, 7], [1, 7], [1, 9], [13, 9]] },
   { id: 'sqs', name: 'Square Spiral', make: makeSquare, diff: 1.2, cost: 40,
     wps: [[0, 0], [8, 0], [8, 12], [0, 12], [0, 2], [2, 2], [2, 10], [6, 10], [6, 2], [4, 2], [4, 8]] },
-  { id: 'hxs', name: 'Hex Spiral', make: makeHex, diff: 1.35, cost: 100,
-    wps: [[0, 0], [6, 0], [6, 10], [0, 10], [0, 2], [4, 2], [4, 8], [2, 8], [2, 4]] },
-  { id: 'fort', name: 'Fortress', make: () => makeHex(9, 15, 11, 40), diff: 1.1, cost: 80, desc: '3 spiral arms, base turret', turret: true, speed: 0.6,
-    armsFn: grid => spiralArms(grid, 3, 1.3 * Math.PI, 14) },
+  { id: 'hxs', name: 'Hex Spiral', make: () => makeHex(10, 17, 10, 40), diff: 1.65, cost: 100, desc: 'one long spiral into the base',
+    armsFn: grid => spiralArms(grid, 1, 4.5 * Math.PI, 32) },
+  { id: 'fort', name: 'Fortress', make: () => makeHex(10, 17, 10, 40), diff: 1.1, cost: 80, desc: '3 spiral arms, base turret', turret: true, speed: 0.6,
+    armsFn: grid => spiralArms(grid, 3, 1.3 * Math.PI, 16) },
 ];
 
 function buildPath(grid, wps, used) {
@@ -171,6 +171,11 @@ const TD = {
   flame:  { name: 'Flame',  cmd: 2, cost: 170, dmg: 3.5, rate: 10, range: 1.7, kind: 'flame',  col: '#ff6b35', shape: 5, ground: true, at: 20, gems: 70, desc: 'Burns ground groups' },
   sniper: { name: 'Sniper', cmd: 3, cost: 220, dmg: 80, rate: 0.45, range: 6.5, kind: 'beam',  col: '#cdb4db', shape: 'dia', barrel: 1, crit: 0.25, at: 25, gems: 100, desc: 'Huge range, crits' },
   tesla:  { name: 'Tesla',  cmd: 3, cost: 240, dmg: 16, rate: 1.2, range: 2.7, kind: 'chain',  col: '#ffee58', shape: 'star', chain: 4, at: 30, gems: 150, desc: 'Chain lightning' },
+  // Weapons you discover on one specific map (reach wave 'at' there); after that they are available on every map.
+  beacon: { name: 'Beacon', cmd: 2, cost: 140, dmg: 0, rate: 1, range: 2.4, kind: 'aura', aura: { dmg: 0.3, rate: 0.15 }, col: '#95d5b2', shape: 'cross', at: 10, lvl: 'tri', gems: 60, desc: 'Does not shoot: boosts damage and speed of towers near it' },
+  pulse:  { name: 'Pulse',  cmd: 2, cost: 150, dmg: 24, rate: 1, range: 2.1, kind: 'pulse', col: '#00b4d8', shape: 7, at: 10, lvl: 'hex', gems: 50, desc: 'Hits every enemy around it at once' },
+  mortar: { name: 'Mortar', cmd: 3, cost: 200, dmg: 55, rate: 0.4, range: 5.5, kind: 'bullet', splash: 1.3, ground: true, minRange: 1.5, pspd: 220, col: '#b08d57', shape: 8, barrel: 1, at: 12, lvl: 'sq', gems: 60, desc: 'Far shells with a big blast, cannot hit close targets' },
+  lance:  { name: 'Lance',  cmd: 3, cost: 210, dmg: 48, rate: 1, range: 4.2, kind: 'pierce', col: '#ff8fab', shape: 3, rot: Math.PI, barrel: 1, at: 10, lvl: 'sqs', gems: 90, desc: 'A beam through every enemy on the line' },
 };
 TD.core = { name: 'Core', cost: 0, dmg: 10, rate: 2, range: 3.2, kind: 'bullet', col: '#cfd8dc', shape: 6, barrel: 1, desc: 'Your base turret' };
 // A tower is Unknown until its wave (`at`) is reached, then Discovered (buyable for `gems`), then Owned (in the shop).
@@ -231,12 +236,12 @@ const levelOpen = i => !LEVELS[i].cost || !!save.levels[LEVELS[i].id];
 function startGame(li, tier = 1) {
   const L = LEVELS[li], grid = L.make(), { paths, base } = buildPaths(grid, L);
   G = {
-    li, L, grid, paths, base, tier, armMul: 1 + 0.15 * (paths.length - 1), cds: { nova: 0, freeze: 0, rain: 0 }, goldT: 0,
+    li, L, grid, paths, base, tier, armMul: 1 + 0.15 * (paths.length - 1), cds: { nova: 0, freeze: 0, rain: 0 }, goldT: 0, freezeT: 0,
     gold: 100 + 30 * save.up.gold, b: { hp: save.up.life, arm: save.up.arm, reg: save.up.reg, cmd: save.up.cmd }, bu: { hp: 0, arm: 0, reg: 0, cmd: 0 }, hp: 0, selBase: false, wave: 0, time: 0,
     towers: [], enemies: [], projs: [], fx: [], parts: [], floats: [], spawns: [],
     waveActive: false, autoT: 0, lastGo: -9, kills: 0, bossKills: 0, runGems: 0,
     mods: { dmg: 1, rate: 1, range: 1, gold: 1, speed: 1, cost: 1, upc: 1, cmd: 0 }, perkQ: 0, eliteDry: 0, newTowers: [], banners: [], offer: null,
-    speed: 1, paused: false, auto: false, sel: null, armed: null, hover: null, hurt: 0, over: false,
+    speed: Math.min(save.lastSpeed, save.spd), paused: false, auto: false, sel: null, armed: null, hover: null, hurt: 0, over: false,
   };
   G.hp = baseMax();
   acc = 0; infoSig = ''; $('ov').style.display = 'none';
@@ -261,8 +266,10 @@ const BTRACKS = {
   cmd: { label: 'Cmd',   k: 60, g: 1.55 },
 };
 const lvlOf = t => 1 + t.up.dmg + t.up.rate + t.up.rng;
-const dmgOf = t => TD[t.type].dmg * Math.pow(1.35, t.up.dmg) * (1 + 0.05 * save.up.dmg + 0.12 * techLv(t.type)) * G.mods.dmg;
-const rateOf = t => TD[t.type].rate * Math.pow(1.15, t.up.rate) * (1 + 0.04 * techLv(t.type)) * G.mods.rate;
+const dmgOf = t => TD[t.type].dmg * Math.pow(1.35, t.up.dmg) * (1 + 0.05 * save.up.dmg + 0.12 * techLv(t.type)) * G.mods.dmg * (1 + (t.bd || 0));
+// A Beacon's bonus: the damage track raises the damage bonus, the speed track raises the speed bonus.
+const auraOf = (b, k) => TD[b.type].aura[k] * (1 + 0.5 * b.up[k]);
+const rateOf = t => TD[t.type].rate * Math.pow(1.15, t.up.rate) * (1 + 0.04 * techLv(t.type)) * G.mods.rate * (1 + (t.br || 0));
 const rangeOf = t => (TD[t.type].range + 0.15 * t.up.rng) * G.grid.unit * G.mods.range;
 const trackCost = (t, k) => {
   const T = TRACKS[k], n = t.up[k];
@@ -304,7 +311,7 @@ function checkUnlocks() {
   const found = [];
   for (const type of TORDER) {
     const D = TD[type];
-    if (isSeen(type) || !(D.at > 0) || G.wave < D.at) continue;
+    if (isSeen(type) || !(D.at > 0) || G.wave < D.at || (D.lvl && G.L.id !== D.lvl)) continue;
     save.seen[type] = 1; G.newTowers.push(D.name); found.push(type);
   }
   if (!found.length) return;
@@ -394,6 +401,7 @@ function findTarget(t) {
     if (e.dead || (D.ground && e.fly)) continue;
     const dx = e.x - t.x, dy = e.y - t.y, rr = rng + e.r;
     if (dx * dx + dy * dy > rr * rr) continue;
+    if (D.minRange && dx * dx + dy * dy < (D.minRange * G.grid.unit) ** 2) continue;
     const v = t.mode === 0 ? e.d / e.len : t.mode === 1 ? e.hp : -e.hp;
     if (!best || v > bv) { best = e; bv = v; }
   }
@@ -403,7 +411,7 @@ function fire(t, tg) {
   const D = TD[t.type], dmg = dmgOf(t), u = G.grid.unit;
   t.ang = Math.atan2(tg.y - t.y, tg.x - t.x);
   if (D.kind === 'bullet') {
-    G.projs.push({ x: t.x, y: t.y, tg, lx: tg.x, ly: tg.y, dmg, spd: 340, splash: (D.splash || 0) * u, slow: D.slow, slowT: D.slowT, col: D.col, ground: D.ground });
+    G.projs.push({ x: t.x, y: t.y, tg, lx: tg.x, ly: tg.y, dmg, spd: D.pspd || 340, splash: (D.splash || 0) * u, slow: D.slow, slowT: D.slowT, col: D.col, ground: D.ground });
   } else if (D.kind === 'beam') {
     const crit = Math.random() < D.crit;
     hurt(tg, dmg * (crit ? 2.5 : 1), false);
@@ -423,6 +431,22 @@ function fire(t, tg) {
       }
       cur = nx;
     }
+  } else if (D.kind === 'pulse') {
+    const R = rangeOf(t);
+    for (const e of G.enemies.slice()) {
+      if (e.dead || (D.ground && e.fly)) continue;
+      if (Math.hypot(e.x - t.x, e.y - t.y) <= R + e.r) hurt(e, dmg, false);
+    }
+    G.fx.push({ type: 'ring', x: t.x, y: t.y, r: R, t: 0.25, max: 0.25, col: D.col });
+  } else if (D.kind === 'pierce') {
+    const R = rangeOf(t), ux = tg.x - t.x, uy = tg.y - t.y, L = Math.hypot(ux, uy) || 1, dx = ux / L, dy = uy / L;
+    for (const e of G.enemies.slice()) {
+      if (e.dead) continue;
+      const px = e.x - t.x, py = e.y - t.y, along = px * dx + py * dy;
+      if (along < 0 || along > R) continue;
+      if (Math.abs(px * dy - py * dx) <= e.r + 5) hurt(e, dmg, false);
+    }
+    G.fx.push({ type: 'line', x1: t.x, y1: t.y, x2: t.x + dx * R, y2: t.y + dy * R, t: 0.2, max: 0.2, col: D.col, w: 3 });
   } else if (D.kind === 'flame') {
     for (const e of G.enemies) {
       if (e.dead || e.fly || Math.hypot(e.x - tg.x, e.y - tg.y) > 26) continue;
@@ -454,8 +478,18 @@ function step(dt) {
   const g = G; g.time += dt;
   while (g.spawns.length && g.spawns[0].t <= g.time) { const sp = g.spawns.shift(); spawnEnemy(sp.type, 0, null, sp.loot); }
 
+  for (const t of g.towers) { t.bd = 0; t.br = 0; }
+  for (const b of g.towers) {
+    if (TD[b.type].kind !== 'aura' || b.off > 0) continue;
+    const R = rangeOf(b), ad = auraOf(b, 'dmg'), ar = auraOf(b, 'rate');
+    for (const t of g.towers) {
+      if (t === b || TD[t.type].kind === 'aura' || Math.hypot(t.x - b.x, t.y - b.y) > R) continue;
+      t.bd = Math.max(t.bd, ad); t.br = Math.max(t.br, ar);
+    }
+  }
   for (const t of g.towers) {
     if (t.off > 0) { t.off -= dt; continue; }
+    if (TD[t.type].kind === 'aura') continue;
     t.cd -= dt;
     if (t.cd > 0) continue;
     const tg = findTarget(t);
@@ -471,7 +505,7 @@ function step(dt) {
   g.projs = g.projs.filter(p => !p.done);
 
   for (const k of AORDER) g.cds[k] = Math.max(0, g.cds[k] - dt);
-  g.goldT = Math.max(0, g.goldT - dt);
+  g.goldT = Math.max(0, g.goldT - dt); g.freezeT = Math.max(0, g.freezeT - dt);
   for (const e of g.enemies.slice()) {
     if (e.dead) continue;
     if (e.slowT > 0) { e.slowT -= dt; if (e.slowT <= 0) e.slowF = 1; }
@@ -557,6 +591,7 @@ function useAbility(id) {
     for (let i = 0; i < 3; i++) G.fx.push({ type: 'ring', x: b.cx, y: b.cy, r: 90 + i * 70, t: 0.3 + i * 0.1, max: 0.3 + i * 0.1, col: '#ffffff' });
   } else if (id === 'freeze') {
     for (const e of G.enemies) { e.slowF = Math.min(e.slowF, e.S.boss ? 0.6 : 0.2); e.slowT = Math.max(e.slowT, 4); }
+    G.freezeT = 4;
     G.fx.push({ type: 'ring', x: b.cx, y: b.cy, r: 200, t: 0.4, max: 0.4, col: '#9bf6ff' });
   } else if (id === 'rain') {
     G.goldT = 10; floater(W / 2, H / 2, 'Gold x3', '#ffd166');
@@ -615,6 +650,7 @@ function shapePath(c, x, y, r, k, rot = 0) {
     }
     c.closePath(); return;
   }
+  if (k === 'cross') { const a = r * 0.4; [[-a, -r], [a, -r], [a, -a], [r, -a], [r, a], [a, a], [a, r], [-a, r], [-a, a], [-r, a], [-r, -a], [-a, -a]].forEach(([dx, dy], i) => (i ? c.lineTo(x + dx, y + dy) : c.moveTo(x + dx, y + dy))); c.closePath(); return; }
   if (k === 'dia') { c.moveTo(x, y - r * 1.2); c.lineTo(x + r * 0.65, y); c.lineTo(x, y + r * 1.2); c.lineTo(x - r * 0.65, y); c.closePath(); return; }
   for (let i = 0; i < k; i++) {
     const a = rot - Math.PI / 2 + i * TAU / k;
@@ -735,6 +771,12 @@ function render() {
   ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (const f of g.floats) { ctx.globalAlpha = Math.min(1, f.t * 2); ctx.fillStyle = f.col; ctx.fillText(f.txt, f.x, f.y); }
   ctx.globalAlpha = 1;
+  [[g.goldT, '#ffd166'], [g.freezeT, '#9bf6ff']].filter(([left]) => left > 0).forEach(([left, col], i) => {
+    const o = 2 + i * 6;
+    ctx.globalAlpha = left < 2 ? (Math.sin(g.time * 22) > 0 ? 0.9 : 0.15) : 0.65;
+    ctx.strokeStyle = col; ctx.lineWidth = 4; ctx.strokeRect(o, o, W - 2 * o, H - 2 * o);
+  });
+  ctx.globalAlpha = 1;
   ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   let bannerY = 18;
   for (const bn of g.banners) {
@@ -822,9 +864,10 @@ function updateUi() {
   }
   for (const id of AORDER) {
     if (!save.abil[id]) continue;
-    const b = $('ab_' + id), cd = g.cds[id];
-    setText('ab_' + id, ABIL[id].name + (cd > 0 ? ' ' + Math.ceil(cd) : ''));
+    const b = $('ab_' + id), cd = g.cds[id], act = id === 'rain' ? g.goldT : id === 'freeze' ? g.freezeT : 0;
+    setText('ab_' + id, ABIL[id].name + (act > 0 ? '  ' + Math.ceil(act) + 's' : cd > 0 ? ' ' + Math.ceil(cd) : ''));
     b.disabled = cd > 0;
+    b.classList.toggle('active', act > 0);
   }
   const t = g.sel, can = k => t && g.gold >= trackCost(t, k), canB = k => g.gold >= baseCost(k);
   const sig = g.selBase ? ['base', g.b.hp, g.b.arm, g.b.reg, g.b.cmd, canB('hp'), canB('arm'), canB('reg'), canB('cmd')].join('|')
@@ -838,8 +881,10 @@ function updateUi() {
       '<div class="brow">' + ['hp', 'arm', 'reg', 'cmd'].map(k => bt('bup', k, BTRACKS[k].label + ' L' + g.b[k], baseCost(k), canB(k), BTINT[k])).join('') + '</div>';
   } else if (t) {
     const D = TD[t.type];
-    info.innerHTML = '<div class="txt"><b style="color:' + D.col + '">' + D.name + '</b> <small>DMG ' + dmgOf(t).toFixed(0) + ' | ' + rateOf(t).toFixed(1) + '/s | DPS ' +
-      (dmgOf(t) * rateOf(t)).toFixed(0) + ' | range ' + (rangeOf(t) / g.grid.unit).toFixed(1) + '</small></div>' +
+    const stats = D.kind === 'aura'
+      ? 'Buff +' + Math.round(auraOf(t, 'dmg') * 100) + '% dmg, +' + Math.round(auraOf(t, 'rate') * 100) + '% speed | range ' + (rangeOf(t) / g.grid.unit).toFixed(1)
+      : 'DMG ' + dmgOf(t).toFixed(0) + ' | ' + rateOf(t).toFixed(1) + '/s | DPS ' + (dmgOf(t) * rateOf(t)).toFixed(0) + ' | range ' + (rangeOf(t) / g.grid.unit).toFixed(1);
+    info.innerHTML = '<div class="txt"><b style="color:' + D.col + '">' + D.name + '</b> <small>' + stats + '</small></div>' +
       '<div class="brow">' + ['dmg', 'rate', 'rng'].map(k => bt('tup', k, TRACKS[k].label + ' ' + t.up[k], trackCost(t, k), can(k), TINT[k])).join('') +
       '<button class="btn alt" data-act="mode">' + ['First', 'Strong', 'Weak'][t.mode] + '</button>' +
       '<button class="btn red" data-act="sell"' + (t.isBase ? ' disabled' : '') + '>Sell<br>' + Math.floor(t.spent * 0.7) + '</button></div>';
@@ -885,7 +930,7 @@ $('info').addEventListener('click', e => {
 });
 $('bGo').onclick = () => startWave();
 $('abil').addEventListener('click', e => { const b = e.target.closest('.ab'); if (b) useAbility(b.dataset.a); });
-$('bSpeed').onclick = () => { if (G) { G.speed = G.speed % save.spd + 1; updateButtons(); } };
+$('bSpeed').onclick = () => { if (G) { G.speed = G.speed % save.spd + 1; save.lastSpeed = G.speed; persist(); updateButtons(); } };
 $('bAuto').onclick = () => { if (G) { G.auto = !G.auto; updateButtons(); } };
 $('bPause').onclick = () => { if (G && !G.over) { G.paused = !G.paused; updateButtons(); } };
 $('bQuit').onclick = () => {
@@ -937,7 +982,7 @@ function menuTowTab() {
   for (const type of TORDER) {
     const D = TD[type];
     if (!isSeen(type)) {
-      h += '<div class="row"><div class="t"><b>Unknown</b><small>Reach wave ' + D.at + ' to discover</small></div><b>?</b></div>';
+      h += '<div class="row"><div class="t"><b>Unknown</b><small>Reach wave ' + D.at + (D.lvl ? ' on ' + LEVELS.find(l => l.id === D.lvl).name : '') + ' to discover</small></div><b>?</b></div>';
     } else if (!save.unlocked[type]) {
       h += '<div class="row"><div class="t"><b style="color:' + D.col + '">' + D.name + '</b><small>' + D.desc + ' | ' + D.cmd + ' command</small></div>' +
         '<button class="btn" data-act="unlock" data-id="' + type + '"' + (save.gems < D.gems ? ' disabled' : '') + '>' + D.gems + ' gems</button></div>';
@@ -1028,5 +1073,5 @@ function frame(ts) {
 }
 resize(); renderMenu();
 requestAnimationFrame(frame);
-window.__td = { LEVELS, TD, EN, startGame, step, startWave, build, upgrade, upBase, TRACKS, BTRACKS, useAbility, getG: () => G, buildPaths, save: () => save };
+window.__td = { LEVELS, TD, EN, startGame, step, startWave, build, upgrade, upBase, TRACKS, BTRACKS, useAbility, getG: () => G, buildPaths, save: () => save, spawnEnemy, fire, findTarget, dmgOf, rateOf, rangeOf, updateUi };
 })();

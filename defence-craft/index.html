@@ -43,7 +43,7 @@
   #bar { display:flex; gap:4px; padding:6px; background:var(--panel); }
   #shop { flex:1; display:flex; gap:4px; min-width:0; overflow-x:auto; scrollbar-width:none; }
   #shop::-webkit-scrollbar { display:none; }
-  .card { flex:1 0 30px; min-width:30px; padding:3px 0; background:var(--panel2); border:1px solid transparent; border-radius:8px; color:var(--txt); text-align:center; font-size:9px; letter-spacing:-.2px; overflow:hidden; white-space:nowrap; }
+  .card { flex:1 0 44px; min-width:44px; padding:3px 0; background:var(--panel2); border:1px solid transparent; border-radius:8px; color:var(--txt); text-align:center; font-size:9px; letter-spacing:-.2px; overflow:hidden; white-space:nowrap; }
   .card canvas { width:22px; height:22px; display:block; margin:0 auto; }
   .card .c { color:var(--gold); font-weight:700; font-size:10px; }
   .card .k { color:#9db4ff; font-size:9px; }
@@ -58,6 +58,8 @@
   button.ab { background:var(--panel2); color:var(--txt); border:0; border-radius:8px; height:34px; font-weight:700; font-size:13px; }
   button.ab:disabled { opacity:.45; }
   button.ab:not(:disabled) { background:#7a5cff; }
+  #ab_rain.active:disabled { background:#ffd166; color:#06121c; opacity:1; }
+  #ab_freeze.active:disabled { background:#9bf6ff; color:#06121c; opacity:1; }
   #bGo { flex:0 0 54px; padding:8px 2px; font-size:13px; }
   #ov { position:fixed; inset:0; background:rgba(8,10,14,.94); display:none; overflow-y:auto; padding:20px 16px; }
   #ov .box { max-width:420px; margin:0 auto; }
@@ -72,6 +74,9 @@
   .tab { flex:1; position:relative; background:var(--panel); color:var(--dim); border:0; border-radius:8px; padding:10px 0; font-size:12px; font-weight:700; }
   .tab.on { background:var(--acc); color:#06121c; }
   .tab i { position:absolute; top:4px; right:5px; width:7px; height:7px; border-radius:50%; background:var(--gold); }
+  /* the lists still scroll (wheel, touch) but show no scrollbar, which on desktop covered the buttons */
+  .mbody, #ov { scrollbar-width:none; }
+  .mbody::-webkit-scrollbar, #ov::-webkit-scrollbar { display:none; }
   .mbody { flex:1; min-height:0; overflow-y:auto; }
   .mbody h3:first-child { margin-top:0; }
   .mfoot { padding-top:10px; }
