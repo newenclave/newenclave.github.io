@@ -4,17 +4,22 @@ const W = 360, H = 520, DT = 1 / 60, TAU = Math.PI * 2;
 const $ = id => document.getElementById(id);
 const cv = $('cv'), ctx = cv.getContext('2d');
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+// Game speed is bought in tiers of +25%: tier 1 = x1, tier 5 = x2, tier 9 = x3.
+const SPEED_MAX = 9;
+const speedMul = n => 1 + 0.25 * (n - 1);
+const speedLabel = n => 'x' + +speedMul(n).toFixed(2);
+const speedCost = owned => 12 * owned * owned; // price of the next tier when 'owned' tiers are bought
 
 /* ---------------- save ---------------- */
 const SAVE_KEY = 'td_save_v2';
 function freshSave() {
-  return { gems: 0, unlocked: { gun: 1 }, seen: {}, up: { gold: 0, dmg: 0, life: 0, inc: 0, luck: 0, arm: 0, reg: 0, cmd: 0 }, tech: {}, best: {}, levels: {}, speed: 1, tier: 1, abil: {} };
+  return { gems: 0, unlocked: { gun: 1 }, seen: {}, up: { gold: 0, dmg: 0, life: 0, inc: 0, luck: 0, arm: 0, reg: 0, cmd: 0 }, tech: {}, best: {}, levels: {}, spd: 1, tier: 1, abil: {} };
 }
 function loadSave() {
   const s = freshSave();
   try {
     const r = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
-    if (r) { s.gems = r.gems | 0; Object.assign(s.unlocked, r.unlocked); Object.assign(s.seen, r.seen); Object.assign(s.up, r.up); Object.assign(s.tech, r.tech); Object.assign(s.best, r.best); Object.assign(s.levels, r.levels); s.speed = clamp(r.speed | 0, 1, 3); s.tier = clamp(r.tier | 0, 1, 10); Object.assign(s.abil, r.abil); }
+    if (r) { s.gems = r.gems | 0; Object.assign(s.unlocked, r.unlocked); Object.assign(s.seen, r.seen); Object.assign(s.up, r.up); Object.assign(s.tech, r.tech); Object.assign(s.best, r.best); Object.assign(s.levels, r.levels); s.spd = r.spd ? clamp(r.spd | 0, 1, SPEED_MAX) : ({ 2: 5, 3: 9 })[r.speed | 0] || 1; /* old saves stored x1/x2/x3 as 1/2/3 */ s.tier = clamp(r.tier | 0, 1, 10); Object.assign(s.abil, r.abil); }
   } catch (e) { /* no storage */ }
   return s;
 }
@@ -164,6 +169,7 @@ const EN = {
   splitter: { dmg: 6, hp: 70,  spd: 38, rew: 6,  r: 11, col: '#ff9f1c', armor: 0, shape: 6, split: 3 },
   mini:     { dmg: 2, hp: 14,  spd: 55, rew: 1,  r: 6,  col: '#ff9f1c', armor: 0, shape: 6 },
   elite:    { dmg: 10, hp: 220, spd: 30, rew: 25, r: 13, col: '#fff', armor: 1, shape: 5, elite: true },
+  jammer:   { dmg: 6, hp: 120, spd: 30, rew: 8, r: 9, col: '#d65db1', armor: 0, shape: 7, jammer: true },
   boss2:    { dmg: 35, hp: 380, spd: 24, rew: 90, r: 15, col: '#c77dff', armor: 1, shape: 8, boss: true, spawner: true },
   boss3:    { dmg: 35, hp: 450, spd: 22, rew: 90, r: 16, col: '#2ec4b6', armor: 2, shape: 8, boss: true, regen: 0.02 },
   boss:     { dmg: 35, hp: 550, spd: 22, rew: 80, r: 16, col: '#e63946', armor: 3, shape: 8, boss: true },
@@ -189,6 +195,8 @@ const MAXTIER = 10;
 // Elite enemies: rare, tough, carry a prize. Chance per wave = base + perWave * wave + luck bonus.
 // pity: +chance for every wave without an elite, and a sure spawn after 'guarantee' dry waves.
 const ELITE = { from: 3, base: 0.05, perWave: 0.005, max: 0.25, luck: 0.02, pity: 0.025, guarantee: 10 };
+// Jammers aim at the densest group of towers within 'reach' (cells), show a ring, then switch off every tower within 'blast' of that spot.
+const JAMMER = { from: 8, every: 3, reach: 4.5, blast: 1.7, charge: 1.2, disable: 4, cooldown: 5, col: '#d65db1' };
 const LOOT = {
   perk: { w: 0.5, col: '#c77dff', label: 'Perk' },
   gold: { w: 0.3, col: '#ffd166', label: 'Gold' },
@@ -212,7 +220,7 @@ function startGame(li, tier = 1) {
     gold: 100 + 30 * save.up.gold, b: { hp: save.up.life, arm: save.up.arm, reg: save.up.reg, cmd: save.up.cmd }, bu: { hp: 0, arm: 0, reg: 0, cmd: 0 }, hp: 0, selBase: false, wave: 0, time: 0,
     towers: [], enemies: [], projs: [], fx: [], parts: [], floats: [], spawns: [],
     waveActive: false, autoT: 0, lastGo: -9, kills: 0, bossKills: 0, runGems: 0,
-    mods: { dmg: 1, rate: 1, range: 1, gold: 1, speed: 1, cost: 1, upc: 1, cmd: 0 }, perkQ: 0, eliteDry: 0, newTowers: [], offer: null,
+    mods: { dmg: 1, rate: 1, range: 1, gold: 1, speed: 1, cost: 1, upc: 1, cmd: 0 }, perkQ: 0, eliteDry: 0, newTowers: [], banners: [], offer: null,
     speed: 1, paused: false, auto: false, sel: null, armed: null, hover: null, hurt: 0, over: false,
   };
   G.hp = baseMax();
@@ -272,30 +280,43 @@ function genWave(w) {
   if (w >= 5 && w % 2 === 1) add('tank', 1 + Math.floor(w / 5), 1.8, 4);
   if (w >= 3 && w % 4 === 3) add('flyer', 2 + (w >> 2), 1.0, 2);
   if (w >= 6 && w % 3 === 0) add('splitter', 2 + Math.floor(w / 6), 1.6, 3);
+  if (w >= JAMMER.from && (w - JAMMER.from) % JAMMER.every === 0) add('jammer', 1 + Math.floor((w - JAMMER.from) / 9), 2.5, 3);
   if (w % 10 === 0) add(['boss', 'boss2', 'boss3'][(w / 10 - 1) % 3], 1, 1, 6, true);
   return q;
 }
 const isSeen = type => !!(save.seen[type] || save.unlocked[type]);
 function checkUnlocks() {
-  let any = false;
+  const found = [];
   for (const type of TORDER) {
     const D = TD[type];
     if (isSeen(type) || !(D.at > 0) || G.wave < D.at) continue;
-    save.seen[type] = 1; G.newTowers.push(D.name); any = true;
-    floater(W / 2, 44 + 14 * (G.newTowers.length - 1), 'Discovered: ' + D.name, D.col);
+    save.seen[type] = 1; G.newTowers.push(D.name); found.push(type);
   }
-  if (any) persist();
+  if (!found.length) return;
+  persist(); buzz(120);
+  banner('New tower discovered: ' + found.map(t => TD[t].name).join(', '), TD[found[0]].col);
+  showDiscover(found);
+}
+function showDiscover(types) {
+  G.paused = true; updateButtons();
+  showOv('<h1>NEW TOWER</h1><div class="sub">You reached wave ' + G.wave + '</div>' + types.map(t => {
+    const D = TD[t];
+    return '<div class="row"><div class="t"><b style="color:' + D.col + '">' + D.name + '</b><small>' + D.desc + ' | ' + D.cmd + ' command</small>' +
+      '<small>Buy it in the menu (Towers tab) for ' + D.gems + ' gems</small></div></div>';
+  }).join('') + '<button class="btn big" data-act="resume">Continue</button>');
 }
 function startWave() {
   if (!G || G.over || G.paused || G.spawns.length) return;
   if (G.enemies.length) { const b = 2 * G.wave; G.gold += b; floater(W / 2, H / 2 + 14, 'Early +' + b, '#ffd166'); } G.wave++; checkUnlocks(); G.waveActive = true; G.autoT = 0;
-  for (const s of genWave(G.wave)) G.spawns.push({ t: G.time + s.t, type: s.type });
+  const queue = genWave(G.wave);
+  for (const s of queue) G.spawns.push({ t: G.time + s.t, type: s.type });
+  if (queue.some(s => s.type === 'jammer')) banner('Jammers incoming: spread your towers', JAMMER.col);
   if (G.wave >= ELITE.from) G.eliteDry++;
   if (Math.random() < eliteChance(G.wave, G.eliteDry - 1)) {
     G.eliteDry = 0;
     const loot = rollLoot();
     G.spawns.push({ t: G.time + 4, type: 'elite', loot });
-    floater(W / 2, 24, 'Elite incoming: ' + LOOT[loot].label, LOOT[loot].col);
+    banner('Elite incoming: ' + LOOT[loot].label, LOOT[loot].col);
   }
   G.spawns.sort((a, b) => a.t - b.t);
 }
@@ -332,11 +353,15 @@ function hurt(e, amt, raw) {
   if (e.hp <= 0) kill(e);
 }
 // f = share of the prize: 1 when killed, 0.5 when the elite crashes into the base (a perk is still offered).
+function banner(txt, col) { G.banners.push({ txt, col, t: 2.6, max: 2.6 }); if (G.banners.length > 3) G.banners.shift(); }
+function buzz(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (err) { /* not supported */ } }
 function dropLoot(e, f) {
   if (!e.loot) return;
-  if (e.loot === 'perk') { if (G.offer) G.perkQ++; else offerPerks(); }
-  else if (e.loot === 'gold') { const gg = Math.round((40 + 12 * G.wave) * f); G.gold += gg; floater(e.x, e.y - 22, '+' + gg + ' gold', LOOT.gold.col); }
-  else if (e.loot === 'gems') { const n = Math.max(1, Math.round((2 + Math.floor(G.wave / 10)) * f)); G.runGems += n; floater(e.x, e.y - 22, '+' + n + ' gems', LOOT.gems.col); }
+  const head = f >= 1 ? 'Elite down! ' : 'Elite hit the base! Half prize: ';
+  if (e.loot === 'perk') { banner(head + 'choose a perk', LOOT.perk.col); if (G.offer) G.perkQ++; else offerPerks(); }
+  else if (e.loot === 'gold') { const gg = Math.round((40 + 12 * G.wave) * f); G.gold += gg; floater(e.x, e.y - 22, '+' + gg + ' gold', LOOT.gold.col); banner(head + '+' + gg + ' gold', LOOT.gold.col); }
+  else if (e.loot === 'gems') { const n = Math.max(1, Math.round((2 + Math.floor(G.wave / 10)) * f)); G.runGems += n; floater(e.x, e.y - 22, '+' + n + ' gems', LOOT.gems.col); banner(head + '+' + n + ' gems (paid at the end of the run)', LOOT.gems.col); }
+  buzz(f >= 1 ? 80 : 40);
 }
 function kill(e) {
   e.dead = true; const gain = Math.max(1, Math.round(e.rew * goldMul() * G.mods.gold * (G.goldT > 0 ? 3 : 1))); G.gold += gain; G.kills++;
@@ -415,6 +440,7 @@ function step(dt) {
   while (g.spawns.length && g.spawns[0].t <= g.time) { const sp = g.spawns.shift(); spawnEnemy(sp.type, 0, null, sp.loot); }
 
   for (const t of g.towers) {
+    if (t.off > 0) { t.off -= dt; continue; }
     t.cd -= dt;
     if (t.cd > 0) continue;
     const tg = findTarget(t);
@@ -438,6 +464,26 @@ function step(dt) {
     e.flash -= dt;
     if (e.S.regen) e.hp = Math.min(e.max, e.hp + e.max * e.S.regen * dt);
     if (e.S.spawner && (e.sp = (e.sp || 0) - dt) <= 0) { e.sp = 3; spawnEnemy('mini', Math.max(0, e.d - 10), e.path); }
+    if (e.S.jammer) {
+      const B = JAMMER.blast * g.grid.unit, reach = JAMMER.reach * g.grid.unit;
+      e.jcd = Math.max(0, (e.jcd || 0) - dt);
+      if (e.charging > 0) {
+        e.charging -= dt;
+        if (e.charging <= 0) {
+          for (const t of g.towers) if (Math.hypot(t.x - e.tx, t.y - e.ty) <= B) t.off = JAMMER.disable;
+          g.fx.push({ type: 'ring', x: e.tx, y: e.ty, r: B, t: 0.4, max: 0.4, col: JAMMER.col });
+          e.jcd = JAMMER.cooldown;
+        }
+      } else if (e.jcd <= 0) {
+        let best = null, bs = 0;
+        for (const t of g.towers) {
+          if (t.off > 0 || Math.hypot(t.x - e.x, t.y - e.y) > reach) continue;
+          const sc = g.towers.reduce((a, o) => a + (!(o.off > 0) && Math.hypot(o.x - t.x, o.y - t.y) <= B ? 1 : 0), 0);
+          if (sc > bs) { bs = sc; best = t; }
+        }
+        if (best) { e.charging = JAMMER.charge; e.tx = best.x; e.ty = best.y; }
+      }
+    }
     e.d += e.spd * e.slowF * dt; place(e);
     if (e.d >= e.len) {
       e.dead = true; const hit = e.dmg * armF(); g.hp -= hit; g.hurt = 0.3; floater(g.base.cx, g.base.cy - 18, '-' + Math.ceil(hit), '#ff7b8a'); dropLoot(e, 0.5);
@@ -450,6 +496,8 @@ function step(dt) {
   for (const p of g.parts) { p.t -= dt; p.x += p.vx * dt; p.y += p.vy * dt; }
   g.parts = g.parts.filter(p => p.t > 0);
   for (const f of g.floats) { f.t -= dt; f.y -= 20 * dt; }
+  for (const bn of g.banners) bn.t -= dt;
+  g.banners = g.banners.filter(bn => bn.t > 0);
   g.floats = g.floats.filter(f => f.t > 0);
   g.hurt = Math.max(0, g.hurt - dt);
   g.hp = Math.min(baseMax(), g.hp + regenOf() * dt);
@@ -572,6 +620,16 @@ function tinted(col, lv, tints) {
   return 'rgb(' + m(c0[0], r) + ',' + m(c0[1], g) + ',' + m(c0[2], b) + ')';
 }
 const rgbCss = a => 'rgb(' + a.join(',') + ')';
+// Splits text into lines that fit maxW with the current canvas font.
+function wrapText(txt, maxW) {
+  const lines = []; let line = '';
+  for (const word of txt.split(' ')) {
+    const test = line ? line + ' ' + word : word;
+    if (line && ctx.measureText(test).width > maxW) { lines.push(line); line = word; } else line = test;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
 function polyPath(c, poly) {
   c.beginPath(); poly.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.closePath();
 }
@@ -618,9 +676,23 @@ function render() {
     ctx.lineWidth = 1.5; ctx.strokeStyle = g.sel === t ? '#fff' : '#0d1015'; ctx.stroke();
     ctx.fillStyle = '#0d1015'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(lvlOf(t), t.x, t.y + 0.5);
+    if (t.off > 0) {
+      shapePath(ctx, t.x, t.y, cr, D.shape, D.rot || 0); ctx.fillStyle = 'rgba(13,16,21,0.7)'; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(t.x - cr, t.y - cr); ctx.lineTo(t.x + cr, t.y + cr); ctx.strokeStyle = JAMMER.col; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(t.x, t.y, cr + 3, -Math.PI / 2, -Math.PI / 2 + TAU * Math.min(1, t.off / JAMMER.disable)); ctx.stroke();
+    }
   }
   const drawEnemy = e => {
     shapePath(ctx, e.x, e.y, e.r, e.S.shape, e.S.rot || 0);
+    if (e.S.jammer && e.charging > 0) {
+      const B = JAMMER.blast * g.grid.unit;
+      ctx.setLineDash([5, 5]); ctx.lineWidth = 1.5; ctx.strokeStyle = JAMMER.col;
+      ctx.globalAlpha = 0.45; ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(e.tx, e.ty); ctx.stroke();
+      ctx.globalAlpha = 0.5 + 0.4 * Math.sin(g.time * 24); ctx.beginPath(); ctx.arc(e.tx, e.ty, B, 0, TAU); ctx.stroke();
+      ctx.globalAlpha = 0.12; ctx.fillStyle = JAMMER.col; ctx.fill();
+      ctx.setLineDash([]); ctx.globalAlpha = 1;
+      shapePath(ctx, e.x, e.y, e.r, e.S.shape, e.S.rot || 0);
+    }
     if (e.S.elite) {
       ctx.strokeStyle = e.col; ctx.lineWidth = 2; ctx.globalAlpha = 0.5 + 0.4 * Math.sin(g.time * 6);
       ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 5, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
@@ -647,6 +719,19 @@ function render() {
   ctx.globalAlpha = 1;
   ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (const f of g.floats) { ctx.globalAlpha = Math.min(1, f.t * 2); ctx.fillStyle = f.col; ctx.fillText(f.txt, f.x, f.y); }
+  ctx.globalAlpha = 1;
+  ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  let bannerY = 18;
+  for (const bn of g.banners) {
+    const lines = wrapText(bn.txt, W - 48), h = 10 + 17 * lines.length;
+    const w = Math.min(W - 16, Math.max(...lines.map(l => ctx.measureText(l).width)) + 24);
+    ctx.globalAlpha = Math.min(1, bn.t / 0.6) * 0.9;
+    ctx.fillStyle = '#0d1015'; ctx.fillRect(W / 2 - w / 2, bannerY, w, h);
+    ctx.strokeStyle = bn.col; ctx.lineWidth = 1.5; ctx.strokeRect(W / 2 - w / 2, bannerY, w, h);
+    ctx.fillStyle = bn.col;
+    lines.forEach((l, i) => ctx.fillText(l, W / 2, bannerY + 5 + 17 * i + 8.5));
+    bannerY += h + 4;
+  }
   ctx.globalAlpha = 1;
   if (g.hurt > 0) { ctx.fillStyle = 'rgba(230,57,70,' + g.hurt * 0.5 + ')'; ctx.fillRect(0, 0, W, H); }
   if (g.paused && !g.over) {
@@ -697,15 +782,17 @@ function buildAbil() {
 }
 function updateButtons() {
   if (!G) return;
-  $('bSpeed').textContent = 'x' + G.speed; $('bSpeed').disabled = save.speed < 2;
+  $('bSpeed').textContent = speedLabel(G.speed); $('bSpeed').disabled = save.spd < 2;
   $('bAuto').classList.toggle('on', G.auto);
   $('bPause').textContent = G.paused ? '>' : 'II';
   setText('bGo', G.wave === 0 ? 'Start' : 'Wave ' + (G.wave + 1));
 }
+// 12345 -> 12.3k, 1234567 -> 1.2M: keeps the top bar short on narrow phones.
+function shortNum(n) { n = Math.floor(n); return n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e4 ? (n / 1e3).toFixed(1) + 'k' : String(n); }
 function updateUi() {
   const g = G;
   setText('hLives', 'HP ' + Math.ceil(g.hp) + '/' + baseMax()); cards.__base.classList.toggle('armed', g.selBase);
-  { const bt0 = cmdUsed() + '/' + cmdCap(); if (cards.__base._t !== bt0) { cards.__base._t = bt0; cards.__base.lastChild.textContent = bt0; } } setText('hGold', '$ ' + Math.floor(g.gold)); setText('hWave', 'W ' + g.wave);
+  { const bt0 = cmdUsed() + '/' + cmdCap(); if (cards.__base._t !== bt0) { cards.__base._t = bt0; cards.__base.lastChild.textContent = bt0; } } setText('hGold', '$ ' + shortNum(g.gold)); setText('hWave', 'W ' + g.wave);
   setText('bGo', g.wave === 0 ? 'Start' : 'Wave ' + (g.wave + 1));
   $('bGo').disabled = g.spawns.length > 0;
   for (const type of TORDER) {
@@ -783,7 +870,7 @@ $('info').addEventListener('click', e => {
 });
 $('bGo').onclick = () => startWave();
 $('abil').addEventListener('click', e => { const b = e.target.closest('.ab'); if (b) useAbility(b.dataset.a); });
-$('bSpeed').onclick = () => { if (G) { G.speed = G.speed % save.speed + 1; updateButtons(); } };
+$('bSpeed').onclick = () => { if (G) { G.speed = G.speed % save.spd + 1; updateButtons(); } };
 $('bAuto').onclick = () => { if (G) { G.auto = !G.auto; updateButtons(); } };
 $('bPause').onclick = () => { if (G && !G.over) { G.paused = !G.paused; updateButtons(); } };
 $('bQuit').onclick = () => {
@@ -795,7 +882,6 @@ $('bQuit').onclick = () => {
 /* ---------------- overlays ---------------- */
 function showOv(html) { $('ovBox').innerHTML = html; $('ov').style.display = 'block'; }
 let menuConfirm = false;
-const SPEED_COST = [0, 20, 60];
 const techCost = type => Math.round(20 * Math.pow(techLv(type) + 1, 1.6));
 let menuTab = 'play';
 const TABS = [['play', 'Play'], ['up', 'Upgrades'], ['tow', 'Towers'], ['skill', 'Skills'], ['data', 'Data']];
@@ -805,7 +891,7 @@ function menuDots() {
     play: LEVELS.some((L, i) => !levelOpen(i) && g >= L.cost),
     up: Object.keys(UP).some(id => save.up[id] < UP[id].max && g >= UP[id].cost(save.up[id])),
     tow: TORDER.some(t => save.unlocked[t] ? techLv(t) < 15 && g >= techCost(t) : isSeen(t) && g >= TD[t].gems),
-    skill: (save.speed < 3 && g >= SPEED_COST[save.speed]) || AORDER.some(id => !save.abil[id] && g >= ABIL[id].cost),
+    skill: (save.spd < SPEED_MAX && g >= speedCost(save.spd)) || AORDER.some(id => !save.abil[id] && g >= ABIL[id].cost),
     data: false,
   };
 }
@@ -848,8 +934,9 @@ function menuTowTab() {
   return h;
 }
 function menuSkillTab() {
-  let h = '<h3>Game speed</h3>' + (save.speed >= 3 ? '<div class="row"><div class="t"><b>Speed x3</b><small>Unlocked</small></div></div>'
-    : '<div class="row"><div class="t"><b>Speed x' + (save.speed + 1) + '</b><small>Faster game button</small></div><button class="btn" data-act="buyspeed"' + (save.gems < SPEED_COST[save.speed] ? ' disabled' : '') + '>' + SPEED_COST[save.speed] + ' gems</button></div>');
+  let h = '<h3>Game speed</h3>' + (save.spd >= SPEED_MAX
+    ? '<div class="row"><div class="t"><b>Speed ' + speedLabel(SPEED_MAX) + '</b><small>Maximum unlocked</small></div></div>'
+    : '<div class="row"><div class="t"><b>Speed ' + speedLabel(save.spd + 1) + '</b><small>Now ' + speedLabel(save.spd) + '. Each step adds 25% (up to ' + speedLabel(SPEED_MAX) + ').</small></div><button class="btn" data-act="buyspeed"' + (save.gems < speedCost(save.spd) ? ' disabled' : '') + '>' + speedCost(save.spd) + ' gems</button></div>');
   h += '<h3>Abilities</h3>';
   for (const id of AORDER) {
     const A = ABIL[id];
@@ -891,7 +978,7 @@ $('ov').addEventListener('click', e => {
   else if (act === 'lvl') { menuLevel = +b.dataset.i; renderMenu(); }
   else if (act === 'unlvl') { const L = LEVELS[+b.dataset.i]; if (save.gems >= L.cost) { save.gems -= L.cost; save.levels[L.id] = 1; persist(); renderMenu(); } }
   else if (act === 'perk') { const p = G.offer && G.offer[+b.dataset.i]; if (p) { p.apply(G.mods, G); G.offer = null; G.paused = false; infoSig = ''; $('ov').style.display = 'none'; updateButtons(); if (G.perkQ > 0) { G.perkQ--; offerPerks(); } } }
-  else if (act === 'buyspeed') { const c = SPEED_COST[save.speed]; if (save.speed < 3 && save.gems >= c) { save.gems -= c; save.speed++; persist(); renderMenu(); } }
+  else if (act === 'buyspeed') { const c = speedCost(save.spd); if (save.spd < SPEED_MAX && save.gems >= c) { save.gems -= c; save.spd++; persist(); renderMenu(); } }
   else if (act === 'tierup') { menuTier = Math.min(save.tier, menuTier + 1); renderMenu(); }
   else if (act === 'tierdn') { menuTier = Math.max(1, menuTier - 1); renderMenu(); }
   else if (act === 'buyabil') { const A = ABIL[id]; if (!save.abil[id] && save.gems >= A.cost) { save.gems -= A.cost; save.abil[id] = 1; persist(); renderMenu(); } }
@@ -917,7 +1004,7 @@ window.addEventListener('resize', resize);
 function frame(ts) {
   const real = Math.min(0.1, (ts - last) / 1000 || 0); last = ts;
   if (G && !G.over && !G.paused) {
-    acc += real * G.speed;
+    acc += real * speedMul(G.speed);
     while (acc >= DT) { step(DT); acc -= DT; if (G.over || G.paused) break; }
   }
   if (G) { if (!G.over) updateUi(); }
