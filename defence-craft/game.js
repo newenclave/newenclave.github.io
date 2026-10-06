@@ -43,6 +43,7 @@ function newGrid(unit, cr) {
   };
   g.at = (c, r) => g.map.get(c + ',' + r);
   g.link = nbOf => { for (const cell of g.cells) cell.nb = nbOf(cell.c, cell.r).map(([c, r]) => g.at(c, r)).filter(Boolean); };
+  g.nearest = (x, y) => g.cells.reduce((b, c) => (Math.hypot(c.cx - x, c.cy - y) < Math.hypot(b.cx - x, b.cy - y) ? c : b));
   g.cellAt = (x, y) => g.cells.find(cell => pip(x, y, cell.poly)) || null;
   return g;
 }
@@ -55,9 +56,9 @@ function makeSquare(s = 40) {
   g.link((c, r) => [[c + 1, r], [c - 1, r], [c, r + 1], [c, r - 1]]);
   return g;
 }
-function makeHex() {
-  const cols = 7, rows = 11, w = W / (cols + 0.5), s = w / Math.sqrt(3), total = 1.5 * s * (rows - 1) + 2 * s, yoff = (H - total) / 2;
-  const g = newGrid(w, 15);
+function makeHex(cols = 7, rows = 11, cr = 15, unit = 0) {
+  const w = W / (cols + 0.5), s = w / Math.sqrt(3), total = 1.5 * s * (rows - 1) + 2 * s, yoff = (H - total) / 2;
+  const g = newGrid(unit || w, cr);
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
     const cx = w / 2 + c * w + (r % 2 ? w / 2 : 0), cy = yoff + s + r * 1.5 * s, poly = [];
     for (let i = 0; i < 6; i++) { const a = (60 * i - 30) * Math.PI / 180; poly.push([cx + s * Math.cos(a), cy + s * Math.sin(a)]); }
@@ -81,6 +82,25 @@ function makeTri() {
   return g;
 }
 
+// Builds n arms that spiral from the edge of the map into the centre (the base).
+// twist = how far each arm turns around the base on the way in (radians).
+function spiralArms(grid, n, twist, steps = 12) {
+  const base = grid.nearest(W / 2, H / 2), rx = 165, ry = 240, rIn = 0.18;
+  const arms = [];
+  for (let k = 0; k < n; k++) {
+    const wps = [];
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps, r = 1 - t * (1 - rIn), a = k * 2 * Math.PI / n + twist * t;
+      const cell = grid.nearest(base.cx + Math.cos(a) * rx * r, base.cy + Math.sin(a) * ry * r);
+      if (cell === base) continue;
+      if (!wps.length || wps[wps.length - 1][0] !== cell.c || wps[wps.length - 1][1] !== cell.r) wps.push([cell.c, cell.r]);
+    }
+    wps.push([base.c, base.r]);
+    arms.push(wps);
+  }
+  return arms;
+}
+
 const LEVELS = [
   { id: 'sq', name: 'Squares', make: makeSquare, diff: 1,
     wps: [[0, 0], [7, 0], [7, 2], [1, 2], [1, 4], [7, 4], [7, 6], [1, 6], [1, 8], [7, 8], [7, 10], [1, 10], [1, 12], [8, 12]] },
@@ -92,13 +112,8 @@ const LEVELS = [
     wps: [[0, 0], [8, 0], [8, 12], [0, 12], [0, 2], [2, 2], [2, 10], [6, 10], [6, 2], [4, 2], [4, 8]] },
   { id: 'hxs', name: 'Hex Spiral', make: makeHex, diff: 1.35, cost: 100,
     wps: [[0, 0], [6, 0], [6, 10], [0, 10], [0, 2], [4, 2], [4, 8], [2, 8], [2, 4]] },
-  { id: 'fort', name: 'Fortress', make: () => makeSquare(30), diff: 1.1, cost: 80, desc: '4 arms, small cells, base turret', turret: true, speed: 0.33,
-    arms: [
-      [[3, 0], [3, 3], [6, 3], [6, 8]],
-      [[8, 16], [8, 13], [6, 13], [6, 8]],
-      [[0, 11], [3, 11], [3, 8], [6, 8]],
-      [[11, 5], [8, 5], [8, 8], [6, 8]],
-    ] },
+  { id: 'fort', name: 'Fortress', make: () => makeHex(9, 15, 11, 40), diff: 1.1, cost: 80, desc: '3 spiral arms, base turret', turret: true, speed: 0.6,
+    armsFn: grid => spiralArms(grid, 3, 1.3 * Math.PI, 14) },
 ];
 
 function buildPath(grid, wps, used) {
@@ -131,7 +146,7 @@ function buildPath(grid, wps, used) {
   return { seq, pts, cum, len: cum[cum.length - 1], fly: Math.hypot(end.x - entry.x, end.y - entry.y) };
 }
 function buildPaths(grid, L) {
-  const arms = L.arms || [L.wps], used = new Set();
+  const arms = L.arms || (L.armsFn ? L.armsFn(grid) : [L.wps]), used = new Set();
   const base = grid.at(...arms[0][arms[0].length - 1]);
   const paths = arms.map(wps => buildPath(grid, wps, used));
   base.base = true;
@@ -150,7 +165,7 @@ function posAt(path, d) {
 /* ---------------- definitions ---------------- */
 const TD = {
   gun:    { name: 'Gun',    cmd: 1, cost: 50,  dmg: 9,  rate: 2.2, range: 2.7, kind: 'bullet', col: '#4da8da', shape: 0, barrel: 1, at: 0, gems: 0,   desc: 'Cheap all-rounder' },
-  rapid:  { name: 'Rapid',  cmd: 2, cost: 90,  dmg: 4,  rate: 8,   range: 2.3, kind: 'bullet', col: '#f4d35e', shape: 3, barrel: 1, at: 10, gems: 15,   desc: 'Very fast, weak vs armor' },
+  rapid:  { name: 'Rapid',  cmd: 2, cost: 90,  dmg: 8,  rate: 7.5, range: 2.6, kind: 'bullet', col: '#f4d35e', shape: 3, barrel: 1, at: 10, gems: 15,   desc: 'Fast fire, beats two Guns for the same 2 command points' },
   cannon: { name: 'Cannon', cmd: 2, cost: 130, dmg: 34, rate: 0.75, range: 2.9, kind: 'bullet', col: '#e07a5f', shape: 4, rot: Math.PI / 4, barrel: 1, splash: 0.9, ground: true, at: 13, gems: 25, desc: 'Splash damage, ground only' },
   frost:  { name: 'Frost',  cmd: 1, cost: 110, dmg: 3,  rate: 1.6, range: 2.5, kind: 'bullet', col: '#9bf6ff', shape: 6, slow: 0.45, slowT: 2, at: 16, gems: 40, desc: 'Slows enemies' },
   flame:  { name: 'Flame',  cmd: 2, cost: 170, dmg: 3.5, rate: 10, range: 1.7, kind: 'flame',  col: '#ff6b35', shape: 5, ground: true, at: 20, gems: 70, desc: 'Burns ground groups' },
@@ -188,7 +203,7 @@ const UP = {
 const ABIL = {
   nova:   { name: 'Nova',      desc: 'Hits every enemy for 15% max HP (5% for bosses)', cd: 45, cost: 30 },
   freeze: { name: 'Freeze',    desc: 'Slows all enemies for 4 s',                         cd: 40, cost: 50 },
-  rain:   { name: 'Gold rain', desc: 'Kill gold x3 for 10 s',                             cd: 60, cost: 80 },
+  rain:   { name: 'Gold Rush', desc: 'Kill gold x3 for 10 s',                             cd: 60, cost: 80 },
 };
 const AORDER = ['nova', 'freeze', 'rain'];
 const MAXTIER = 10;
@@ -216,7 +231,7 @@ const levelOpen = i => !LEVELS[i].cost || !!save.levels[LEVELS[i].id];
 function startGame(li, tier = 1) {
   const L = LEVELS[li], grid = L.make(), { paths, base } = buildPaths(grid, L);
   G = {
-    li, L, grid, paths, base, tier, armMul: 1 + 0.25 * (paths.length - 1), cds: { nova: 0, freeze: 0, rain: 0 }, goldT: 0,
+    li, L, grid, paths, base, tier, armMul: 1 + 0.15 * (paths.length - 1), cds: { nova: 0, freeze: 0, rain: 0 }, goldT: 0,
     gold: 100 + 30 * save.up.gold, b: { hp: save.up.life, arm: save.up.arm, reg: save.up.reg, cmd: save.up.cmd }, bu: { hp: 0, arm: 0, reg: 0, cmd: 0 }, hp: 0, selBase: false, wave: 0, time: 0,
     towers: [], enemies: [], projs: [], fx: [], parts: [], floats: [], spawns: [],
     waveActive: false, autoT: 0, lastGo: -9, kills: 0, bossKills: 0, runGems: 0,
