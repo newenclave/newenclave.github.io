@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Повтори за мной</title>
+<style>
+  :root { --bg:#14161f; --panel:#1e2130; --text:#e8eaf3; --dim:#8b90a8; }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+         font-family:system-ui,sans-serif; display:flex; flex-direction:column; align-items:center; padding:16px; }
+  h1 { margin:8px 0 4px; font-size:24px; }
+  #info { display:flex; gap:20px; color:var(--dim); margin-bottom:8px; flex-wrap:wrap; justify-content:center; }
+  #info b { color:var(--text); }
+  #status { height:28px; font-size:18px; margin:6px 0 14px; text-align:center; }
+  #board { display:grid; gap:14px; justify-content:center; }
+  .btn { width:96px; height:96px; border-radius:20px; border:3px solid transparent; background:var(--panel);
+         cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;
+         transition:transform .12s, filter .12s, background .12s, box-shadow .12s; opacity:.55; }
+  .btn svg { width:70%; height:70%; }
+  .btn.num { font-size:44px; font-weight:700; }
+  .btn .shape { fill:var(--c); }
+  .btn.num { color:var(--c); }
+  .btn.lit { opacity:1; transform:scale(1.1); background:var(--c); box-shadow:0 0 30px var(--c); }
+  .btn.lit .shape { fill:#fff; }
+  .btn.lit.num { color:#fff; }
+  .btn.wrong { background:#ff3b4a; opacity:1; }
+  #board.locked .btn { cursor:default; }
+  #board.input .btn { opacity:.9; }
+  #board.input .btn:hover { filter:brightness(1.25); }
+  #board.shuffle .btn { transform:scale(.6) rotate(20deg); opacity:.2; }
+  button.main { margin-top:22px; padding:12px 28px; font-size:18px; border:0; border-radius:12px;
+                background:#4f7cff; color:#fff; cursor:pointer; }
+  button.main:hover { filter:brightness(1.15); }
+  #hint { color:var(--dim); font-size:13px; margin-top:14px; text-align:center; max-width:420px; }
+  .screen { width:100%; max-width:680px; display:flex; flex-direction:column; align-items:center; }
+  .screen[hidden] { display:none; }
+  .sub { color:var(--dim); margin:0 0 20px; }
+  .section { align-self:flex-start; font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+             color:var(--dim); margin:4px 0 10px; }
+  #levels { width:100%; display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; margin-bottom:22px; }
+  .card { background:var(--panel); border:2px solid transparent; border-radius:16px; padding:14px;
+          color:var(--text); text-align:left; cursor:pointer; display:flex; flex-direction:column; gap:10px;
+          transition:transform .12s, border-color .12s, background .12s; }
+  .card:hover { transform:translateY(-2px); background:#252a40; }
+  .card.sel { border-color:#4f7cff; background:#222a52; }
+  .card .top { display:flex; justify-content:space-between; align-items:center; }
+  .card .name { font-weight:600; }
+  .card .num-badge { color:var(--dim); font-size:13px; }
+  .preview { display:flex; flex-wrap:wrap; gap:5px; min-height:44px; align-content:flex-start; }
+  .mini { width:20px; height:20px; display:flex; align-items:center; justify-content:center;
+          font-size:15px; font-weight:700; color:var(--c); }
+  .mini svg { width:100%; height:100%; }
+  .mini .shape { fill:var(--c); }
+  .card .bottom { display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--dim); }
+  .dots { display:flex; gap:3px; }
+  .dots i { width:7px; height:7px; border-radius:50%; background:#3a3f58; }
+  .dots i.on { background:#ffd23f; }
+  .card .rec b { color:var(--text); }
+  .seg { display:flex; background:var(--panel); border-radius:12px; padding:4px; gap:4px; margin-bottom:26px; width:100%; }
+  .seg button { flex:1; border:0; background:transparent; color:var(--dim); padding:10px 8px; border-radius:9px;
+                cursor:pointer; font-size:15px; }
+  .seg button.sel { background:#4f7cff; color:#fff; }
+  .seg button:not(.sel):hover { color:var(--text); }
+  #bar { width:100%; display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px; }
+  .back { background:var(--panel); border:0; color:var(--text); padding:8px 14px; border-radius:10px; cursor:pointer; font-size:14px; }
+  .back:hover { filter:brightness(1.25); }
+  #bar .stats { display:flex; gap:16px; color:var(--dim); font-size:14px; }
+  #bar .stats b { color:var(--text); }
+  #after { display:flex; gap:10px; }
+  button.main.alt { background:var(--panel); }
+  @media (max-width:520px){ .btn{ width:80px; height:80px; } }
+</style>
+</head>
+<body>
+  <section class="screen" id="menuScreen">
+    <h1>Повтори за мной</h1>
+    <p class="sub">Запоминай, что загорается, и повторяй по порядку</p>
+    <div class="section">Уровень</div>
+    <div id="levels"></div>
+    <div class="section">Скорость</div>
+    <div class="seg" id="speeds"></div>
+    <button class="main" id="play" style="margin-top:0">▶ Играть</button>
+  </section>
+
+  <section class="screen" id="gameScreen" hidden>
+    <div id="bar">
+      <button class="back" id="back">← Меню</button>
+      <div class="stats">
+        <span><b id="lvl">1</b></span>
+        <span>Раунд <b id="step">0</b></span>
+        <span>Рекорд <b id="best">0</b></span>
+      </div>
+    </div>
+    <div id="status"></div>
+    <div id="board" class="locked"></div>
+    <div id="after" hidden>
+      <button class="main" id="again">Ещё раз</button>
+      <button class="main alt" id="toMenu">В меню</button>
+    </div>
+    <div id="hint">Можно жать клавиши 1–9</div>
+  </section>
+
+<script>
+// ---------- Конфигурация уровней ----------
+// buttons: набор кнопок (shape: circle|triangle|square|diamond|star|number)
+// target: длина последовательности, которую нужно повторить, чтобы пройти уровень
+// flash: сколько мс горит кнопка, gap: пауза между кнопками
+// shuffle: перемешивать расположение кнопок каждый раунд
+const C = ['#ff4d6d','#4dd2ff','#ffd23f','#5be37d','#b779ff','#ff9f43','#2ee6c5','#f368e0','#a3b1ff'];
+const mk = (shapes) => shapes.map((s,i)=>({ shape:s, color:C[i%C.length], label:i+1 }));
+const LEVELS = [
+  { name:'Кружочки',        buttons: mk(['circle','circle','circle']),                                  target:4,  flash:700, gap:300, cols:3 },
+  { name:'Четыре кружка',   buttons: mk(['circle','circle','circle','circle']),                         target:5,  flash:600, gap:260, cols:2 },
+  { name:'Фигуры',          buttons: mk(['circle','triangle','square','diamond']),                      target:6,  flash:550, gap:230, cols:2 },
+  { name:'Цифры',           buttons: mk(['number','number','number','number','number']),               target:6,  flash:500, gap:220, cols:3 },
+  { name:'Фигуры и цифры',  buttons: mk(['circle','triangle','number','star','square','number']),      target:7,  flash:420, gap:200, cols:3 },
+  { name:'Хаос',            buttons: mk(['circle','triangle','number','star','square','number','diamond','number']), target:8, flash:360, gap:170, cols:4, shuffle:true },
+  { name:'Мастер',          buttons: mk(['star','number','triangle','circle','number','square','diamond','number','circle']), target:10, flash:300, gap:140, cols:3, shuffle:true },
+];
+
+// ---------- Звук ----------
+let actx;
+function tone(freq, ms, type='sine') {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(.18, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001, actx.currentTime + ms/1000);
+    o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + ms/1000);
+  } catch(e) {}
+}
+const freqOf = i => 262 * Math.pow(2, [0,2,4,5,7,9,11,12,14][i % 9] / 12);
+
+// ---------- Отрисовка ----------
+const SHAPES = {
+  circle:   '<circle cx="50" cy="50" r="40" class="shape"/>',
+  triangle: '<polygon points="50,10 92,86 8,86" class="shape"/>',
+  square:   '<rect x="14" y="14" width="72" height="72" rx="8" class="shape"/>',
+  diamond:  '<polygon points="50,6 94,50 50,94 6,50" class="shape"/>',
+  star:     '<polygon points="50,6 61,38 95,38 67,58 78,92 50,71 22,92 33,58 5,38 39,38" class="shape"/>',
+};
+const $ = id => document.getElementById(id);
+const board = $('board'), statusEl = $('status');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+let level = 0, seq = [], pos = 0, busy = false, running = false, token = 0;
+const SPEEDS = [ { name:'Медленно', k:1.5 }, { name:'Нормально', k:1 }, { name:'Быстро', k:.65 } ];
+let speed = 1;
+let records = {};
+try { records = JSON.parse(localStorage.getItem('simon-records') || '{}'); } catch(e) {}
+const rec = i => records[i] || 0;
+
+function renderMenu() {
+  $('levels').innerHTML = '';
+  LEVELS.forEach((L, i) => {
+    const hard = 1 + Math.round(i / (LEVELS.length - 1) * 4);
+    const mini = L.buttons.map(b => `<span class="mini" style="--c:${b.color}">` +
+      (b.shape === 'number' ? b.label : `<svg viewBox="0 0 100 100">${SHAPES[b.shape]}</svg>`) + '</span>').join('');
+    const dots = [1,2,3,4,5].map(n => `<i class="${n <= hard ? 'on' : ''}"></i>`).join('');
+    const c = document.createElement('button');
+    c.className = 'card' + (i === level ? ' sel' : '');
+    c.innerHTML = `<div class="top"><span class="name">${L.name}</span><span class="num-badge">${i + 1}</span></div>` +
+      `<div class="preview">${mini}</div>` +
+      `<div class="bottom"><span class="dots">${dots}</span><span class="rec">рекорд <b>${rec(i)}</b></span></div>`;
+    c.onclick = () => { level = i; renderMenu(); };
+    $('levels').appendChild(c);
+  });
+  $('speeds').innerHTML = '';
+  SPEEDS.forEach((S, i) => {
+    const b = document.createElement('button');
+    b.className = i === speed ? 'sel' : '';
+    b.textContent = S.name;
+    b.onclick = () => { speed = i; renderMenu(); };
+    $('speeds').appendChild(b);
+  });
+}
+
+function showScreen(game) {
+  $('menuScreen').hidden = game;
+  $('gameScreen').hidden = !game;
+}
+function toMenu() {
+  token++; running = false; busy = false;
+  renderMenu(); showScreen(false);
+}
+
+function buildBoard() {
+  const L = LEVELS[level];
+  board.innerHTML = '';
+  board.style.gridTemplateColumns = `repeat(${L.cols}, auto)`;
+  L.buttons.forEach((b, i) => {
+    const el = document.createElement('button');
+    el.className = 'btn' + (b.shape === 'number' ? ' num' : '');
+    el.style.setProperty('--c', b.color);
+    el.dataset.i = i;
+    el.innerHTML = b.shape === 'number' ? b.label : `<svg viewBox="0 0 100 100">${SHAPES[b.shape]}</svg>`;
+    el.addEventListener('click', () => press(i));
+    board.appendChild(el);
+  });
+  $('lvl').textContent = `${level + 1}. ${L.name}`;
+  $('step').textContent = 0;
+  $('best').textContent = rec(level);
+}
+const btnEl = i => board.querySelector(`[data-i="${i}"]`);
+
+async function flash(i, ms) {
+  const el = btnEl(i);
+  el.classList.add('lit'); tone(freqOf(i), ms);
+  await sleep(ms);
+  el.classList.remove('lit');
+}
+
+async function shuffleBoard() {
+  board.classList.add('shuffle'); await sleep(250);
+  const els = [...board.children];
+  for (let i = els.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [els[i], els[j]] = [els[j], els[i]]; }
+  els.forEach(e => board.appendChild(e));
+  board.classList.remove('shuffle'); await sleep(300);
+}
+
+// ---------- Игровой цикл ----------
+async function playSequence() {
+  const L = LEVELS[level], my = token;
+  busy = true; board.className = 'locked';
+  statusEl.textContent = 'Смотри внимательно…';
+  if (L.shuffle) await shuffleBoard();
+  await sleep(400);
+  for (const i of seq) {
+    if (my !== token) return;
+    const k = SPEEDS[speed].k;
+    await flash(i, L.flash * k); await sleep(L.gap * k);
+  }
+  if (my !== token) return;
+  pos = 0; busy = false; board.className = 'input';
+  statusEl.textContent = 'Твоя очередь!';
+}
+
+function nextRound() {
+  const L = LEVELS[level];
+  seq.push(Math.random() * L.buttons.length | 0);
+  $('step').textContent = seq.length;
+  return playSequence();
+}
+
+async function press(i) {
+  if (!running || busy) return;
+  const my = token;
+  if (seq[pos] !== i) return fail(i);
+  busy = true; await flash(i, 200); busy = false;
+  if (my !== token) return;
+  pos++;
+  if (pos < seq.length) return;
+  // раунд пройден
+  if (seq.length > rec(level)) {
+    records[level] = seq.length;
+    try { localStorage.setItem('simon-records', JSON.stringify(records)); } catch(e) {}
+    $('best').textContent = seq.length;
+  }
+  busy = true; board.className = 'locked';
+  statusEl.textContent = 'Верно!'; await sleep(700);
+  if (my === token) nextRound();
+}
+
+async function fail(i) {
+  const my = ++token; running = false; busy = true; board.className = 'locked';
+  btnEl(i).classList.add('wrong'); tone(110, 500, 'sawtooth');
+  statusEl.textContent = `Ошибка! Пройдено раундов: ${seq.length - 1}.`;
+  await sleep(600);
+  btnEl(i).classList.remove('wrong');
+  // подсветим, как надо было
+  await flash(seq[pos], 500);
+  if (my === token) $('after').hidden = false;
+}
+
+function start() {
+  token++; seq = []; running = true;
+  $('after').hidden = true; showScreen(true);
+  buildBoard(); nextRound();
+}
+
+$('play').addEventListener('click', start);
+$('again').addEventListener('click', start);
+$('back').addEventListener('click', toMenu);
+$('toMenu').addEventListener('click', toMenu);
+document.addEventListener('keydown', e => {
+  const n = parseInt(e.key, 10);
+  if (n >= 1 && running && !busy) {
+    // клавиша n -> n-я кнопка в текущем визуальном порядке
+    const el = board.children[n - 1];
+    if (el) press(+el.dataset.i);
+  }
+});
+renderMenu();
+</script>
+</body>
+</html>
