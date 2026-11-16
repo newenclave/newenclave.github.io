@@ -8,23 +8,24 @@ const TITLE_KEYS = {
 const CONTROL_LINES = [1, 2, 3, 4, 5, 6, 7].map((n) => `menu.controls.l${n}`);
 const GAP = 10;
 
-export const menuContext = (app) => ({ hasSave: app.saveInfo !== null, settings: app.settings });
+export const menuContext = (app) => ({ hasSave: app.saveInfo !== null, settings: app.settings, arena: !!app.game?.state.arena });
 
 // Buttons are stacked in the middle; sizes adapt, so the menu also fits a phone held sideways.
 export function layoutMenu(app, w, h) {
   const items = menuItems(app.menu, menuContext(app));
   const compact = h < 450;
-  const titleBlock = compact ? 64 : 140;
+  const titleBlock = compact ? 58 : 140;
   const textBlock = {
     controls: compact ? 150 : 230, confirm: compact ? 50 : 90, main: compact ? 24 : 36,
   }[app.menu.screen] ?? 0;
-  const avail = h - titleBlock - textBlock - 24;
+  const avail = h - titleBlock - textBlock - (compact ? 12 : 24);
   const n = Math.max(1, items.length);
-  const bh = Math.max(34, Math.min(52, (avail - GAP * (n - 1)) / n));
-  const total = n * bh + (n - 1) * GAP;
+  const gap = compact ? 4 : GAP; // a phone held sideways: six buttons must still fit, each big enough to tap
+  const bh = Math.max(34, Math.min(52, (avail - gap * (n - 1)) / n));
+  const total = n * bh + (n - 1) * gap;
   const bw = Math.min(340, w - 40);
   const top = titleBlock + textBlock + Math.max(0, (avail - total) / 2);
-  const rects = items.map((item, index) => ({ item, index, x: (w - bw) / 2, y: top + index * (bh + GAP), w: bw, h: bh }));
+  const rects = items.map((item, index) => ({ item, index, x: (w - bw) / 2, y: top + index * (bh + gap), w: bw, h: bh }));
   return { items, rects, compact, titleBlock };
 }
 
@@ -76,7 +77,7 @@ export function drawMenu(ctx, app, w, h) {
     ctx.fillText(t('menu.subtitle'), w / 2, 122);
   }
 
-  const textTop = (compact ? 64 : 140) + 6;
+  const textTop = (compact ? 58 : 140) + 6;
   if (screen === 'main' && app.saveInfo) {
     ctx.fillStyle = '#b0bfd9';
     ctx.font = `${compact ? 12 : 14}px sans-serif`;

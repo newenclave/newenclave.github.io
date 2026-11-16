@@ -3,7 +3,7 @@ import { TOUCH_MODES } from './settings.js';
 
 // Menu logic without any drawing. Screens: main, pause, settings, controls, confirm.
 // ctx = { hasSave, settings }. Clicking an item either moves between screens (returns null)
-// or returns an action for the game to carry out: continue, new, delete, resume, save, toMain, settings.
+// or returns an action for the game to carry out: continue, new, arena, delete, resume, save, toMain, settings.
 
 export const newMenu = (screen = 'main') => ({ screen, stack: [], confirm: null, cursor: 0 });
 
@@ -29,13 +29,14 @@ export function menuItems(menu, ctx) {
         { id: 'continue', key: 'menu.continue', enabled: hasSave },
         { id: 'new', key: 'menu.new' },
         ...(hasSave ? [{ id: 'delete', key: 'menu.delete', danger: true }] : []),
+        { id: 'arena', key: 'menu.arena' },
         { id: 'settings', key: 'menu.settings' },
         { id: 'controls', key: 'menu.controls' },
       ];
     case 'pause':
       return [
         { id: 'resume', key: 'menu.resume' },
-        { id: 'save', key: 'menu.save' },
+        ...(ctx.arena ? [] : [{ id: 'save', key: 'menu.save' }]), // the test arena is never saved
         { id: 'settings', key: 'menu.settings' },
         { id: 'controls', key: 'menu.controls' },
         { id: 'toMain', key: 'menu.toMain' },
@@ -66,6 +67,7 @@ export function menuClick(menu, id, ctx) {
 
   switch (id) {
     case 'continue':
+    case 'arena':
     case 'resume':
     case 'save':
     case 'toMain':

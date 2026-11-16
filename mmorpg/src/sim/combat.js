@@ -1,6 +1,6 @@
 // Pure combat logic: no DOM or Canvas, so it can move to a server later.
 import { dropLoot } from './loot.js';
-import { damagePlayer } from './player-damage.js';
+import { damagePlayer, DAZE_MULT } from './player-damage.js';
 import { isFlying, bodyY } from './entity.js';
 import { bossRewards } from '../systems/lairs.js';
 import { CALM_MAX } from '../systems/spawning.js';
@@ -33,6 +33,7 @@ export function rollDamage(player, weapon, rng = Math.random) {
 
 export function damageEnemy(state, enemy, hit) {
   if (enemy.hp <= 0) return;
+  if (state.meter) state.meter.dealt += Math.min(hit.amount, enemy.hp); // the test arena counts (systems/arena.js)
   enemy.hp -= hit.amount;
   enemy.flash = 0.12;
   state.floaters.push({
@@ -40,6 +41,7 @@ export function damageEnemy(state, enemy, hit) {
     text: Math.round(hit.amount) + (hit.crit ? '!' : ''), color: hit.color ?? (hit.crit ? '#ff9800' : undefined),
   });
   if (enemy.hp <= 0) {
+    if (state.meter) state.meter.kills += 1;
     if (!enemy.boss && !enemy.owner && !enemy.camp) state.calm = Math.min(CALM_MAX, (state.calm ?? 0) + 1); // fewer wanderers for a while
     recordKill(state, enemy.def.id);
     if (enemy.boss) bossRewards(state, enemy);
@@ -76,6 +78,38 @@ function reachable(state, ax, ay, bx, by) {
 
 const cooldownOf = (player, weapon) => weapon.cooldown / (1 + player.stats.attackSpeed);
 
+// A blow costs you your feet for a moment (`recover` seconds at `moveMult` of your speed, see weapons.json): you cannot
+// run away at full speed and hit back over your shoulder. Hitting against the way you walk drags you more still.
+export const BACK_DRAG = 0.6;
+
+export function moveFactor(p, dx = 0, dy = 0) {
+  let k = p.dazed > 0 ? DAZE_MULT : 1;
+  if (p.drag > 0) {
+    let m = p.dragMult ?? 1;
+    const len = Math.hypot(dx, dy);
+    if (len > 0 && p.dragAim !== undefined && (dx * Math.cos(p.dragAim) + dy * Math.sin(p.dragAim)) / len < -0.3) m *= BACK_DRAG;
+    k *= m;
+  }
+  return k;
+}
+
+// The clocks of the daze and of the drag after a blow.
+export function tickPlayerCombat(p, dt) {
+  p.drag = Math.max(0, (p.drag ?? 0) - dt);
+  p.dazed = Math.max(0, (p.dazed ?? 0) - dt);
+}
+
+function dragAfter(player, w, ang) {
+  if (!(w.recover > 0)) return;
+  if (player.drag > 0 && (player.dragMult ?? 1) < (w.moveMult ?? 1)) return; // a heavier blow still holds you
+  player.drag = w.recover;
+  player.dragMult = w.moveMult ?? 1;
+  player.dragAim = ang;
+}
+
+// Area damage has a soft cap (WoW, patch 9.1.5): past `cap` targets every one of them takes sqrt(cap / n) of the hit.
+export const aoeShare = (n, cap) => (n > cap ? Math.sqrt(cap / n) : 1);
+
 // One press of the attack button: every hand that is ready swings. The off hand has its own clock.
 export function tryAttack(state, player, aim) {
   const lo = loadoutOf(state);
@@ -103,6 +137,7 @@ function useAmmo(state, ammo) {
 
 function swing(state, player, aim, w, { mult = 1, ammo = null } = {}) {
   const ang = Math.atan2(aim.y - player.y, aim.x - player.x);
+  dragAfter(player, w, ang);
   // Weapons that only reach the ground cannot touch flyers; a shot or a spell can (see `reach` in weapons.json).
   const reachesAir = w.reach === 'both';
   const withinReach = [];
@@ -174,14 +209,40 @@ function swing(state, player, aim, w, { mult = 1, ammo = null } = {}) {
       const radius = w.radius * (1 + player.stats.aoeRadius);
       const d = Math.min(Math.hypot(aim.x - player.x, aim.y - player.y), w.range);
       const { x, y } = reachable(state, player.x, player.y, player.x + Math.cos(ang) * d, player.y + Math.sin(ang) * d);
-      state.effects.push({ kind: 'aoe', x, y, radius, color: w.color, t: 0, dur: 0.3 });
-      for (const e of alive) {
-        if (Math.hypot(e.x - x, e.y - y) <= radius + e.r && clear(state, x, y, e.x, e.y)) damageEnemy(state, e, hit());
+      // The spell lands `delay` seconds later where the circle shows: a monster that sees it coming can step out.
+      const blast = { x, y, radius, color: w.color, left: w.delay ?? 0, cap: w.cap ?? Infinity, air: reachesAir, hit };
+      if (blast.left > 0) {
+        (state.blasts ??= []).push(blast);
+        state.effects.push({ kind: 'mark', x, y, radius, color: w.color, t: 0, dur: blast.left });
+      } else {
+        detonate(state, blast);
       }
       break;
     }
     default:
   }
+}
+
+function detonate(state, b) {
+  state.effects.push({ kind: 'aoe', x: b.x, y: b.y, radius: b.radius, color: b.color, t: 0, dur: 0.3 });
+  const caught = state.enemies.filter((e) => e.hp > 0 && (b.air || !isFlying(e))
+    && Math.hypot(e.x - b.x, e.y - b.y) <= b.radius + e.r && clear(state, b.x, b.y, e.x, e.y));
+  const share = aoeShare(caught.length, b.cap);
+  for (const e of caught) {
+    const h = b.hit();
+    h.amount *= share;
+    damageEnemy(state, e, h);
+  }
+}
+
+// Spells on their way down.
+export function updateBlasts(state, dt) {
+  if (!state.blasts?.length) return;
+  for (const b of state.blasts) {
+    b.left -= dt;
+    if (b.left <= 0) detonate(state, b);
+  }
+  state.blasts = state.blasts.filter((b) => b.left > 0);
 }
 
 // What special ammo does to the monster it hit (and the ones around it).
@@ -203,6 +264,7 @@ function applyAmmoEffect(state, shot, target) {
 }
 
 export function updateProjectiles(state, dt) {
+  updateBlasts(state, dt);
   state.projectiles = state.projectiles.filter((p) => {
     const step = Math.hypot(p.vx, p.vy) * dt;
     p.x += p.vx * dt;

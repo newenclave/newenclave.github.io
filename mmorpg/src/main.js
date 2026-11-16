@@ -4,7 +4,7 @@ import { World, TILE, WORLD_GEN } from './world/world.js';
 import { MapWorld, MAP_GEN } from './world/map.js';
 import { goodStart } from './world/reach.js';
 import { Renderer } from './render/renderer.js';
-import { tryAttack, updateProjectiles, updateEffects, tickStatuses } from './sim/combat.js';
+import { tryAttack, updateProjectiles, updateEffects, tickStatuses, moveFactor, tickPlayerCombat } from './sim/combat.js';
 import { moveWithCollision, moveBoat, isFlying, bodyY } from './sim/entity.js';
 import { toggleBoat, boatHint, BOAT_SPEED } from './systems/boat.js';
 import { updateEnemies, updateEnemyProjectiles } from './sim/enemy.js';
@@ -49,6 +49,8 @@ import {
 import { loadSettings, storeSettings } from './systems/settings.js';
 import { newMenu, menuClick, menuEnter, menuEscape, menuMove, fixCursor } from './systems/menu.js';
 import { layoutMenu, hitMenu, menuContext } from './ui/menu-ui.js';
+import { enterArena, arenaAction, updateArena, ARENA_KEYS } from './systems/arena.js';
+import { hitArena, overArenaPanel } from './ui/arena-ui.js';
 
 const STEP = 1 / 60;
 const SPEED = 190;
@@ -233,6 +235,7 @@ function updatePlayer(state, input, world) {
 
   p.cooldown = Math.max(0, p.cooldown - STEP);
   p.cooldownOff = Math.max(0, (p.cooldownOff ?? 0) - STEP);
+  tickPlayerCombat(p, STEP);
   p.rollCooldown = Math.max(0, p.rollCooldown - STEP);
 
   const ui = state.ui;
@@ -294,6 +297,14 @@ function updatePlayer(state, input, world) {
     }
   }
 
+  if (state.arena && !ui.panel) { // the test arena's keys and buttons (systems/arena.js)
+    for (const [key, id] of Object.entries(ARENA_KEYS)) if (input.wasPressed(key)) arenaAction(state, id);
+    for (const c of [...input.clicks, ...touch.taps]) {
+      const id = hitArena(c.x, c.y);
+      if (id) arenaAction(state, id);
+    }
+  }
+
   if (p.rollTime > 0) {
     p.rollTime -= STEP;
     moveWithCollision(world, p, p.rollDir.x * ROLL_SPEED * STEP, p.rollDir.y * ROLL_SPEED * STEP);
@@ -308,13 +319,14 @@ function updatePlayer(state, input, world) {
       dx = touch.move.x; dy = touch.move.y; len = Math.hypot(dx, dy);
     }
     if (len > 0) p.facing = { x: dx / len, y: dy / len };
+    p.moveDir = len > 0 ? p.facing : null; // a blow in the back while running away dazes you
     const rollTapped = touch.pressed.has('roll');
     if ((input.wasPressed('Space') || rollTapped) && p.rollCooldown <= 0 && (len > 0 || rollTapped) && !p.boating) {
       p.rollTime = ROLL_TIME;
       p.rollCooldown = ROLL_COOLDOWN * (1 - p.stats.rollCooldown);
       p.rollDir = len > 0 ? { x: dx / len, y: dy / len } : p.facing;
     }
-    const speed = SPEED * (1 + p.stats.moveSpeed) * (p.boating ? BOAT_SPEED : 1);
+    const speed = SPEED * (1 + p.stats.moveSpeed) * (p.boating ? BOAT_SPEED : moveFactor(p, dx, dy)); // a blow slows you
     (p.boating ? moveBoat : moveWithCollision)(world, p, dx * speed * STEP, dy * speed * STEP);
   }
 
@@ -484,7 +496,7 @@ function currentAim(state, input) {
     if (target) return { x: target.x, y: bodyY(target) };
     return { x: p.x + p.facing.x * 100, y: p.y + p.facing.y * 100 };
   }
-  if (input.mouse.down) {
+  if (input.mouse.down && !(state.arena && overArenaPanel(input.mouse.x, input.mouse.y))) {
     return {
       x: p.x + (input.mouse.x - innerWidth / 2),
       y: p.y + (input.mouse.y - innerHeight / 2),
@@ -518,7 +530,7 @@ function findGoodSeed(biomes) {
 const fogEnabled = (settings) => settings.fog && !new URLSearchParams(location.search).has('nofog'); // ?nofog: debugging
 
 // One play session: a world and everything in it. Made for "new game" and for "continue".
-function createGame({ assets, seed, gen = MAP_GEN, saveData, settings, input }) {
+function createGame({ assets, seed, gen = MAP_GEN, saveData, settings, input, arena = false }) {
   const { weapons, armor, accessories, questDefs, skillData, enemyDefs, bossDefs, dungeonDefs, ammoData, relicData } = assets;
   // the finite map (generator 4), or the endless world of the older generators (still there to try things on)
   const world = gen === MAP_GEN ? new MapWorld(seed, assets.biomes, assets.maps.main) : new World(seed, assets.biomes, gen);
@@ -638,12 +650,15 @@ function createGame({ assets, seed, gen = MAP_GEN, saveData, settings, input }) 
       p.y = spawn.y;
     }
   }
-  if (!loaded) { // a new game opens with how you got here (docs/prologue.md)
+  if (arena) enterArena(state); // the test arena (systems/arena.js): no prologue, no wanderers, never saved
+  else if (!loaded) { // a new game opens with how you got here (docs/prologue.md)
     state.note = { text: [0, 1, 2, 3].map((i) => t('intro.' + i)).join(' '), title: 'intro.title', t: 0, dur: 20 };
   }
   if (!saveData && startStory(state, storyFromUrl())) state.note = null; // a shortcut into the story
-  updateExploration(state, world); // reveal the start; towns seen right now count as already discovered
-  topUpEnemies(state, world, enemyDefs, 600, 1300, Math.random, 3); // a few wanderers about from the start
+  if (!arena) {
+    updateExploration(state, world); // reveal the start; towns seen right now count as already discovered
+    topUpEnemies(state, world, enemyDefs, 600, 1300, Math.random, 3); // a few wanderers about from the start
+  }
 
   return {
     state,
@@ -652,7 +667,7 @@ function createGame({ assets, seed, gen = MAP_GEN, saveData, settings, input }) 
     loaded,
     enemyDefs,
     timers: { acc: 0, frames: 0, fps: 0, save: 0, enemy: 0, prune: 0, recall: 0, look: 0 },
-    save: () => writeSave(serializeState(state, seed)),
+    save: arena ? () => {} : () => writeSave(serializeState(state, seed)),
     onPickup: (item) => {
       state.floaters.push({
         x: state.player.x, y: state.player.y - 40, color: rarityById(item.rarity).color, t: 0, dur: 1.6,
@@ -741,6 +756,7 @@ function stepGame(game, input, dt) {
     updateProjectiles(state, STEP);
     updateDrops(state, STEP, game.onPickup, game.onFull);
     updateEffects(state, STEP);
+    updateArena(state, STEP);
     input.endFrame();
     timers.acc -= STEP;
     if (state.wantPause) break;
@@ -875,6 +891,11 @@ async function main() {
         startGame(game);
         break;
       }
+      case 'arena': {
+        const game = createGame({ assets, seed: randomSeed(), saveData: null, settings, input, arena: true });
+        startGame(game);
+        break;
+      }
       case 'delete':
         clearSave();
         app.saveInfo = null;
@@ -943,6 +964,8 @@ async function main() {
     input.endFrame();
     if (result) perform(result);
   }
+
+  if (new URLSearchParams(location.search).has('arena')) perform({ action: 'arena' }); // ?arena: straight into the test arena
 
   addEventListener('pagehide', () => app.game?.save());
   document.addEventListener('visibilitychange', () => {

@@ -42,19 +42,82 @@ export function updateEnemyProjectiles(state, world, dt) {
 
 const angleToPlayer = (state, e) => Math.atan2(state.player.y - e.y, state.player.x - e.x);
 
+// A melee blow has three parts (anticipation, attack, recovery): the monster stops and winds up (the red wedge shows
+// where it will land), lunges, and stands open for a moment afterwards. Step out during the windup, hit back after.
+const DEG = Math.PI / 180;
+export const BITE_ARC = 70 * DEG; // half the width of the wedge
+const LUNGE_TIME = 0.12;
+const WINDUP = 0.45;
+const RECOVER = 0.4;
+const LUNGE = 24;
+
+// Attack tokens (Doom 2016): only a few monsters wind up at once, the rest circle and wait their turn.
+export const maxBiters = (tier = 0) => (tier >= 2 ? 3 : 2);
+const bitingNow = (e) => e.atk?.kind === 'bite' && e.atk.phase !== 'recover';
+
+const biteReach = (e) => e.def.attackRange + e.r + PLAYER_R;
+const angleDiff = (a, b) => {
+  let d = a - b;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  return Math.abs(d);
+};
+
+function biteStep(state, world, e, dist, dt) {
+  const def = e.def;
+  const a = e.atk;
+  a.t += dt;
+  if (a.phase === 'windup') {
+    if (a.t < a.dur * 0.6) { // it keeps after you while it takes aim: running away does not outpace a windup
+      a.dir = angleToPlayer(state, e);
+      if (dist > biteReach(e) * 0.6) chasePlayer(world, e, state.player.x, state.player.y, def.speed * speedFactor(e), dt, true);
+    } // locked in the last part of the windup: you can step out
+    if (a.t >= a.dur) e.atk = { ...a, phase: 'lunge', t: 0, dur: LUNGE_TIME, hit: false };
+  } else if (a.phase === 'lunge') {
+    const v = (def.lunge ?? LUNGE) / LUNGE_TIME;
+    if (dist > e.r + PLAYER_R) moveWithCollision(world, e, Math.cos(a.dir) * v * dt, Math.sin(a.dir) * v * dt, true); // not through you
+    const d = Math.hypot(state.player.x - e.x, state.player.y - e.y);
+    if (!a.hit && d <= biteReach(e) && angleDiff(angleToPlayer(state, e), a.dir) <= BITE_ARC) {
+      a.hit = true;
+      damagePlayer(state, e.damage, e);
+    }
+    if (a.t >= a.dur) e.atk = { kind: 'bite', phase: 'recover', t: 0, dur: def.recover ?? RECOVER };
+  } else if (a.t >= a.dur) {
+    e.atk = null;
+    e.atkCd = Math.max(0.2, def.attackCooldown - (def.windup ?? WINDUP)); // the windup is part of the wait
+  }
+}
+
+// No token: keep a step away and walk round the player.
+function circle(state, world, e, dist, speed, dt) {
+  const p = state.player;
+  const want = biteReach(e) + (e.def.lunge ?? LUNGE) + 26;
+  const ax = (e.x - p.x) / (dist || 1);
+  const ay = (e.y - p.y) / (dist || 1);
+  const side = Math.sin(e.phase) >= 0 ? 1 : -1;
+  const out = Math.max(-1, Math.min(1, (want - dist) / 30));
+  moveWithCollision(world, e, (-ay * side + ax * out) * speed * 0.45 * dt, (ax * side + ay * out) * speed * 0.45 * dt, true);
+}
+
 function chaseMelee(state, world, e, dist, dt) {
   const def = e.def;
-  if (dist > def.attackRange + e.r + PLAYER_R) {
-    const speed = def.speed * speedFactor(e);
-    if (def.flutter) { // bats weave from side to side on their way to you
-      const a = Math.atan2(state.player.y - e.y, state.player.x - e.x) + Math.sin(e.age * 7 + e.phase) * 0.8;
-      moveWithCollision(world, e, Math.cos(a) * speed * dt, Math.sin(a) * speed * dt, true);
-    } else {
-      chasePlayer(world, e, state.player.x, state.player.y, speed, dt, true);
-    }
-  } else if (e.atkCd <= 0) {
-    e.atkCd = def.attackCooldown;
-    damagePlayer(state, e.damage);
+  if (e.atk) { biteStep(state, world, e, dist, dt); return; }
+  const speed = def.speed * speedFactor(e);
+  const tokenFree = (state.biters ?? 0) < maxBiters(e.tier);
+  if (dist <= biteReach(e) + 6 && e.atkCd <= 0 && tokenFree && canSee(world, e.x, e.y, state.player.x, state.player.y)) {
+    state.biters = (state.biters ?? 0) + 1;
+    e.atk = { kind: 'bite', phase: 'windup', t: 0, dur: def.windup ?? WINDUP, dir: angleToPlayer(state, e), reach: biteReach(e) + (def.lunge ?? LUNGE) };
+    return;
+  }
+  if ((!tokenFree || e.atkCd > 0) && dist < biteReach(e) + (def.lunge ?? LUNGE) + 36) { // waiting its turn: a step away, circling
+    circle(state, world, e, dist, speed, dt);
+    return;
+  }
+  if (def.flutter) { // bats weave from side to side on their way to you
+    const ang = angleToPlayer(state, e) + Math.sin(e.age * 7 + e.phase) * 0.8;
+    moveWithCollision(world, e, Math.cos(ang) * speed * dt, Math.sin(ang) * speed * dt, true);
+  } else {
+    chasePlayer(world, e, state.player.x, state.player.y, speed, dt, true);
   }
 }
 
@@ -81,6 +144,7 @@ function chaseCharger(state, world, e, dist, dt) {
   const c = def.charger;
   const p = state.player;
   const a = e.atk;
+  if (a?.kind === 'bite') { biteStep(state, world, e, dist, dt); return; }
   if (a) {
     a.t += dt;
     if (a.phase === 'windup') {
@@ -90,7 +154,7 @@ function chaseCharger(state, world, e, dist, dt) {
       moveWithCollision(world, e, Math.cos(a.dir) * c.speed * dt, Math.sin(a.dir) * c.speed * dt, true);
       if (!a.hit && dist <= e.r + PLAYER_R + 4) {
         a.hit = true;
-        damagePlayer(state, e.damage);
+        damagePlayer(state, e.damage, e);
       }
       if (a.t >= a.dur) e.atk = { phase: 'recover', t: 0, dur: c.recover };
     } else if (a.t >= a.dur) {
@@ -112,6 +176,7 @@ const CHASE = { melee: chaseMelee, ranged: chaseRanged, charger: chaseCharger };
 export function updateEnemies(state, world, dt) {
   const p = state.player;
   const playerSafe = state.dead || world.isTown(p.x, p.y); // towns are safe zones
+  state.biters = state.enemies.filter((e) => !e.boss && e.hp > 0 && e.mode === 'chase' && bitingNow(e)).length;
   for (const e of state.enemies) {
     if (e.boss) continue;
     e.flash = Math.max(0, e.flash - dt);

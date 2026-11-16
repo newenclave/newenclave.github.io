@@ -159,7 +159,7 @@ export function updateBoss(state, world, e, dt, rng = Math.random) {
     chasePlayer(world, e, p.x, p.y, def.speed, dt, true);
   } else if (e.touchCd <= 0 && dist <= e.r + PLAYER_R + 12) {
     e.touchCd = TOUCH_COOLDOWN;
-    damagePlayer(state, e.damage);
+    damagePlayer(state, e.damage, e);
   }
   if (e.atkCd <= 0 && !(canSee(world, e.x, e.y, p.x, p.y) && startAttack(state, e, dist, rng))) e.atkCd = 0.3; // nothing in reach yet: look again soon
 }

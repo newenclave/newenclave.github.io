@@ -6,6 +6,7 @@ import { artName } from '../ui/chronicle-ui.js';
 import { drawJournal } from '../ui/journal-ui.js';
 import { drawBestiary } from '../ui/bestiary-ui.js';
 import { isFlying, bodyY } from '../sim/entity.js';
+import { BITE_ARC } from '../sim/enemy.js';
 import { WorldMapView } from '../ui/map-ui.js';
 import { sightOf } from '../systems/explore.js';
 import { wearsEffect, setDone } from '../systems/relics.js';
@@ -28,6 +29,7 @@ import { xpToNext } from '../systems/xp.js';
 import { drawSkillTree } from '../ui/skilltree-ui.js';
 import { drawInventory } from '../ui/inventory-ui.js';
 import { drawTouchControls } from '../ui/touch-ui.js';
+import { drawArenaPanel } from '../ui/arena-ui.js';
 import { drawMenu, drawMenuBackground } from '../ui/menu-ui.js';
 import { hotbarLayout } from '../core/touch.js';
 import { loadoutOf } from '../systems/loadout.js';
@@ -540,6 +542,7 @@ export class Renderer {
     this.drawMinimapWaypoint(state, player, w, ms);
 
     this.drawHud(state, w, h);
+    drawArenaPanel(this.ctx, state);
   }
 
   // Arrow next to the player pointing at the tracked quest's destination, with the distance in tiles.
@@ -953,6 +956,22 @@ export class Renderer {
     const a = e.atk;
     if (!a) return;
     const { ctx } = this;
+    if (a.kind === 'bite') { // a melee blow: the wedge it will land in
+      if (a.phase !== 'windup') return;
+      const k = Math.min(1, a.t / a.dur);
+      ctx.fillStyle = `rgba(255,60,60,${0.12 + 0.25 * k})`;
+      ctx.strokeStyle = 'rgba(255,80,80,0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(e.x, e.y);
+      ctx.arc(e.x, e.y, a.reach, a.dir - BITE_ARC, a.dir + BITE_ARC);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, a.reach * k, a.dir - BITE_ARC, a.dir + BITE_ARC);
+      ctx.stroke();
+      return;
+    }
     if (!e.boss) { // a boar's charge line
       if (a.phase !== 'windup') return;
       const c = e.def.charger;
@@ -1364,6 +1383,19 @@ export class Renderer {
     } else if (f.kind === 'aoe') {
       ctx.beginPath();
       ctx.arc(f.x, f.y, f.radius * (1.2 - k * 0.2), 0, Math.PI * 2);
+      ctx.fill();
+    } else if (f.kind === 'mark') { // a spell on its way down: the ring fills up until it lands
+      ctx.globalAlpha = 0.8;
+      ctx.strokeStyle = f.color;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 5]);
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 0.18 + 0.2 * (1 - k);
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.radius * (1 - k), 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
