@@ -1,0 +1,12 @@
+[
+  { "id": "ring_might",        "wear": "ring",  "stat": "damage",      "value": 0.05, "kind": "pct" },
+  { "id": "ring_precision",    "wear": "ring",  "stat": "critChance",  "value": 0.04, "kind": "pct" },
+  { "id": "ring_swift",        "wear": "ring",  "stat": "moveSpeed",   "value": 0.04, "kind": "pct" },
+  { "id": "amulet_vigor",      "wear": "neck",  "stat": "maxHp",       "value": 20,   "kind": "flat" },
+  { "id": "pendant_stride",    "wear": "neck",  "stat": "moveSpeed",   "value": 0.06, "kind": "pct" },
+  { "id": "talisman_vitality", "wear": "neck",  "stat": "regen",       "value": 1.5,  "kind": "flat" },
+  { "id": "charm_haste",       "wear": "wrist", "stat": "attackSpeed", "value": 0.06, "kind": "pct" },
+  { "id": "band_siphon",       "wear": "wrist", "stat": "lifeOnKill",  "value": 3,    "kind": "flat" },
+  { "id": "bracer_might",      "wear": "wrist", "stat": "damage",      "value": 0.04, "kind": "pct" },
+  { "id": "bracer_guard",      "wear": "wrist", "stat": "defense",     "value": 3,    "kind": "flat" }
+]

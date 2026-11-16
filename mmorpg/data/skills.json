@@ -1,0 +1,26 @@
+{
+  "branches": [
+    { "id": "warrior", "x": 1, "color": "#e57373" },
+    { "id": "ranger",  "x": 4, "color": "#81c784" },
+    { "id": "mage",    "x": 7, "color": "#ba68c8" }
+  ],
+  "nodes": [
+    { "id": "toughness",     "branch": "warrior", "x": 1, "y": 0, "maxRank": 5, "requires": [],                "effects": [{ "stat": "maxHp",       "value": 15,   "kind": "flat" }] },
+    { "id": "meleeMastery",  "branch": "warrior", "x": 0, "y": 1, "maxRank": 5, "requires": ["toughness"],     "effects": [{ "stat": "meleeDamage", "value": 0.08, "kind": "pct" }] },
+    { "id": "secondWind",    "branch": "warrior", "x": 2, "y": 1, "maxRank": 3, "requires": ["toughness"],     "effects": [{ "stat": "regen",       "value": 1,    "kind": "flat" }] },
+    { "id": "swiftStrikes",  "branch": "warrior", "x": 0, "y": 2, "maxRank": 3, "requires": ["meleeMastery"],  "effects": [{ "stat": "attackSpeed", "value": 0.05, "kind": "pct" }] },
+    { "id": "berserker",     "branch": "warrior", "x": 0, "y": 3, "maxRank": 2, "requires": ["swiftStrikes"],  "effects": [{ "stat": "damage",      "value": 0.10, "kind": "pct" }] },
+
+    { "id": "fleetFoot",     "branch": "ranger",  "x": 4, "y": 0, "maxRank": 5, "requires": [],                "effects": [{ "stat": "moveSpeed",   "value": 0.04, "kind": "pct" }] },
+    { "id": "marksman",      "branch": "ranger",  "x": 3, "y": 1, "maxRank": 5, "requires": ["fleetFoot"],     "effects": [{ "stat": "rangedDamage", "value": 0.08, "kind": "pct" }] },
+    { "id": "evasion",       "branch": "ranger",  "x": 5, "y": 1, "maxRank": 3, "requires": ["fleetFoot"],     "effects": [{ "stat": "rollCooldown", "value": 0.08, "kind": "pct" }] },
+    { "id": "keenEye",       "branch": "ranger",  "x": 3, "y": 2, "maxRank": 5, "requires": ["marksman"],      "effects": [{ "stat": "critChance",   "value": 0.04, "kind": "pct" }] },
+    { "id": "deadeye",       "branch": "ranger",  "x": 3, "y": 3, "maxRank": 2, "requires": ["keenEye"],       "effects": [{ "stat": "critDamage",   "value": 0.25, "kind": "pct" }] },
+
+    { "id": "arcaneFocus",   "branch": "mage",    "x": 7, "y": 0, "maxRank": 5, "requires": [],                "effects": [{ "stat": "damage",      "value": 0.04, "kind": "pct" }] },
+    { "id": "wideBlast",     "branch": "mage",    "x": 6, "y": 1, "maxRank": 3, "requires": ["arcaneFocus"],   "effects": [{ "stat": "aoeRadius",   "value": 0.10, "kind": "pct" }] },
+    { "id": "spellHaste",    "branch": "mage",    "x": 8, "y": 1, "maxRank": 3, "requires": ["arcaneFocus"],   "effects": [{ "stat": "attackSpeed", "value": 0.05, "kind": "pct" }] },
+    { "id": "overcharge",    "branch": "mage",    "x": 6, "y": 2, "maxRank": 2, "requires": ["wideBlast"],     "effects": [{ "stat": "critDamage",  "value": 0.30, "kind": "pct" }] },
+    { "id": "soulSiphon",    "branch": "mage",    "x": 8, "y": 2, "maxRank": 3, "requires": ["spellHaste"],    "effects": [{ "stat": "lifeOnKill",  "value": 3,    "kind": "flat" }] }
+  ]
+}

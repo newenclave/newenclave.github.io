@@ -1,0 +1,432 @@
+[
+  {
+    "id": "slime_king",
+    "tier": 0,
+    "biomes": [
+      "grass",
+      "forest"
+    ],
+    "hp": 600,
+    "speed": 62,
+    "damage": 16,
+    "r": 34,
+    "aggro": 520,
+    "leash": 460,
+    "cooldown": 2.4,
+    "color": "#2e7d32",
+    "xp": 300,
+    "gold": [
+      80,
+      140
+    ],
+    "attacks": [
+      {
+        "kind": "slam",
+        "radius": 95,
+        "windup": 1.1,
+        "damage": 30,
+        "range": 280
+      },
+      {
+        "kind": "summon",
+        "minion": "slime",
+        "count": 3,
+        "windup": 0.9,
+        "from": 0.75
+      },
+      {
+        "kind": "nova",
+        "count": 10,
+        "speed": 190,
+        "damage": 12,
+        "windup": 0.9,
+        "from": 0.5
+      }
+    ]
+  },
+  {
+    "id": "alpha_wolf",
+    "tier": 1,
+    "biomes": [
+      "forest",
+      "snow"
+    ],
+    "hp": 950,
+    "speed": 100,
+    "damage": 20,
+    "r": 26,
+    "aggro": 560,
+    "leash": 520,
+    "cooldown": 2.0,
+    "color": "#455a64",
+    "xp": 520,
+    "gold": [
+      120,
+      200
+    ],
+    "attacks": [
+      {
+        "kind": "charge",
+        "windup": 0.7,
+        "speed": 520,
+        "time": 0.5,
+        "damage": 36,
+        "range": 420
+      },
+      {
+        "kind": "slam",
+        "radius": 80,
+        "windup": 0.8,
+        "damage": 26,
+        "range": 200
+      },
+      {
+        "kind": "summon",
+        "minion": "wolf",
+        "count": 2,
+        "windup": 0.8,
+        "from": 0.7
+      }
+    ]
+  },
+  {
+    "id": "sand_tyrant",
+    "tier": 2,
+    "biomes": [
+      "desert",
+      "beach"
+    ],
+    "hp": 1600,
+    "speed": 72,
+    "damage": 26,
+    "r": 31,
+    "aggro": 600,
+    "leash": 560,
+    "cooldown": 2.2,
+    "color": "#bf360c",
+    "xp": 900,
+    "gold": [
+      200,
+      320
+    ],
+    "attacks": [
+      {
+        "kind": "fan",
+        "count": 5,
+        "spread": 70,
+        "speed": 260,
+        "damage": 18,
+        "windup": 0.8,
+        "range": 520
+      },
+      {
+        "kind": "charge",
+        "windup": 0.8,
+        "speed": 500,
+        "time": 0.55,
+        "damage": 40,
+        "range": 420
+      },
+      {
+        "kind": "summon",
+        "minion": "scorpion",
+        "count": 3,
+        "windup": 0.9,
+        "from": 0.6
+      },
+      {
+        "kind": "nova",
+        "count": 14,
+        "speed": 210,
+        "damage": 16,
+        "windup": 1.0,
+        "from": 0.35
+      }
+    ]
+  },
+  {
+    "id": "frost_giant",
+    "tier": 3,
+    "biomes": [
+      "snow"
+    ],
+    "hp": 2800,
+    "speed": 62,
+    "damage": 34,
+    "r": 39,
+    "aggro": 620,
+    "leash": 600,
+    "cooldown": 2.2,
+    "color": "#4fc3f7",
+    "xp": 1500,
+    "gold": [
+      320,
+      480
+    ],
+    "attacks": [
+      {
+        "kind": "slam",
+        "radius": 135,
+        "windup": 1.2,
+        "damage": 50,
+        "range": 300
+      },
+      {
+        "kind": "fan",
+        "count": 7,
+        "spread": 80,
+        "speed": 250,
+        "damage": 22,
+        "windup": 0.9,
+        "range": 520
+      },
+      {
+        "kind": "summon",
+        "minion": "golem",
+        "count": 1,
+        "windup": 1.0,
+        "from": 0.6
+      },
+      {
+        "kind": "nova",
+        "count": 16,
+        "speed": 200,
+        "damage": 20,
+        "windup": 1.1,
+        "from": 0.4
+      }
+    ]
+  },
+  {
+    "id": "bone_lord",
+    "dungeon": true,
+    "tier": 0,
+    "biomes": [
+      "grass",
+      "forest",
+      "beach"
+    ],
+    "hp": 700,
+    "speed": 66,
+    "damage": 18,
+    "r": 30,
+    "aggro": 520,
+    "leash": 700,
+    "cooldown": 2.3,
+    "color": "#cfd8dc",
+    "xp": 380,
+    "gold": [
+      90,
+      150
+    ],
+    "attacks": [
+      {
+        "kind": "slam",
+        "radius": 90,
+        "windup": 1.0,
+        "damage": 30,
+        "range": 260
+      },
+      {
+        "kind": "fan",
+        "count": 5,
+        "spread": 60,
+        "speed": 240,
+        "damage": 14,
+        "windup": 0.9,
+        "range": 480
+      },
+      {
+        "kind": "summon",
+        "minion": "archer",
+        "count": 2,
+        "windup": 0.9,
+        "from": 0.7
+      },
+      {
+        "kind": "nova",
+        "count": 12,
+        "speed": 190,
+        "damage": 13,
+        "windup": 1.0,
+        "from": 0.4
+      }
+    ]
+  },
+  {
+    "id": "ice_warden",
+    "dungeon": true,
+    "tier": 1,
+    "biomes": [
+      "snow"
+    ],
+    "hp": 1100,
+    "speed": 64,
+    "damage": 24,
+    "r": 33,
+    "aggro": 540,
+    "leash": 700,
+    "cooldown": 2.2,
+    "color": "#81d4fa",
+    "xp": 640,
+    "gold": [
+      130,
+      210
+    ],
+    "attacks": [
+      {
+        "kind": "slam",
+        "radius": 110,
+        "windup": 1.1,
+        "damage": 38,
+        "range": 280
+      },
+      {
+        "kind": "fan",
+        "count": 7,
+        "spread": 75,
+        "speed": 250,
+        "damage": 18,
+        "windup": 0.9,
+        "range": 500
+      },
+      {
+        "kind": "summon",
+        "minion": "wolf",
+        "count": 3,
+        "windup": 0.9,
+        "from": 0.65
+      },
+      {
+        "kind": "nova",
+        "count": 14,
+        "speed": 200,
+        "damage": 16,
+        "windup": 1.0,
+        "from": 0.4
+      }
+    ]
+  },
+  {
+    "id": "tomb_king",
+    "dungeon": true,
+    "tier": 1,
+    "biomes": [
+      "desert"
+    ],
+    "hp": 1400,
+    "speed": 70,
+    "damage": 28,
+    "r": 32,
+    "aggro": 560,
+    "leash": 700,
+    "cooldown": 2.1,
+    "color": "#ffb300",
+    "xp": 760,
+    "gold": [
+      150,
+      240
+    ],
+    "attacks": [
+      {
+        "kind": "charge",
+        "windup": 0.8,
+        "speed": 500,
+        "time": 0.55,
+        "damage": 42,
+        "range": 420
+      },
+      {
+        "kind": "fan",
+        "count": 5,
+        "spread": 70,
+        "speed": 260,
+        "damage": 20,
+        "windup": 0.8,
+        "range": 500
+      },
+      {
+        "kind": "summon",
+        "minion": "scorpion",
+        "count": 3,
+        "windup": 0.9,
+        "from": 0.6
+      },
+      {
+        "kind": "nova",
+        "count": 16,
+        "speed": 210,
+        "damage": 18,
+        "windup": 1.0,
+        "from": 0.35
+      }
+    ]
+  },
+  {
+    "id": "ring_keeper",
+    "dungeon": true,
+    "ring": true,
+    "tier": 4,
+    "biomes": [
+      "grass",
+      "forest",
+      "desert",
+      "snow",
+      "beach"
+    ],
+    "hp": 2600,
+    "speed": 70,
+    "damage": 34,
+    "r": 38,
+    "aggro": 560,
+    "leash": 760,
+    "cooldown": 1.9,
+    "color": "#ce93d8",
+    "xp": 2400,
+    "gold": [
+      400,
+      700
+    ],
+    "attacks": [
+      {
+        "kind": "nova",
+        "count": 16,
+        "speed": 230,
+        "damage": 22,
+        "windup": 1.0
+      },
+      {
+        "kind": "slam",
+        "radius": 130,
+        "windup": 1.1,
+        "damage": 46,
+        "range": 300
+      },
+      {
+        "kind": "fan",
+        "count": 9,
+        "spread": 90,
+        "speed": 270,
+        "damage": 20,
+        "windup": 0.9,
+        "range": 520,
+        "from": 0.75
+      },
+      {
+        "kind": "summon",
+        "minion": "mage",
+        "count": 2,
+        "windup": 1.0,
+        "from": 0.55
+      },
+      {
+        "kind": "charge",
+        "speed": 520,
+        "time": 0.7,
+        "damage": 40,
+        "windup": 0.9,
+        "from": 0.35
+      }
+    ]
+  }
+]

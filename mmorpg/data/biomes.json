@@ -1,0 +1,118 @@
+{
+  "water": {
+    "color": "#2b5fa8",
+    "walkable": false
+  },
+  "beach": {
+    "color": "#e0d08a",
+    "walkable": true
+  },
+  "grass": {
+    "color": "#4f9a42",
+    "walkable": true
+  },
+  "forest": {
+    "color": "#2f6e34",
+    "walkable": true
+  },
+  "desert": {
+    "color": "#d6b463",
+    "walkable": true
+  },
+  "snow": {
+    "color": "#e8eef2",
+    "walkable": true
+  },
+  "town": {
+    "color": "#a89c86",
+    "walkable": true
+  },
+  "crypt_floor": {
+    "color": "#4a4458",
+    "walkable": true
+  },
+  "crypt_wall": {
+    "color": "#1b1824",
+    "walkable": false
+  },
+  "ice_floor": {
+    "color": "#7fa3b8",
+    "walkable": true
+  },
+  "ice_wall": {
+    "color": "#23384a",
+    "walkable": false
+  },
+  "tomb_floor": {
+    "color": "#a8864f",
+    "walkable": true
+  },
+  "tomb_wall": {
+    "color": "#3d2e1a",
+    "walkable": false
+  },
+  "road": {
+    "color": "#a8895c",
+    "walkable": true
+  },
+  "bridge": {
+    "color": "#7b5a3a",
+    "walkable": true
+  },
+  "cliff": {
+    "color": "#5b524a",
+    "walkable": false
+  },
+  "chasm": {
+    "color": "#0d0b10",
+    "walkable": false
+  },
+  "river": {
+    "color": "#3d86c6",
+    "walkable": false
+  },
+  "town_wall": {
+    "color": "#6b6661",
+    "walkable": false
+  },
+  "house": {
+    "color": "#7a4b3a",
+    "walkable": false
+  },
+  "yard": {
+    "color": "#6a8a45",
+    "walkable": true
+  },
+  "palisade": {
+    "color": "#7a5a36",
+    "walkable": false
+  },
+  "field": {
+    "color": "#b5a552",
+    "walkable": true
+  },
+  "cave_floor": {
+    "color": "#5c5248",
+    "walkable": true
+  },
+  "cave_wall": {
+    "color": "#241f1b",
+    "walkable": false
+  },
+  "ring_floor": {
+    "color": "#3a3448",
+    "walkable": true
+  },
+  "ring_wall": {
+    "color": "#140f1c",
+    "walkable": false
+  },
+  "mountain": {
+    "color": "#6f6760",
+    "walkable": false
+  },
+  "ford": {
+    "color": "#6aa7d6",
+    "walkable": true
+  }
+}

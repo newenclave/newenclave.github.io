@@ -1,0 +1,66 @@
+{
+  "themes": {
+    "crypt": {
+      "biomes": [
+        "grass",
+        "forest",
+        "beach"
+      ],
+      "boss": "bone_lord",
+      "monsters": [
+        "slime",
+        "goblin",
+        "archer",
+        "boar",
+        "golem",
+        "bat"
+      ]
+    },
+    "ice": {
+      "biomes": [
+        "snow"
+      ],
+      "boss": "ice_warden",
+      "monsters": [
+        "wolf",
+        "golem",
+        "mage",
+        "troll",
+        "bat"
+      ]
+    },
+    "tomb": {
+      "biomes": [
+        "desert"
+      ],
+      "boss": "tomb_king",
+      "monsters": [
+        "scorpion",
+        "archer",
+        "golem",
+        "mage"
+      ]
+    }
+  },
+  "caves": {
+    "monsters": [
+      "bat",
+      "slime",
+      "goblin",
+      "wolf",
+      "troll",
+      "golem"
+    ]
+  },
+  "ring": {
+    "boss": "ring_keeper",
+    "monsters": [
+      "golem",
+      "mage",
+      "troll",
+      "wyvern",
+      "harpy",
+      "bat"
+    ]
+  }
+}

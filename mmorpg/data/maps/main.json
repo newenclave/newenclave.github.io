@@ -1,0 +1,84 @@
+{
+  "id": "main",
+  "size": 1024,
+  "coarse": 4,
+  "regionSpacing": 110,
+  "tierCurve": [0, 0.2, 0.42, 0.64, 0.85],
+  "frame": {
+    "cx": 0.5,
+    "cy": 0.47,
+    "rx": 0.44,
+    "ry": 0.41,
+    "warp": 0.09,
+    "rough": 0.5,
+    "wall": 0.05,
+    "wallNoise": 0.02,
+    "edge": 24
+  },
+  "islands": {"count": 22, "maxRadius": 26},
+  "mountains": {
+    "chains": [1, 3],
+    "band": [0.28, 0.6],
+    "length": [8, 14],
+    "step": 26,
+    "width": [10, 17],
+    "passes": [1, 2],
+    "passWidth": 16,
+    "spurs": [1, 3]
+  },
+  "lakes": [2, 4],
+  "rivers": {"threshold": 260, "ford": [90, 140]},
+  "places": [
+    {"id": "start", "biome": "grass", "town": {"kind": "town"}, "camps": ["slime_pool", "slime_pool", "bat_roost"]},
+    {"id": "ring", "biome": "snow"},
+    {
+      "id": "wolfwood",
+      "biome": "forest",
+      "region": {"adjacent": "start", "near": {"place": "start", "max": 150}},
+      "camps": ["wolf_den", "wolf_den", "wolf_den", "bat_roost"]
+    },
+    {
+      "id": "sands",
+      "biome": "desert",
+      "region": {"near": {"place": "start", "min": 80, "max": 280}},
+      "camps": ["scorpion_nest", "scorpion_nest"]
+    },
+    {
+      "id": "meadow_lair",
+      "region": {"near": {"place": "start", "min": 70, "max": 260}, "progress": [0, 0.3], "share": true},
+      "lair": {"bossId": "slime_king", "dist": 150}
+    },
+    {"id": "city", "region": {"progress": [0.2, 0.42]}, "town": {"kind": "city"}},
+    {
+      "id": "crypt",
+      "biome": "grass",
+      "region": {"near": {"place": "city", "max": 280}, "share": true},
+      "dungeon": {"theme": "crypt", "plate": true, "near": "city"}
+    },
+    {
+      "id": "frost",
+      "biome": "snow",
+      "region": {"near": {"place": "city", "max": 340}},
+      "dungeon": {"theme": "ice", "plate": true, "near": "city"}
+    },
+    {
+      "id": "tomb",
+      "biome": "desert",
+      "region": {"near": {"place": "city", "max": 340}, "share": "sands"},
+      "dungeon": {"theme": "tomb", "plate": true, "near": "city"}
+    },
+    {"id": "capital", "region": {"progress": [0.55, 0.78]}, "town": {"kind": "capital"}}
+  ],
+  "fill": {
+    "towns": {
+      "max": 20,
+      "minGap": 80,
+      "kinds": [["hamlet", "village"], ["village", "town", "hamlet"], ["town", "village"], ["village", "hamlet"], ["hamlet"]]
+    },
+    "lairs": {"minTier": 1, "chance": 0.75},
+    "dungeons": [5, 7],
+    "valleys": [4, 6],
+    "valleysMinTier": 1,
+    "camps": {"density": [2.5, 3, 3.5, 3.5, 3], "minGap": 26}
+  }
+}

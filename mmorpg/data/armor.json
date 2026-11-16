@@ -1,0 +1,17 @@
+[
+  { "id": "leather_cap",     "part": "head",  "defense": 2, "tier": 0 },
+  { "id": "chain_coif",      "part": "head",  "defense": 3, "tier": 1 },
+  { "id": "plate_helm",      "part": "head",  "defense": 5, "tier": 2 },
+  { "id": "leather",         "part": "chest", "defense": 4, "tier": 0 },
+  { "id": "chain",           "part": "chest", "defense": 8, "tier": 1 },
+  { "id": "plate",           "part": "chest", "defense": 13, "tier": 2 },
+  { "id": "leather_gloves",  "part": "hands", "defense": 1, "tier": 0 },
+  { "id": "chain_gloves",    "part": "hands", "defense": 2, "tier": 1 },
+  { "id": "plate_gauntlets", "part": "hands", "defense": 3, "tier": 2 },
+  { "id": "leather_pants",   "part": "legs",  "defense": 2, "tier": 0 },
+  { "id": "chain_leggings",  "part": "legs",  "defense": 4, "tier": 1 },
+  { "id": "plate_greaves",   "part": "legs",  "defense": 6, "tier": 2 },
+  { "id": "leather_boots",   "part": "feet",  "defense": 1, "tier": 0 },
+  { "id": "chain_boots",     "part": "feet",  "defense": 2, "tier": 1 },
+  { "id": "plate_sabatons",  "part": "feet",  "defense": 4, "tier": 2 }
+]

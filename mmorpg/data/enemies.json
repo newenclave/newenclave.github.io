@@ -1,0 +1,315 @@
+[
+  {
+    "id": "slime",
+    "tier": 0,
+    "biomes": [
+      "grass",
+      "forest"
+    ],
+    "hp": 50,
+    "speed": 80,
+    "damage": 6,
+    "r": 14,
+    "aggro": 220,
+    "attackRange": 14,
+    "attackCooldown": 1.0,
+    "color": "#6bbf59",
+    "drop": 0.3,
+    "xp": 10,
+    "gold": [
+      2,
+      6
+    ]
+  },
+  {
+    "id": "wolf",
+    "tier": 0,
+    "biomes": [
+      "forest",
+      "snow"
+    ],
+    "hp": 70,
+    "speed": 165,
+    "damage": 9,
+    "r": 15,
+    "aggro": 320,
+    "attackRange": 16,
+    "attackCooldown": 0.8,
+    "color": "#8d8d99",
+    "drop": 0.35,
+    "xp": 18,
+    "gold": [
+      4,
+      10
+    ]
+  },
+  {
+    "id": "scorpion",
+    "tier": 0,
+    "biomes": [
+      "desert",
+      "beach"
+    ],
+    "hp": 60,
+    "speed": 120,
+    "damage": 12,
+    "r": 14,
+    "aggro": 260,
+    "attackRange": 16,
+    "attackCooldown": 1.2,
+    "color": "#c97b2a",
+    "drop": 0.35,
+    "xp": 16,
+    "gold": [
+      4,
+      9
+    ]
+  },
+  {
+    "id": "goblin",
+    "tier": 1,
+    "biomes": [
+      "grass",
+      "forest"
+    ],
+    "hp": 45,
+    "speed": 150,
+    "damage": 7,
+    "r": 12,
+    "aggro": 280,
+    "attackRange": 12,
+    "attackCooldown": 0.9,
+    "color": "#c0ca33",
+    "drop": 0.25,
+    "xp": 12,
+    "gold": [
+      3,
+      7
+    ],
+    "pack": {
+      "min": 3,
+      "max": 4
+    }
+  },
+  {
+    "id": "archer",
+    "tier": 1,
+    "biomes": [
+      "grass",
+      "desert",
+      "beach"
+    ],
+    "hp": 40,
+    "speed": 95,
+    "damage": 10,
+    "r": 13,
+    "aggro": 400,
+    "attackRange": 0,
+    "attackCooldown": 1.7,
+    "color": "#e0e0e0",
+    "drop": 0.35,
+    "xp": 20,
+    "gold": [
+      5,
+      11
+    ],
+    "ai": "ranged",
+    "ranged": {
+      "keep": 230,
+      "speed": 320,
+      "radius": 5,
+      "color": "#fff59d"
+    }
+  },
+  {
+    "id": "boar",
+    "tier": 1,
+    "biomes": [
+      "forest",
+      "grass"
+    ],
+    "hp": 110,
+    "speed": 105,
+    "damage": 14,
+    "r": 17,
+    "aggro": 300,
+    "attackRange": 18,
+    "attackCooldown": 2.2,
+    "color": "#8d6e63",
+    "drop": 0.35,
+    "xp": 24,
+    "gold": [
+      6,
+      13
+    ],
+    "ai": "charger",
+    "charger": {
+      "trigger": 280,
+      "windup": 0.7,
+      "speed": 430,
+      "time": 0.45,
+      "recover": 1.0
+    }
+  },
+  {
+    "id": "golem",
+    "tier": 2,
+    "biomes": [
+      "snow",
+      "desert"
+    ],
+    "hp": 260,
+    "speed": 55,
+    "damage": 22,
+    "r": 21,
+    "aggro": 220,
+    "attackRange": 20,
+    "attackCooldown": 1.9,
+    "color": "#78909c",
+    "drop": 0.45,
+    "xp": 45,
+    "gold": [
+      10,
+      22
+    ]
+  },
+  {
+    "id": "mage",
+    "tier": 2,
+    "biomes": [
+      "snow",
+      "forest"
+    ],
+    "hp": 55,
+    "speed": 100,
+    "damage": 16,
+    "r": 13,
+    "aggro": 420,
+    "attackRange": 0,
+    "attackCooldown": 2.0,
+    "color": "#ab47bc",
+    "drop": 0.4,
+    "xp": 38,
+    "gold": [
+      9,
+      18
+    ],
+    "ai": "ranged",
+    "ranged": {
+      "keep": 280,
+      "speed": 230,
+      "radius": 8,
+      "color": "#ce93d8"
+    }
+  },
+  {
+    "id": "troll",
+    "tier": 3,
+    "biomes": [
+      "forest",
+      "grass"
+    ],
+    "hp": 380,
+    "speed": 82,
+    "damage": 28,
+    "r": 23,
+    "aggro": 260,
+    "attackRange": 22,
+    "attackCooldown": 1.6,
+    "color": "#33691e",
+    "drop": 0.5,
+    "xp": 80,
+    "gold": [
+      18,
+      40
+    ]
+  },
+  {
+    "id": "bat",
+    "tier": 0,
+    "biomes": [
+      "forest",
+      "snow",
+      "grass"
+    ],
+    "hp": 28,
+    "speed": 150,
+    "damage": 4,
+    "r": 10,
+    "aggro": 300,
+    "attackRange": 10,
+    "attackCooldown": 0.9,
+    "color": "#7e57c2",
+    "drop": 0.2,
+    "xp": 9,
+    "gold": [
+      1,
+      4
+    ],
+    "flying": true,
+    "flutter": true
+  },
+  {
+    "id": "harpy",
+    "tier": 1,
+    "biomes": [
+      "snow",
+      "desert",
+      "grass"
+    ],
+    "hp": 70,
+    "speed": 130,
+    "damage": 13,
+    "r": 13,
+    "aggro": 340,
+    "attackRange": 14,
+    "attackCooldown": 2.0,
+    "color": "#ff8a65",
+    "drop": 0.35,
+    "xp": 26,
+    "gold": [
+      6,
+      13
+    ],
+    "flying": true,
+    "ai": "charger",
+    "charger": {
+      "trigger": 260,
+      "windup": 0.6,
+      "speed": 400,
+      "time": 0.4,
+      "recover": 0.9
+    }
+  },
+  {
+    "id": "wyvern",
+    "tier": 3,
+    "biomes": [
+      "desert",
+      "snow",
+      "forest"
+    ],
+    "hp": 190,
+    "speed": 100,
+    "damage": 24,
+    "r": 18,
+    "aggro": 460,
+    "attackRange": 0,
+    "attackCooldown": 1.9,
+    "color": "#ff7043",
+    "drop": 0.5,
+    "xp": 85,
+    "gold": [
+      20,
+      44
+    ],
+    "flying": true,
+    "ai": "ranged",
+    "ranged": {
+      "keep": 300,
+      "speed": 280,
+      "radius": 8,
+      "color": "#ffab40"
+    }
+  }
+]

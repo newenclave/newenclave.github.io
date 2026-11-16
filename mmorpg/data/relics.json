@@ -1,0 +1,301 @@
+{
+  "items": [
+    {
+      "id": "relic_hard_hat",
+      "slot": "armor",
+      "part": "head",
+      "defense": 5,
+      "price": 300,
+      "set": "night_shift"
+    },
+    {
+      "id": "relic_hivis_vest",
+      "slot": "armor",
+      "part": "chest",
+      "defense": 9,
+      "price": 300,
+      "set": "night_shift"
+    },
+    {
+      "id": "relic_wristwatch_back",
+      "slot": "accessory",
+      "wear": "wrist",
+      "stat": "rollCooldown",
+      "value": 0.12,
+      "kind": "pct",
+      "price": 300,
+      "set": "night_shift"
+    },
+    {
+      "id": "relic_lab_badge",
+      "slot": "accessory",
+      "wear": "neck",
+      "stat": "maxHp",
+      "value": 15,
+      "kind": "flat",
+      "effect": "ringCompass",
+      "price": 300,
+      "set": "night_shift"
+    },
+    {
+      "id": "relic_safety_glasses",
+      "slot": "armor",
+      "part": "head",
+      "defense": 3,
+      "effect": "farSight",
+      "price": 300,
+      "set": "lab"
+    },
+    {
+      "id": "relic_rubber_gloves",
+      "slot": "armor",
+      "part": "hands",
+      "defense": 3,
+      "price": 300,
+      "set": "lab"
+    },
+    {
+      "id": "relic_engineers_ring",
+      "slot": "accessory",
+      "wear": "ring",
+      "stat": "critChance",
+      "value": 0.06,
+      "kind": "pct",
+      "price": 300,
+      "set": "office"
+    },
+    {
+      "id": "relic_pointer_staff",
+      "slot": "weapon",
+      "base": "staff",
+      "damage": 34,
+      "radius": 82,
+      "price": 400,
+      "set": "office"
+    },
+    {
+      "id": "relic_work_boots",
+      "slot": "armor",
+      "part": "feet",
+      "defense": 5,
+      "price": 300,
+      "set": "ring_works"
+    },
+    {
+      "id": "relic_pipe_wrench",
+      "slot": "weapon",
+      "base": "sword",
+      "damage": 26,
+      "cooldown": 0.42,
+      "price": 400,
+      "set": "ring_works"
+    },
+    {
+      "id": "relic_cold_sample",
+      "slot": "accessory",
+      "wear": "neck",
+      "stat": "maxHp",
+      "value": 40,
+      "kind": "flat",
+      "price": 300,
+      "set": null
+    },
+    {
+      "id": "relic_coffee_mug",
+      "slot": "relic",
+      "price": 80,
+      "set": "night_shift"
+    },
+    {
+      "id": "relic_lunchbox",
+      "slot": "relic",
+      "price": 80,
+      "set": "night_shift"
+    },
+    {
+      "id": "relic_petri_dish",
+      "slot": "relic",
+      "price": 80,
+      "set": "lab"
+    },
+    {
+      "id": "relic_test_tube_rack",
+      "slot": "relic",
+      "price": 80,
+      "set": "lab"
+    },
+    {
+      "id": "relic_sample_jar",
+      "slot": "relic",
+      "price": 80,
+      "set": "lab"
+    },
+    {
+      "id": "relic_calculator",
+      "slot": "relic",
+      "price": 80,
+      "set": "office"
+    },
+    {
+      "id": "relic_stapler",
+      "slot": "relic",
+      "price": 80,
+      "set": "office"
+    },
+    {
+      "id": "relic_rubber_duck",
+      "slot": "relic",
+      "price": 80,
+      "set": "office"
+    },
+    {
+      "id": "relic_kettle",
+      "slot": "relic",
+      "price": 80,
+      "set": "break_room"
+    },
+    {
+      "id": "relic_fridge_magnet",
+      "slot": "relic",
+      "price": 80,
+      "set": "break_room"
+    },
+    {
+      "id": "relic_cookie_tin",
+      "slot": "relic",
+      "price": 80,
+      "set": "break_room"
+    },
+    {
+      "id": "relic_vending_coin",
+      "slot": "relic",
+      "price": 80,
+      "set": "break_room"
+    },
+    {
+      "id": "relic_ladle",
+      "slot": "relic",
+      "price": 80,
+      "set": "break_room"
+    },
+    {
+      "id": "relic_keycard",
+      "slot": "relic",
+      "price": 80,
+      "set": "ring_works"
+    },
+    {
+      "id": "relic_dead_phone",
+      "slot": "relic",
+      "price": 80,
+      "set": "ring_works"
+    },
+    {
+      "id": "relic_hazard_sign",
+      "slot": "relic",
+      "price": 80,
+      "set": "ring_works"
+    },
+    {
+      "id": "relic_console_keycap",
+      "slot": "relic",
+      "price": 80,
+      "set": "ring_works"
+    }
+  ],
+  "sets": [
+    {
+      "id": "night_shift",
+      "items": [
+        "relic_hard_hat",
+        "relic_hivis_vest",
+        "relic_wristwatch_back",
+        "relic_lab_badge",
+        "relic_coffee_mug",
+        "relic_lunchbox"
+      ],
+      "places": [
+        "tomb",
+        "crypt"
+      ],
+      "reward": {
+        "gold": 800,
+        "title": "Night Operator"
+      }
+    },
+    {
+      "id": "lab",
+      "items": [
+        "relic_safety_glasses",
+        "relic_rubber_gloves",
+        "relic_petri_dish",
+        "relic_test_tube_rack",
+        "relic_sample_jar"
+      ],
+      "places": [
+        "ice",
+        "pulse_cold"
+      ],
+      "reward": {
+        "gold": 300,
+        "item": "relic_cold_sample"
+      }
+    },
+    {
+      "id": "office",
+      "items": [
+        "relic_engineers_ring",
+        "relic_pointer_staff",
+        "relic_calculator",
+        "relic_stapler",
+        "relic_rubber_duck"
+      ],
+      "places": [
+        "crypt",
+        "pulse"
+      ],
+      "reward": {
+        "gold": 500,
+        "title": "Middle Management"
+      }
+    },
+    {
+      "id": "break_room",
+      "items": [
+        "relic_kettle",
+        "relic_fridge_magnet",
+        "relic_cookie_tin",
+        "relic_vending_coin",
+        "relic_ladle"
+      ],
+      "places": [
+        "valley",
+        "pulse",
+        "cave"
+      ],
+      "reward": {
+        "gold": 600
+      }
+    },
+    {
+      "id": "ring_works",
+      "items": [
+        "relic_work_boots",
+        "relic_pipe_wrench",
+        "relic_keycard",
+        "relic_dead_phone",
+        "relic_hazard_sign",
+        "relic_console_keycap"
+      ],
+      "places": [
+        "ring",
+        "lair_far",
+        "pulse_far"
+      ],
+      "reward": {
+        "gold": 700,
+        "title": "Maintenance"
+      }
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "effects": {
+    "fire": {
+      "color": "#ff7043",
+      "dot": {
+        "kind": "burn",
+        "share": 0.3,
+        "time": 3
+      }
+    },
+    "poison": {
+      "color": "#9ccc65",
+      "dot": {
+        "kind": "poison",
+        "share": 0.2,
+        "time": 6
+      }
+    },
+    "frost": {
+      "color": "#81d4fa",
+      "slow": {
+        "mult": 0.55,
+        "time": 2.5
+      }
+    },
+    "piercing": {
+      "color": "#cfd8dc",
+      "pierce": 3
+    },
+    "explosive": {
+      "color": "#ffb300",
+      "blast": {
+        "radius": 45,
+        "share": 0.35
+      }
+    }
+  },
+  "items": [
+    {
+      "id": "fire_arrow",
+      "kind": "arrow",
+      "effect": "fire",
+      "count": 20,
+      "unit": 3,
+      "tier": 0
+    },
+    {
+      "id": "poison_arrow",
+      "kind": "arrow",
+      "effect": "poison",
+      "count": 20,
+      "unit": 3,
+      "tier": 1
+    },
+    {
+      "id": "frost_arrow",
+      "kind": "arrow",
+      "effect": "frost",
+      "count": 20,
+      "unit": 3,
+      "tier": 0
+    },
+    {
+      "id": "piercing_arrow",
+      "kind": "arrow",
+      "effect": "piercing",
+      "count": 20,
+      "unit": 4,
+      "tier": 1
+    },
+    {
+      "id": "explosive_arrow",
+      "kind": "arrow",
+      "effect": "explosive",
+      "count": 20,
+      "unit": 5,
+      "tier": 2
+    },
+    {
+      "id": "fire_bolt",
+      "kind": "bolt",
+      "effect": "fire",
+      "count": 20,
+      "unit": 4,
+      "tier": 0
+    },
+    {
+      "id": "poison_bolt",
+      "kind": "bolt",
+      "effect": "poison",
+      "count": 20,
+      "unit": 4,
+      "tier": 1
+    },
+    {
+      "id": "frost_bolt",
+      "kind": "bolt",
+      "effect": "frost",
+      "count": 20,
+      "unit": 4,
+      "tier": 0
+    },
+    {
+      "id": "piercing_bolt",
+      "kind": "bolt",
+      "effect": "piercing",
+      "count": 20,
+      "unit": 5,
+      "tier": 1
+    },
+    {
+      "id": "explosive_bolt",
+      "kind": "bolt",
+      "effect": "explosive",
+      "count": 20,
+      "unit": 6,
+      "tier": 2
+    }
+  ]
+}

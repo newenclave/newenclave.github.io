@@ -1,0 +1,12 @@
+[
+  { "id": "slime_pool",    "biomes": ["grass", "forest", "beach"],          "monsters": ["slime"],             "size": [3, 6], "look": "pool",   "minTier": 0 },
+  { "id": "wolf_den",      "biomes": ["forest", "snow", "grass"],           "monsters": ["wolf"],              "size": [3, 5], "look": "den",    "minTier": 0 },
+  { "id": "scorpion_nest", "biomes": ["desert", "beach"],                   "monsters": ["scorpion"],          "size": [3, 5], "look": "nest",   "minTier": 0 },
+  { "id": "bat_roost",     "biomes": ["forest", "grass", "snow"],           "monsters": ["bat"],               "size": [4, 6], "look": "roost",  "minTier": 0 },
+  { "id": "boar_wallow",   "biomes": ["forest", "grass"],                   "monsters": ["boar"],              "size": [2, 4], "look": "wallow", "minTier": 1 },
+  { "id": "goblin_camp",   "biomes": ["grass", "forest", "desert", "snow"], "monsters": ["goblin", "archer"],  "size": [4, 6], "look": "tents",  "minTier": 1 },
+  { "id": "harpy_roost",   "biomes": ["snow", "desert", "grass"],           "monsters": ["harpy"],             "size": [2, 4], "look": "roost",  "minTier": 1 },
+  { "id": "mage_circle",   "biomes": ["grass", "forest", "desert", "snow"], "monsters": ["mage", "golem"],     "size": [3, 4], "look": "circle", "minTier": 2 },
+  { "id": "troll_lair",    "biomes": ["forest", "snow"],                    "monsters": ["troll"],             "size": [1, 2], "look": "den",    "minTier": 3 },
+  { "id": "wyvern_nest",   "biomes": ["desert", "snow", "grass"],           "monsters": ["wyvern"],            "size": [1, 2], "look": "nest",   "minTier": 3 }
+]
