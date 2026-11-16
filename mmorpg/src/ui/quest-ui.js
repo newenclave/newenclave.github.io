@@ -70,7 +70,12 @@ export const rewardText = (def, reward = null) => {
   return parts.join('  ');
 };
 
-export function objectiveText(def) {
+export function objectiveText(def, entry = null) {
+  const goal = `quest.${def.id}.goal`; // a side quest may say it in its own words
+  if (def.side && t(goal) !== goal) return t(goal, { count: def.count, progress: entry?.progress ?? 0 });
+  if (def.kind === 'find') return t('quest.find', { where: t(`quest.${def.id}.where`) });
+  if (def.kind === 'gather') return t('quest.gather', { count: def.count, progress: entry?.progress ?? 0 });
+  if (def.kind === 'deliver') return t('quest.deliver', { who: t('npc.' + (def.turnInNpc ?? 'elder')) });
   if (def.kind === 'visit') return t('quest.visit', { town: t('town.name.' + def.args.town) });
   if (def.kind === 'ending') return t('quest.ending');
   return t('quest.kill', { count: def.count, target: t('enemy.' + def.target) });
@@ -130,7 +135,7 @@ export function drawQuests(ctx, state, w, h) {
     ctx.fillText(questTitle(row.def), ROW.x + 12, y + 19);
     ctx.fillStyle = '#ddd';
     ctx.font = '13px sans-serif';
-    const counted = row.def.kind === 'kill' && row.status !== 'available';
+    const counted = (row.def.kind === 'kill' || row.def.kind === 'gather') && row.status !== 'available';
     ctx.fillText(objectiveText(row.def) + (counted ? `  (${row.progress}/${row.def.count})` : ''), ROW.x + 12, y + 36);
     ctx.fillStyle = '#9ccc65';
     ctx.fillText(t('quest.reward', { text: rewardText(row.def) }), ROW.x + 12, y + 52);

@@ -49,7 +49,8 @@ export function chronicleEntries(state, world) {
       const q = state.player?.quests?.[id.slice(2)];
       const town = world.getTownById?.(state.questIndex?.get(id.slice(2))?.giver ?? '');
       const args = { town: town ? t('town.name.' + town.nameIndex) : '' };
-      if (q?.choice) out.push({ id, year: NOW, order: 500 + (q.at ?? 0) / 1e6, text: t(`deed.${id.slice(2)}.${q.choice}.chron`, args), story: true });
+      const choice = q?.choice ?? (state.questIndex?.get(id.slice(2))?.deed && q?.status === 'done' ? 'done' : null); // a side story's deed
+      if (choice) out.push({ id, year: NOW, order: 500 + (q.at ?? 0) / 1e6, text: t(`deed.${id.slice(2)}.${choice}.chron`, args), story: true });
       continue;
     }
     if (id.startsWith('s:')) { // a step of the main story you went through

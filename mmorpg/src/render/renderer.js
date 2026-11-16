@@ -16,6 +16,7 @@ import { valleysInRange } from '../world/valleys.js';
 import { memorialsInRange } from '../systems/history.js';
 import { PULSE_WAVE } from '../systems/pulse.js';
 import { campsInRange, campResting } from '../systems/camps.js';
+import { wildPeople, gatherPoints } from '../systems/sidequests.js';
 import { ringSite, consoleOpen } from '../systems/ring.js';
 import { drawEnding } from '../ui/ending-ui.js';
 import { mmss, wrapText } from '../core/format.js';
@@ -381,6 +382,7 @@ export class Renderer {
     this.drawTowns(state, camX + w / 2, camY + h / 2, Math.hypot(w, h) / 2);
     this.drawLairs(state, camX + w / 2, camY + h / 2, Math.hypot(w, h) / 2);
     this.drawCamps(state, camX + w / 2, camY + h / 2, Math.hypot(w, h) / 2);
+    this.drawSidePlaces(state, camX + w / 2, camY + h / 2, Math.hypot(w, h) / 2);
 
     const seen = (x, y) => !state.fog || (Math.hypot(x - player.x, y - player.y) < sightOf(state) * TILE
       && (!state.visible || state.visible.has(Math.floor(x / TILE), Math.floor(y / TILE)))); // nothing is visible in the fog or behind a wall
@@ -567,7 +569,7 @@ export class Renderer {
     const dx = wp.x - player.x;
     const dy = wp.y - player.y;
     const dist = Math.hypot(dx, dy);
-    if (dist < (wp.kind === 'npc' ? 70 : TOWN_RADIUS_PX)) return; // already there (next to the person, or in the town)
+    if (dist < (wp.kind === 'npc' ? 70 : wp.kind === 'area' ? wp.r : TOWN_RADIUS_PX)) return; // already there (next to the person, in the town, in the circle you search)
     const { ctx } = this;
     const a = Math.atan2(dy, dx);
     const r = 56 + Math.sin(performance.now() / 300) * 3;
@@ -632,7 +634,7 @@ export class Renderer {
     ctx.textAlign = 'left';
     for (const { def, entry } of list) {
       const ready = entry.progress >= def.count;
-      const progress = def.kind === 'kill' ? ` ${entry.progress}/${def.count}` : '';
+      const progress = def.kind === 'kill' || def.kind === 'gather' ? ` ${entry.progress}/${def.count}` : '';
       if (def.id === p.tracked) {
         ctx.font = 'bold 13px sans-serif';
         ctx.fillStyle = '#ffd54f';
@@ -850,6 +852,64 @@ export class Renderer {
         ctx.fillText(name, x, y - 60);
       }
     }
+  }
+
+  // The places of the side stories (systems/sidequests.js): a farm's cottage, what grows where you gather, the circle
+  // you search, and the people who live out in the wild.
+  drawSidePlaces(state, cx, cy, range) {
+    const { ctx } = this;
+    const near = (x, y, pad = 0) => Math.hypot(x - cx, y - cy) < range + pad;
+    for (const s of Object.values(this.world.spots ?? {})) {
+      if (s.look !== 'farm' || !near(s.px, s.py, 300)) continue;
+      const x = (s.tx - 2) * TILE;
+      const y = (s.ty - 3) * TILE;
+      const W = 4 * TILE;
+      const H = 3 * TILE;
+      ctx.fillStyle = 'rgba(0,0,0,0.25)'; // its shadow
+      ctx.fillRect(x + 6, y + 8, W, H);
+      ctx.fillStyle = '#6d4c33'; // a wooden roof, shingled, the ridge along the long side
+      ctx.fillRect(x, y, W, H);
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      ctx.fillRect(x, y + H / 2, W, H / 2);
+      this.drawShingles({ x, y, w: W, h: H });
+      ctx.fillStyle = '#4e342e';
+      ctx.fillRect(x, y + H / 2 - 2, W, 4);
+      ctx.fillStyle = '#5d5d5d'; // the chimney
+      ctx.fillRect(x + W - 26, y + 6, 12, 14);
+      ctx.fillStyle = '#3e2723'; // the door, at the front (the step is under it)
+      ctx.fillRect(x + W / 2 - 9, y + H - 6, 18, 8);
+      ctx.fillStyle = '#8d6e63';
+      ctx.fillRect(x + W / 2 - 14, y + H + 2, 28, 7);
+    }
+    const p = state.player;
+    for (const [id, e] of Object.entries(p.quests)) { // what you gather: the plants still standing
+      if (e.status !== 'active') continue;
+      const def = state.questIndex.get(id);
+      if (def?.kind !== 'gather' || e.progress >= def.count) continue;
+      for (const g of gatherPoints(state, def)) {
+        if (e.picked?.includes(g.i) || !near(g.x, g.y)) continue;
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.beginPath();
+        ctx.ellipse(g.x, g.y + 6, 9, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = def.color ?? '#7cb342';
+        for (const [dx, dy] of [[-5, -2], [5, -2], [0, -7], [-2, 2], [3, 3]]) ctx.fillRect(g.x + dx - 2, g.y + dy - 3, 4, 7);
+        ctx.fillStyle = def.flower ?? '#ba68c8';
+        for (const [dx, dy] of [[-5, -6], [5, -6], [0, -11]]) ctx.fillRect(g.x + dx - 2, g.y + dy - 2, 4, 4);
+      }
+    }
+    const wp = trackedWaypoint(state, this.world); // the circle you search, on the ground
+    if (wp?.kind === 'area' && wp.r && near(wp.x, wp.y, wp.r)) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,213,79,0.45)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([14, 12]);
+      ctx.beginPath();
+      ctx.arc(wp.x, wp.y, wp.r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    for (const person of wildPeople(state)) if (near(person.x, person.y, 60)) this.drawNpc(state, person, { id: person.home });
   }
 
   drawLairs(state, cx, cy, range) {
@@ -1215,7 +1275,7 @@ export class Renderer {
 
   drawNpc(state, npc, town) {
     const { ctx } = this;
-    const [look, slots] = NPC_LOOKS[npc.id] ?? ['villager', {}];
+    const [look, slots] = npc.def?.look ? [npc.def.look, npc.def.slots ?? {}] : NPC_LOOKS[npc.id] ?? ['villager', {}];
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.beginPath();
     ctx.ellipse(npc.x, npc.y + 13, 12, 5, 0, 0, Math.PI * 2);
@@ -1228,13 +1288,13 @@ export class Renderer {
     ctx.font = 'bold 12px sans-serif';
     ctx.lineWidth = 3;
     ctx.strokeStyle = '#000';
-    const name = t(npc.ware ? 'npc.trader.' + npc.ware : 'npc.' + npc.id);
+    const name = t(npc.person ? 'npc.' + npc.person : npc.ware ? 'npc.trader.' + npc.ware : 'npc.' + npc.id);
     ctx.strokeText(name, npc.x, npc.y - 28);
     ctx.fillStyle = '#fff';
     ctx.fillText(name, npc.x, npc.y - 28);
 
-    if (QUEST_ROLES.includes(npc.id)) { // ! a quest to take, ? one to hand in; the main story in orange
-      const rows = listForGiver(state, town.id, npc.id);
+    if (QUEST_ROLES.includes(npc.id) || npc.person) { // ! a quest to take, ? one to hand in; the main story in orange
+      const rows = listForGiver(state, town.id, npc.person ?? npc.id);
       const ready = rows.find((r) => r.status === 'complete');
       const open = rows.filter((r) => r.status === 'available');
       if (ready || open.length) {

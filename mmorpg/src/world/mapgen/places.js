@@ -307,6 +307,8 @@ export function placeSites(m, start) {
   const dungeons = [];
   const camps = [];
   const story = {};
+  const spots = {}; // small named places of the side stories (a farm, a glade): id -> spot
+  const srng = stream(m.seed, 'spots'); // their own stream, so adding one does not move everything else
   const townGap = recipe.fill.towns.minGap;
   const farFromTowns = (x, y, gap) => towns.every((t) => dist(t.x, t.y, x, y) > gap);
   // the places of the recipe
@@ -354,6 +356,21 @@ export function placeSites(m, start) {
         reserve(m, spot.x, spot.y, 5);
         camps.push({ ...spot, def, ...info(spot.x, spot.y) });
       }
+    }
+    // spots: in the region of the place, at a distance from the start town or from another spot ([min, max] tiles)
+    for (const S of P.spots ?? []) {
+      const from = S.from ? spots[S.from] : towns[0];
+      const [lo, hi] = S.dist ?? [0, 1e9];
+      const score = (x, y) => {
+        const d = dist(x, y, from.x, from.y);
+        return (d < lo || d > hi ? 10 : 0) + Math.abs(d - (lo + hi) / 2) / 100 + (farFromTowns(x, y, S.r + 24) ? 0 : 5) +
+          ([...camps, ...lairs].some((c) => dist(c.x, c.y, x, y) < S.r + 32) ? 5 : 0); // not next to a den
+      };
+      const spot = findSpot(m, R.id, S.r + 2, srng, score, 400) ??
+        findSpot(m, null, S.r + 2, srng, (x, y) => score(x, y) + (regions[regionAt(x, y)]?.island ? 50 : 0), 4000);
+      if (!spot) throw new Error('no room for the spot ' + S.id);
+      reserve(m, spot.x, spot.y, S.r + 2);
+      spots[S.id] = { ...spot, id: S.id, r: S.r, look: S.look ?? S.id, place: P.id, ...info(spot.x, spot.y) };
     }
   }
   // the Ring: open ground at the foot of the wall
@@ -416,7 +433,7 @@ export function placeSites(m, start) {
       camps.push({ ...spot, ...info(spot.x, spot.y) });
     }
   }
-  Object.assign(m, { towns, lairs, dungeons, camps, valleys, ring, story });
+  Object.assign(m, { towns, lairs, dungeons, camps, valleys, ring, story, spots });
 }
 
 // A hidden valley: a ring of cliffs around a green patch, a cave with one mouth outside and one inside, chests in the

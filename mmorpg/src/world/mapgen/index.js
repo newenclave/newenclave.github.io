@@ -127,7 +127,37 @@ function raster(m) {
       }
     }
   }
+  for (const S of Object.values(m.spots)) stampSpot(m, tiles, S);
   return tiles;
+}
+
+// A spot of a side story: open ground with a ragged edge; a farm also gets its cottage (house tiles: solid, the
+// renderer draws the roof) and a fence round the yard with a gate to the south.
+export const COTTAGE = { w: 4, h: 3, dy: -3 }; // the cottage's tiles, from the centre of the spot
+function stampSpot(m, tiles, S) {
+  const { N, seed } = m;
+  const s = seed % 100000;
+  for (let dy = -S.r - 2; dy <= S.r + 2; dy++) {
+    for (let dx = -S.r - 2; dx <= S.r + 2; dx++) {
+      const x = S.x + dx;
+      const y = S.y + dy;
+      if (x < 0 || y < 0 || x >= N || y >= N) continue;
+      const d = Math.sqrt(dx * dx + dy * dy) + (fbm(x / 4, y / 4, s + 6400, 2) - 0.5) * 3;
+      if (d <= S.r) tiles[y * N + x] = ID.grass;
+    }
+  }
+  if (S.look !== 'farm') return;
+  const fr = S.r - 1; // the fence: a ring of palisade, the gate three tiles wide in the south
+  for (let dy = -fr; dy <= fr; dy++) {
+    for (let dx = -fr; dx <= fr; dx++) {
+      const edge = Math.abs(dx) === fr || Math.abs(dy) === fr;
+      if (!edge || (dy === fr && Math.abs(dx) <= 1)) continue;
+      tiles[(S.y + dy) * N + S.x + dx] = ID.palisade;
+    }
+  }
+  for (let dy = 0; dy < COTTAGE.h; dy++) {
+    for (let dx = 0; dx < COTTAGE.w; dx++) tiles[(S.y + COTTAGE.dy + dy) * N + S.x - 2 + dx] = ID.house;
+  }
 }
 
 // Everything that matters must be reachable on foot from the start: a flood fill shows what is; for each place that is
@@ -158,6 +188,7 @@ function reach(m, tiles, walkable) {
     ...m.valleys.map((v) => ({ x: v.outer.x, y: v.outer.y, kind: 'valley', ref: v })),
     { x: m.ring.x, y: m.ring.y, kind: 'ring', ref: m.ring },
     ...m.camps.filter((c) => !m.regions[c.region]?.island).map((c) => ({ x: c.x, y: c.y, kind: 'camp', ref: c })),
+    ...Object.values(m.spots).map((S) => ({ x: S.x, y: S.y + (S.look === 'farm' ? S.r - 1 : 0), kind: 'spot', ref: S })),
   ];
   let repairs = 0;
   for (const tg of targets) {
@@ -258,7 +289,8 @@ function output(m, tiles, start, repairs) {
     regions: regions.map((R) => ({ id: R.id, cx: R.cx + x0, cy: R.cy + y0, biome: R.biome, tier: R.tier, progress: R.progress, island: R.island, place: R.place ?? null, nbrs: R.nbrs })),
     towns, lairs, dungeons, camps, valleys, ring,
     roads: m.roads.map((r) => ({ from: towns[r.from].id, to: towns[r.to].id, len: Math.round(r.len) })),
-    story: { start: towns[0].id, city: storyId('city'), capital: storyId('capital'), plates, ring: 'r:ring' },
+    story: { start: towns[0].id, road: storyId('road'), city: storyId('city'), capital: storyId('capital'), plates, ring: 'r:ring' },
+    spots: Object.fromEntries(Object.values(m.spots).map((S) => [S.id, { id: S.id, ...W(S), r: S.r, look: S.look, region: S.region, biome: S.biome, tier: S.tier }])),
     islands: m.islands.map((i) => ({ tx: i.x + x0, ty: i.y + y0, r: i.r })),
     fp: fingerprint(tiles),
   };

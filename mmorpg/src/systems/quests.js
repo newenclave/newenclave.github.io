@@ -7,6 +7,7 @@ import { ensureHistory } from './history.js';
 import { ringSite } from './ring.js';
 import { TILE } from '../world/world.js';
 import { choicesOf, rewardOf, parseRequirement } from './deeds.js';
+import { onSideAccept, onSideTurnIn, onSideAbandon, canHandIn, searchArea, personPos, takeItem, spotOfGiver } from './sidequests.js';
 
 export const MAX_ACTIVE = 5;
 // A boss or dungeon you have a quest for does not keep you waiting: it comes back after this many seconds at most.
@@ -25,7 +26,8 @@ export const giverRole = (def) => def.npc ?? 'elder';
 export const turnInRole = (def) => (turnInTown(def) === def.giver ? giverRole(def) : def.turnInNpc ?? 'elder');
 
 // The role in this town, or the elder when nobody does that job there (a hamlet has no captain).
-export const roleIn = (town, role) => (town?.npcs?.some((n) => n.id === role) ? role : 'elder');
+export const roleIn = (town, role) => (town?.npcs?.some((n) => n.id === role || n.person === role) ? role : 'elder');
+const npcFor = (town, role) => town?.npcs?.find((n) => n.person === role) ?? town?.npcs?.find((n) => n.id === role && !n.person);
 
 export const QUEST_ROLES = ['elder', 'priest', 'captain', 'innkeeper', 'chronicler', 'ruler']; // people who give quests
 
@@ -42,7 +44,9 @@ export function isUnlocked(state, def) {
 
 export function isComplete(state, id) {
   const e = questEntry(state, id);
-  return !!e && e.status === 'active' && e.progress >= questDef(state, id).count;
+  if (!e || e.status !== 'active') return false;
+  const def = questDef(state, id);
+  return e.progress >= def.count && (!def.takes || canHandIn(state, def)); // a thing to bring must still be with you
 }
 
 // What a person in a town shows: quests they give here (new ones, active ones) and quests that end with them. Without a
@@ -51,7 +55,7 @@ export function listForGiver(state, townId, role = null) {
   const out = [];
   for (const def of state.questDefs) {
     const e = questEntry(state, def.id);
-    if (e?.status === 'done') continue;
+    if (e?.status === 'done' || e?.status === 'closed') continue;
     const givenHere = def.giver === townId && isUnlocked(state, def) && (!role || giverRole(def) === role);
     const endsHere = turnInTown(def) === townId && e?.status === 'active' && (!role || turnInRole(def) === role);
     if (!givenHere && !endsHere) continue;
@@ -91,7 +95,10 @@ export function setTracked(state, id) {
 
 export function abandonQuest(state, id) {
   if (!isActive(state, id)) return { error: 'none' };
+  const def = questDef(state, id);
+  if (def?.kind === 'deliver') for (const it of [def.gives].flat().filter(Boolean)) takeItem(state, it); // the letter goes back
   delete state.player.quests[id]; // it can be taken again later
+  if (def?.side) onSideAbandon(state, def); // what you found for it goes back where it was
   ensureTracked(state);
   return { ok: true };
 }
@@ -117,6 +124,7 @@ export function acceptQuest(state, id) {
   if (activeCount(state) >= MAX_ACTIVE) return { error: 'limit' };
   // the choice at the Ring made before this quest was taken: it is done already, take it back to the capital
   state.player.quests[id] = { status: 'active', progress: def.kind === 'ending' && state.ending ? def.count : 0 };
+  if (def.side) onSideAccept(state, def, state.player.quests[id]); // a letter in your hands, a thing already found
   if (!state.player.tracked) state.player.tracked = id; // the first quest becomes the current one
   recallBosses(state);
   return { ok: true };
@@ -167,6 +175,7 @@ export function onVisit(state, townId) {
 // Where the objective of a quest leads right now, or null while it is "hunt anywhere".
 export function targetTownId(state, def) {
   if (def.kind === 'visit') return def.target;
+  if (def.kind === 'deliver') return turnInTown(def);
   return isComplete(state, def.id) ? turnInTown(def) : null;
 }
 
@@ -174,6 +183,15 @@ export function targetTownId(state, def) {
 // { id, x, y (pixels), tx, ty (tiles), nameKey (language key of its name), townKey (for a person: their town),
 // kind: 'town' | 'npc' | 'lair' | 'dungeon', def }
 function waypointTarget(state, world, def) {
+  if (def.side && !isComplete(state, def.id) && (def.kind === 'find' || def.kind === 'gather')) { // a circle to search
+    const a = searchArea(state, def);
+    if (def.person && a?.r === 0) return { id: def.id, x: a.x, y: a.y, tx: Math.floor(a.x / TILE), ty: Math.floor(a.y / TILE), nameKey: 'npc.' + def.person, kind: 'npc' };
+    return a && { id: def.id, x: a.x, y: a.y, r: a.r, tx: Math.floor(a.x / TILE), ty: Math.floor(a.y / TILE), nameKey: `quest.${def.id}.where`, kind: 'area' };
+  }
+  if (def.side && isComplete(state, def.id) && spotOfGiver(state, turnInTown(def))) { // handed in to someone out in the wild
+    const pos = personPos(state, turnInRole(def));
+    if (pos) return { id: turnInTown(def), x: pos.x, y: pos.y, tx: Math.floor(pos.x / TILE), ty: Math.floor(pos.y / TILE), nameKey: 'npc.' + turnInRole(def), kind: 'npc' };
+  }
   if (def.kind === 'kill' && def.lair?.startsWith('d:') && !isComplete(state, def.id)) { // a dungeon: point at its entrance
     const e = entranceById(world, def.lair, state.dungeonDefs);
     return e && { id: e.id, x: e.px, y: e.py, tx: e.tx, ty: e.ty, nameKey: 'dungeon.theme.' + e.theme, kind: 'dungeon' };
@@ -190,8 +208,8 @@ function waypointTarget(state, world, def) {
   const town = townId ? world.getTownById(townId) : null;
   if (!town) return null;
   // a job done: the arrow leads to the very person who takes it back, not just to their town
-  const npc = isComplete(state, def.id) && town.npcs?.find((n) => n.id === roleIn(town, turnInRole(def)));
-  if (npc) return { id: town.id, x: npc.x, y: npc.y, tx: Math.floor(npc.x / TILE), ty: Math.floor(npc.y / TILE), nameKey: 'npc.' + npc.id, townKey: 'town.name.' + town.nameIndex, kind: 'npc' };
+  const npc = (isComplete(state, def.id) || def.kind === 'deliver') && npcFor(town, roleIn(town, turnInRole(def)));
+  if (npc) return { id: town.id, x: npc.x, y: npc.y, tx: Math.floor(npc.x / TILE), ty: Math.floor(npc.y / TILE), nameKey: 'npc.' + (npc.person ?? npc.id), townKey: 'town.name.' + town.nameIndex, kind: 'npc' };
   return { id: town.id, x: town.px, y: town.py, tx: town.tx, ty: town.ty, nameKey: 'town.name.' + town.nameIndex, kind: 'town' };
 }
 
@@ -254,6 +272,10 @@ export function turnIn(state, id, townId, choice = null) {
     }
   }
   state.player.quests[id] = choice ? { status: 'done', progress: def.count, choice, at: state.clock ?? 0 } : { status: 'done', progress: def.count };
+  if (def.side) { // things handed over, quests this closes; a side quest's ending is remembered for the talk of the town
+    onSideTurnIn(state, def, choice);
+    state.player.quests[id].at = state.clock ?? 0;
+  }
   ensureTracked(state);
   if (def.doneKeys?.[state.ending]) { // the end of the story: the ruler answers what you chose
     state.note = { key: def.doneKeys[state.ending], args: def.args, title: 'story.note.title', t: 0, dur: STORY_NOTE_TIME, story: true };

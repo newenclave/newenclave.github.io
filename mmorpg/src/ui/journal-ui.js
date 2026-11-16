@@ -4,7 +4,8 @@ import { rarityById } from '../sim/loot.js';
 import { MAX_ACTIVE, activeQuests, completedCount, turnInTown } from '../systems/quests.js';
 import { objectiveText, questTitle } from './quest-ui.js';
 import { itemName } from './inventory-ui.js';
-import { mmss } from '../core/format.js';
+import { mmss, wrapText } from '../core/format.js';
+import { hasItem } from '../systems/sidequests.js';
 import { drawChronicle, PAGE_BTNS } from './chronicle-ui.js';
 import { drawRelics } from './relics-ui.js';
 
@@ -199,7 +200,7 @@ function drawDetail(ctx, state, { def, entry }) {
     ctx.font = '14px sans-serif';
     y += 18;
   }
-  if (def.kind === 'kill') {
+  if (def.kind === 'kill' || def.kind === 'gather') {
     progressBar(ctx, x, y, DETAIL.w - 28, entry.progress / def.count, ready ? '#9ccc65' : '#42a5f5');
     ctx.fillStyle = ready ? '#9ccc65' : '#ccc';
     ctx.font = '12px sans-serif';
@@ -224,6 +225,24 @@ function drawDetail(ctx, state, { def, entry }) {
     ctx.fillStyle = rarityById(r.item.rarity).color;
     ctx.fillText(`${t('rarity.' + r.item.rarity)} ${itemName({ slot: r.item.slot, id: r.item.id })}`, x, y);
     y += 20;
+  }
+
+  // what you carry for it (a book, a letter, a hammer): its name and what it is, to read again
+  const bottom = DETAIL.y + DETAIL.h - 64;
+  for (const it of new Set([def.gives, def.takes].flat().filter(Boolean))) {
+    if (!hasItem(state, it) || y > bottom - 20) continue;
+    y += 6;
+    ctx.fillStyle = '#e0c890';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText(t(`item.${it}.name`), x, y);
+    y += 16;
+    ctx.fillStyle = '#bdb2a0';
+    ctx.font = 'italic 12px serif';
+    for (const line of wrapText(ctx, t(`item.${it}.desc`), DETAIL.w - 28)) {
+      if (y > bottom) break;
+      ctx.fillText(line, x, y);
+      y += 14;
+    }
   }
 
   // where to hand in, with the direction and distance from where you stand

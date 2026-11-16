@@ -26,10 +26,11 @@ export function parseRequirement(req) {
 export function deedsIn(state, townId, role = null) {
   const out = [];
   for (const [id, e] of Object.entries(state.player?.quests ?? {})) {
-    if (e?.status !== 'done' || !e.choice) continue;
     const def = state.questIndex?.get(id);
-    if (!def || def.giver !== townId || (role && (def.npc ?? 'elder') !== role)) continue;
-    out.push({ id, def, choice: e.choice, at: e.at ?? 0 });
+    // a quest that ended with a choice, or a side story's deed (`deed`: its "choice" is 'done'), told where it names
+    if (e?.status !== 'done' || !(e.choice || def?.deed)) continue;
+    if (!def || !(def.toldIn ?? [def.giver]).includes(townId) || (role && (def.npc ?? 'elder') !== role)) continue;
+    out.push({ id, def, choice: e.choice ?? 'done', at: e.at ?? 0 });
   }
   return out.sort((a, b) => b.at - a.at || (a.id < b.id ? 1 : -1));
 }
@@ -55,7 +56,8 @@ export function echoKeys(state, base) {
   const out = [];
   for (const [id, e] of Object.entries(state.player?.quests ?? {})) {
     const def = state.questIndex?.get(id);
-    if (e?.status === 'done' && e.choice && def && greetsBy(state, { def, choice: e.choice })) out.push(`dlg.${base}.if.${id}.${e.choice}.0`);
+    const choice = e?.choice ?? (def?.deed ? 'done' : null);
+    if (e?.status === 'done' && choice && def && greetsBy(state, { def, choice })) out.push(`dlg.${base}.if.${id}.${choice}.0`);
   }
   return out;
 }

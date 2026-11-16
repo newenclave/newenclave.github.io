@@ -1,0 +1,74 @@
+{
+  "_doc": "Side stories (docs/side-stories-knots.md; engine: src/systems/sidequests.js). Places: @start, @road (towns the map names), @farm, @glade (spots of the map), #name (where a person stands). Conditions: q (done), q:choice, found:q, active:q, closed:q, item:id, heard:key, !x, a|b; a list means all.",
+  "people": {
+    "pell": {
+      "at": "start", "role": "merchant",
+      "greet": [
+        { "when": "q_book", "say": ["dlg.q_book.after.pell.0", "dlg.q_book.after.pell.1"] }
+      ]
+    },
+    "brannoc": {
+      "at": "start", "role": "blacksmith",
+      "greet": [
+        { "when": "q_hammer_b", "say": ["dlg.q_hammer_b.after.0", "dlg.q_hammer_b.after.1"] }
+      ]
+    },
+    "kell": {
+      "at": "road", "role": "blacksmith",
+      "greet": [
+        { "when": "q_hammer_k", "say": ["dlg.q_hammer_k.after.0", "dlg.q_hammer_k.after.1"] }
+      ]
+    },
+    "ysa": {
+      "at": "farm", "look": "villager", "slots": { "T": "#7c8f4e", "A": "#d7ccc8", "h": "#9e9e9e" },
+      "offset": { "farm": [0, 1.4], "glade": [0, 0] },
+      "where": [{ "spot": "glade", "when": "!q_ysa" }],
+      "greet": [
+        { "when": ["found:q_ysa", "!q_ysa"], "once": "ysa.found", "say": ["dlg.q_ysa.found.0", ">dlg.q_ysa.reply.found", "dlg.q_ysa.found.1", "dlg.q_ysa.found.2"] },
+        { "when": ["found:q_ysa", "!q_ysa"], "say": ["dlg.q_ysa.found.2"] },
+        { "when": "item:marra_hammer", "once": "ysa.lifted", "say": ["dlg.ysa.lifted.0", "dlg.ysa.lifted.1", "dlg.ysa.lifted.2"] },
+        { "when": "item:marra_hammer|q_hammer_b|q_hammer_k", "say": ["dlg.ysa.gone.0", "dlg.ysa.gone.1"] },
+        { "when": "q_herbs", "say": ["dlg.q_herbs.after.0", "dlg.q_herbs.after.1", "say.ysa.1"] }
+      ]
+    }
+  },
+  "wards": [
+    { "spot": "farm", "r": 24, "enemies": ["wolf"], "while": ["!item:marra_hammer", "!q_hammer_b", "!q_hammer_k"] }
+  ],
+  "raids": [
+    { "spot": "farm", "enemy": "wolf", "count": 2, "near": 34, "every": 120, "while": "item:marra_hammer|q_hammer_b|q_hammer_k" }
+  ],
+  "items": ["marra_book", "brannoc_letter", "marra_hammer"],
+  "quests": [
+    {
+      "id": "q_ysa", "giver": "@start", "npc": "pell", "kind": "find", "person": "ysa", "count": 1, "radius": 15,
+      "requires": "q_wolves", "reward": { "gold": 60, "xp": 90 }
+    },
+    {
+      "id": "q_book", "giver": "@farm", "npc": "ysa", "kind": "find", "at": "#pell", "dx": 0, "dy": -1, "radius": 5,
+      "gives": "marra_book", "takes": "marra_book", "turnInAt": "@start", "turnInNpc": "brannoc", "count": 1,
+      "requires": "q_ysa", "reward": { "gold": 40, "xp": 100 }
+    },
+    {
+      "id": "q_letter", "giver": "@start", "npc": "brannoc", "kind": "deliver", "gives": "brannoc_letter", "takes": "brannoc_letter",
+      "turnInAt": "@road", "turnInNpc": "kell", "count": 1, "requires": "q_book", "reward": { "gold": 40, "xp": 80 }
+    },
+    {
+      "id": "q_hammer_b", "giver": "@start", "npc": "brannoc", "kind": "find", "at": "@farm", "dx": 0, "dy": -0.2, "radius": 9,
+      "gives": "marra_hammer", "takes": "marra_hammer", "count": 1, "requires": "q_letter", "excludes": "q_hammer_k",
+      "deed": true, "toldIn": ["@start", "@road"],
+      "reward": { "gold": 100, "xp": 250, "item": { "slot": "weapon", "id": "spear", "rarity": "rare" } }
+    },
+    {
+      "id": "q_hammer_k", "giver": "@road", "npc": "kell", "kind": "find", "at": "@farm", "dx": 0, "dy": -0.2, "radius": 9,
+      "gives": "marra_hammer", "takes": "marra_hammer", "count": 1, "requires": "q_letter", "excludes": "q_hammer_b",
+      "deed": true, "toldIn": ["@start", "@road"],
+      "reward": { "gold": 280, "xp": 250 }
+    },
+    {
+      "id": "q_herbs", "giver": "@farm", "npc": "ysa", "kind": "gather", "at": "@glade", "count": 8, "spare": 5,
+      "color": "#558b2f", "flower": "#cfd8dc",
+      "requires": "q_ysa", "reward": { "gold": 30, "xp": 140, "item": { "slot": "accessory", "id": "talisman_vitality", "rarity": "uncommon" } }
+    }
+  ]
+}

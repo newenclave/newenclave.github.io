@@ -59,8 +59,11 @@ export function serializeState(state, seed) {
       ranks: { ...p.ranks }, weaponIndex: Math.max(0, state.weapons.indexOf(p.weapon)),
       tracked: p.tracked ?? null,
       boat: !!p.boat, boating: !!p.boating,
-      // a quest that ended with a choice keeps it, and when (systems/deeds.js)
-      quests: Object.fromEntries(Object.entries(p.quests).map(([id, q]) => [id, q.choice ? { status: q.status, progress: q.progress, choice: q.choice, at: q.at ?? 0 } : { status: q.status, progress: q.progress }])),
+      // a quest that ended with a choice keeps it, and when (systems/deeds.js); a side quest also what you picked, and
+      // a closed one what closed it and whether its giver has said so (systems/sidequests.js)
+      quests: Object.fromEntries(Object.entries(p.quests).map(([id, q]) => [id, saveQuest(q)])),
+      items: { ...(p.items ?? {}) }, // things carried for quests
+      heard: [...(p.heard ?? [])], // what the people of the side stories have said once
     },
     weapons: state.weapons.map(slim),
     offhands: (state.offhands ?? []).map(slim),
@@ -92,6 +95,16 @@ export function serializeState(state, seed) {
   };
 }
 
+function saveQuest(q) {
+  const out = { status: q.status, progress: q.progress };
+  if (q.choice) out.choice = q.choice;
+  if (q.at !== undefined) out.at = q.at;
+  if (q.picked?.length) out.picked = [...q.picked];
+  if (q.status === 'closed') Object.assign(out, { by: q.by, told: !!q.told, was: !!q.was });
+  return out;
+}
+
+const ITEM_ID = /^[a-z][a-z0-9_]{0,40}$/;
 const num = (v, min, max, fallback) => (Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : fallback);
 
 // Items are rebuilt from the catalog, so an edited save can never contain stats the game would not generate.
@@ -142,12 +155,20 @@ export function applySave(state, data, seed) {
   // generated town quests are re-created from the seed by resolveQuest before they are validated
   for (const [id, q] of Object.entries(s.quests && typeof s.quests === 'object' ? s.quests : {})) {
     const def = state.questIndex.get(id) ?? state.resolveQuest?.(id);
-    if (def && (q?.status === 'active' || q?.status === 'done')) {
-      p.quests[id] = { status: q.status, progress: Math.round(num(q.progress, 0, def.count, 0)) };
-      if (q.status === 'done' && choicesOf(def).includes(q.choice)) Object.assign(p.quests[id], { choice: q.choice, at: num(q.at, 0, MAX_CLOCK, 0) });
+    if (def && (q?.status === 'active' || q?.status === 'done' || (q?.status === 'closed' && def.side))) {
+      const e = p.quests[id] = { status: q.status, progress: Math.round(num(q.progress, 0, def.count, 0)) };
+      if (q.status === 'done' && choicesOf(def).includes(q.choice)) Object.assign(e, { choice: q.choice, at: num(q.at, 0, MAX_CLOCK, 0) });
+      else if (q.status === 'done' && def.side) e.at = num(q.at, 0, MAX_CLOCK, 0);
+      if (def.side && Array.isArray(q.picked)) e.picked = [...new Set(q.picked.filter((i) => Number.isInteger(i) && i >= 0 && i < 64))];
+      if (q.status === 'closed') Object.assign(e, { progress: 0, by: typeof q.by === 'string' ? q.by.slice(0, 60) : null, told: q.told === true, was: q.was === true, at: num(q.at, 0, MAX_CLOCK, 0) });
     }
   }
 
+  p.heard = (Array.isArray(s.heard) ? s.heard : []).filter((k) => typeof k === 'string' && k.length < 80).slice(0, 200);
+  p.items = {};
+  for (const [id, n] of Object.entries(s.items && typeof s.items === 'object' ? s.items : {}).slice(0, 64)) {
+    if (ITEM_ID.test(id) && Number.isFinite(n) && n >= 1) p.items[id] = Math.min(99, Math.floor(n));
+  }
   p.tracked = typeof s.tracked === 'string' && p.quests[s.tracked]?.status === 'active' ? s.tracked : null;
   ensureTracked(state);
 

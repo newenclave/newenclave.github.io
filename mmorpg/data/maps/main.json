@@ -35,7 +35,11 @@
       "id": "wolfwood",
       "biome": "forest",
       "region": {"adjacent": "start", "near": {"place": "start", "max": 150}},
-      "camps": ["wolf_den", "wolf_den", "wolf_den", "bat_roost"]
+      "camps": ["wolf_den", "wolf_den", "wolf_den", "bat_roost"],
+      "spots": [
+        {"id": "farm", "r": 7, "dist": [45, 110]},
+        {"id": "glade", "r": 8, "from": "farm", "dist": [26, 48]}
+      ]
     },
     {
       "id": "sands",
@@ -48,6 +52,7 @@
       "region": {"near": {"place": "start", "min": 70, "max": 260}, "progress": [0, 0.3], "share": true},
       "lair": {"bossId": "slime_king", "dist": 150}
     },
+    {"id": "road", "region": {"near": {"place": "start", "min": 90, "max": 260}, "progress": [0, 0.36], "share": true}, "town": {"kind": "village"}},
     {"id": "city", "region": {"progress": [0.2, 0.42]}, "town": {"kind": "city"}},
     {
       "id": "crypt",

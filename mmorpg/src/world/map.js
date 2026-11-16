@@ -74,7 +74,34 @@ export class MapWorld {
     };
     for (const list of [this.lairSites, this.dungeonSites, this.campSites, this.valleys]) for (const s of list) this.byId.set(s.id, s);
     this.byId.set('r:ring', this.ringSite);
-    this.story = M.story;
+    // the small places of the side stories (systems/sidequests.js): id -> { tx, ty, px, py, r, look }
+    this.spots = Object.fromEntries(Object.entries(M.spots ?? {}).map(([id, s]) => [id, { ...s, px: (s.tx + 0.5) * TILE, py: (s.ty + 0.5) * TILE }]));
+    this.story = { ...M.story, road: M.story.road ?? this.roadTown()?.id ?? null }; // (older recipes have no road town)
+  }
+
+  // The first town with a smithy on the road from the start to the chronicler's city (the side stories send you
+  // there), or the nearest such town to the start when the road has none.
+  roadTown() {
+    const start = this.getTownById(this.map.story.start);
+    const smith = (t) => t && t !== start && t.npcs.some((n) => n.id === 'blacksmith');
+    const links = new Map();
+    for (const r of this.map.roads) {
+      for (const [a, b] of [[r.from, r.to], [r.to, r.from]]) {
+        if (!links.has(a)) links.set(a, []);
+        links.get(a).push(b);
+      }
+    }
+    const prev = new Map([[start.id, null]]);
+    const queue = [start.id];
+    for (let i = 0; i < queue.length; i++) {
+      for (const n of links.get(queue[i]) ?? []) if (!prev.has(n)) { prev.set(n, queue[i]); queue.push(n); }
+    }
+    const path = [];
+    for (let id = this.map.story.city; id && prev.has(id); id = prev.get(id)) path.unshift(id);
+    const onRoad = path.map((id) => this.getTownById(id)).find(smith);
+    if (onRoad) return onRoad;
+    const d = (t) => Math.hypot(t.tx - start.tx, t.ty - start.ty);
+    return this.townList.filter(smith).sort((a, b) => d(a) - d(b))[0] ?? null;
   }
 
   inBounds(tx, ty) {

@@ -166,6 +166,12 @@ export class WorldMapView {
     if (wp) {
       const x = sx(wp.tx);
       const y = sy(wp.ty);
+      if (wp.kind === 'area') { // the circle you search
+        ctx.fillStyle = 'rgba(255,213,79,0.18)';
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(6, Math.abs(sx(wp.tx + wp.r / TILE) - x)), 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.strokeStyle = '#9ccc65';
       ctx.lineWidth = 3;
       ctx.beginPath();

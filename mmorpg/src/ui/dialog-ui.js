@@ -5,6 +5,7 @@ import { questDef, giverRole, listForGiver } from '../systems/quests.js';
 import { elderLine } from '../systems/lore.js';
 import { eventText } from './chronicle-ui.js';
 import { choicesOf, deedsIn, greetsBy, echoKeys, rewardOf } from '../systems/deeds.js';
+import { cond, untoldClosed } from '../systems/sidequests.js';
 
 // Talking to someone who gives quests (texts in data/lang/en.dialogue.json). It starts with a greeting and a few things
 // you can say: ask what the trouble is (they tell the story behind a job, and you take it, ask for more or say not now;
@@ -16,6 +17,9 @@ import { choicesOf, deedsIn, greetsBy, echoKeys, rewardOf } from '../systems/dee
 // state.ui.dialog = { stage: 'hub' | 'place' | 'offer' | 'more' | 'declined' | 'chosen', id, status, choice,
 // skipped: [quest ids], asked }.
 // main.js does what an answer means (take, hand in); this file says what is on the screen and what was clicked.
+// The people of the side stories (systems/sidequests.js, data/sidestories.json) greet you by what has happened: their
+// `greet` list, the first line whose condition holds; a quest of theirs closed by something you did elsewhere is told
+// once (dlg.<quest>.closed.*); a merchant or a smith with a name also offers to trade.
 const DW = 760;
 const DH = 540;
 const PAD = 34;
@@ -102,11 +106,47 @@ function reply(def, base, kind, ending = null) {
   return t(own) !== own ? t(own) : pick(`reply.${kind}`, def.id + kind, {}, `dlg.fallback.${kind}`);
 }
 
-export const openDialog = (state) => { state.ui.dialog = { stage: 'hub', skipped: [], asked: 0 }; };
+export function openDialog(state) {
+  const ui = state.ui;
+  ui.dialog = { stage: 'hub', skipped: [], asked: 0, closed: null, greet: null };
+  // a job of theirs that something you did closed: they say so, once
+  const shut = untoldClosed(state, ui.questTown, ui.questNpc ?? 'elder')[0];
+  if (shut) {
+    shut.entry.told = true;
+    ui.dialog.closed = shut.def.id;
+  } else ui.dialog.greet = pickGreeting(state, ui.questNpc ?? 'elder');
+}
+
+const TRADERS = ['merchant', 'trader', 'blacksmith'];
+
+// A named person's greeting: the first of their `greet` rules whose condition holds. A rule says one of its lines
+// (one by the talk), or with `once` all of them in order, the first time only (then the next rule speaks).
+// The rule is picked when the talk opens (openDialog) so a line said once is not taken back while you read it.
+function pickGreeting(state, role) {
+  const person = state.people?.get(role);
+  for (const g of person?.def.greet ?? []) {
+    if (!cond(state, g.when)) continue;
+    if (g.once && state.player.heard?.includes(g.once)) continue;
+    const keys = Array.isArray(g.say) ? g.say : [g.say];
+    if (g.once) {
+      (state.player.heard ??= []).push(g.once);
+      return keys.map((k) => (k.startsWith('>') ? `— ${t(k.slice(1))}` : t(k))); // ">key": the hero's own words
+    }
+    return [t(keys[(state.ui.sayLine ?? 0) % keys.length])];
+  }
+  return null;
+}
 
 // The person's first words, and what they know about the place. Someone you did a deed for remembers what you chose.
 function greeting(state, role, town) {
   if (state.ui.firstTalk !== null && state.ui.firstTalk !== undefined) return t('elder.first.' + state.ui.firstTalk);
+  const shut = state.ui.dialog?.closed;
+  if (shut) {
+    const said = lines(dialogBase(questDef(state, shut)), 'closed', {});
+    if (said.length) return said;
+  }
+  const own = state.ui.dialog?.greet;
+  if (own) return own;
   const deed = town && deedsIn(state, town.id, role).find((d) => greetsBy(state, d));
   if (deed) {
     const prefix = `dlg.${dialogBase(deed.def)}.after.${deed.choice}`;
@@ -114,12 +154,14 @@ function greeting(state, role, town) {
     if (n) return t(`${prefix}.${(state.ui.sayLine ?? 0) % n}`);
   }
   if (role === 'elder' && town) return t(elderLine(town, state.ending));
-  return t(`say.${role}.${state.ui.sayLine ?? 0}`);
+  const key = `say.${role}.${state.ui.sayLine ?? 0}`;
+  return t(key) !== key ? t(key) : t(`say.${state.ui.talkNpc?.id ?? role}.${state.ui.sayLine ?? 0}`);
 }
 function placeTalk(state, role, town) {
   if (state.ui.rumour) return eventText(state.ui.rumour);
   if (role === 'elder' && town) return t(elderLine(town, state.ending));
-  return t(`say.${role}.${((state.ui.sayLine ?? 0) + 1) % 3}`);
+  const key = `say.${role}.${((state.ui.sayLine ?? 0) + 1) % 3}`;
+  return t(key) !== key ? t(key) : t(`say.${state.ui.talkNpc?.id ?? role}.${((state.ui.sayLine ?? 0) + 1) % 3}`);
 }
 
 // The things you can say to this person now (the hub of the conversation).
@@ -134,6 +176,8 @@ function topics(state, role) {
     out.push({ kind: 'ask', id: open[0].def.id, text: pick(d.asked ? 'ask.else' : 'ask.trouble', state.ui.questTown + role, {}, 'dlg.fallback.ask') });
   }
   for (const r of rows.filter((r) => r.status === 'active')) out.push({ kind: 'job', id: r.def.id, text: t('dlg.ask.job', { title: questTitle(r.def) }) });
+  const npc = state.ui.talkNpc;
+  if (npc?.person && TRADERS.includes(npc.id)) out.push({ kind: 'trade', text: t('dlg.ask.trade.' + (npc.id === 'blacksmith' ? 'smith' : 'shop')) });
   out.push({ kind: 'place', text: pick('ask.place', state.ui.questTown + role, {}, 'dlg.fallback.place') });
   out.push({ kind: 'bye', text: pick('ask.bye', state.ui.questTown + role, {}, 'dlg.fallback.bye') });
   return out.slice(-MAX_OPTIONS);
@@ -145,7 +189,7 @@ export function dialogView(state) {
   if (!d) return null;
   const role = state.ui.questNpc ?? 'elder';
   const town = state.world?.getTownById?.(state.ui.questTown);
-  if (d.stage === 'hub') return { def: null, role, say: [greeting(state, role, town)], options: topics(state, role) };
+  if (d.stage === 'hub') return { def: null, role, say: [greeting(state, role, town)].flat(), options: topics(state, role) };
   if (d.stage === 'place') return { def: null, role, say: [placeTalk(state, role, town)], options: [{ kind: 'back', text: t('dlg.back') }] };
   const def = questDef(state, d.id);
   if (!def) return null;

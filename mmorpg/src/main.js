@@ -19,7 +19,7 @@ import { recalcStats } from './systems/stats.js';
 import { rankUp } from './systems/skilltree.js';
 import { emptyInventory, updateDrops, clickInventory, quickAction } from './systems/inventory.js';
 import { openShop } from './systems/shop.js';
-import { acceptQuest, turnIn, onVisit, clickJournal, ensureTracked, recallBosses, QUEST_ROLES } from './systems/quests.js';
+import { acceptQuest, turnIn, onVisit, clickJournal, ensureTracked, recallBosses, listForGiver, QUEST_ROLES } from './systems/quests.js';
 import { generateTownQuests, townDifficulty, GENERATED_ID } from './systems/townquests.js';
 import { Explored, updateExploration, discoverLairs, SIGHT_PX } from './systems/explore.js';
 import { grantXp } from './systems/xp.js';
@@ -28,6 +28,8 @@ import { nextRumour, hearRumour, memorialsInRange, learn, ownHistory, ARTIFACT_I
 import { updatePulse } from './systems/pulse.js';
 import { updateFolk } from './systems/townsfolk.js';
 import { storyQuests } from './systems/storyline.js';
+import { setupSideStories, placePeople, wildPeople, updateSideQuests, warded, raidsDue, untoldClosed, PERSON_REACH } from './systems/sidequests.js';
+import { makeEnemy } from './sim/enemy.js';
 import { chooseEnding } from './systems/ring.js';
 import { startStory } from './systems/storystart.js';
 import { emptyEquipment } from './systems/equipment.js';
@@ -80,13 +82,17 @@ function openNpc(state, npc, town) {
   const ui = state.ui;
   ui.selected = null;
   if (npc.id === 'chronicler') nameRelics(state); // relics you carry are named first
-  if (QUEST_ROLES.includes(npc.id)) {
+  ui.talkNpc = npc;
+  // a named merchant or smith talks only when there is something to talk about (a job, a job closed); else: the shop
+  const trader = !!town && !QUEST_ROLES.includes(npc.id); // a merchant, a market trader or a smith in a town
+  const talk = !trader || listForGiver(state, town.id, npc.person).length > 0 || untoldClosed(state, town.id, npc.person).length > 0;
+  if (QUEST_ROLES.includes(npc.id) || (npc.person && talk)) { // a named person talks first (a merchant or a smith still trades)
     ui.panel = 'quests';
-    ui.questTown = town.id;
-    ui.questNpc = npc.id;
-    ui.rumour = TELLERS.includes(npc.id) ? nextRumour(state, state.world, town, npc.id) : null; // a piece of the town's past
+    ui.questTown = town?.id ?? npc.home;
+    ui.questNpc = npc.person ?? npc.id;
+    ui.rumour = TELLERS.includes(npc.id) && town ? nextRumour(state, state.world, town, npc.id) : null; // a piece of the town's past
     const h = state.history;
-    if (npc.id === 'elder' && town.id === '0,0' && (h.firstTalk ?? 0) < FIRST_TALKS) { // the first words you hear here
+    if (npc.id === 'elder' && town?.id === '0,0' && (h.firstTalk ?? 0) < FIRST_TALKS) { // the first words you hear here
       ui.rumour = null;
       ui.firstTalk = h.firstTalk ?? 0;
       h.firstTalk = ui.firstTalk + 1;
@@ -95,9 +101,16 @@ function openNpc(state, npc, town) {
     openDialog(state);
     return;
   }
+  openTrade(state, npc, town);
+}
+
+// The shop of a merchant or a market trader; the blacksmith upgrades.
+function openTrade(state, npc, town) {
+  const ui = state.ui;
   if (npc.id === 'merchant' || npc.id === 'trader') openShop(state, town, npc);
   ui.mode = npc.id === 'blacksmith' ? 'blacksmith' : 'merchant';
   ui.panel = 'inventory';
+  ui.dialog = null;
 }
 const TELLERS = ['elder', 'priest', 'innkeeper'];
 
@@ -142,6 +155,13 @@ function updateTown(state, world) {
   for (const n of town?.npcs ?? []) {
     const d = Math.hypot(n.x - p.x, n.y - p.y);
     if (d <= NPC_REACH && (!near || d < near.d)) near = { n, d };
+  }
+  if (!town && !state.area) { // out in the wild: someone of a side story (systems/sidequests.js)
+    placePeople(state, world);
+    for (const n of wildPeople(state)) {
+      const d = Math.hypot(n.x - p.x, n.y - p.y);
+      if (d <= PERSON_REACH && (!near || d < near.d)) near = { n, d };
+    }
   }
   state.nearNpc = near?.n ?? null;
 }
@@ -362,6 +382,7 @@ function answerDialog(state, o) {
   const d = ui.dialog;
   if (!d) return;
   if (o.kind === 'close' || o.kind === 'bye') ui.dialog = null;
+  else if (o.kind === 'trade' && ui.talkNpc) openTrade(state, ui.talkNpc, state.town);
   else if (o.kind === 'ask') Object.assign(d, { id: o.id, status: 'available', stage: 'offer' });
   else if (o.kind === 'done') Object.assign(d, { id: o.id, status: 'complete', stage: 'offer' });
   else if (o.kind === 'job') Object.assign(d, { id: o.id, status: 'active', stage: 'offer' });
@@ -512,6 +533,7 @@ function createGame({ assets, seed, gen = MAP_GEN, saveData, settings, input }) 
       hp: PLAYER_MAX_HP, maxHp: PLAYER_MAX_HP, hurt: 0, sinceHit: 99,
       level: 1, xp: 0, skillPoints: 0, ranks: {}, stats: null, facing: { x: 1, y: 0 },
       cooldownOff: 0, equipment: emptyEquipment(), gold: 0, quests: {}, tracked: null, boat: false, boating: false,
+      items: {}, // things carried for quests (systems/sidequests.js)
     },
     skills: skillData.nodes,
     skillBranches: skillData.branches,
@@ -579,6 +601,12 @@ function createGame({ assets, seed, gen = MAP_GEN, saveData, settings, input }) 
     state.questDefs.push(def);
     state.questIndex.set(def.id, def);
   }
+  // the side stories: named people, quests to find, gather and carry things (systems/sidequests.js)
+  for (const def of setupSideStories(state, world, assets.sideStories)) {
+    state.questDefs.push(def);
+    state.questIndex.set(def.id, def);
+  }
+  placePeople(state, world);
   state.ensureTownQuests = (town) => {
     if (state.questBoards.has(town.id)) return; // the board of a town is made once (route searches are not free)
     state.questBoards.add(town.id);
@@ -635,6 +663,62 @@ function createGame({ assets, seed, gen = MAP_GEN, saveData, settings, input }) 
   };
 }
 
+// Side quests: reaching what you look for, picking what you gather, quests that just closed.
+function stepSideQuests(state) {
+  const p = state.player;
+  const { ready, found } = updateSideQuests(state);
+  for (const f of found) {
+    const def = state.questIndex.get(f.id);
+    const e = state.player.quests[f.id];
+    const text = f.gather ? `${t('quest.' + f.id + '.title')} ${e.progress}/${def.count}` : t('quest.found');
+    state.floaters.push({ x: f.x, y: f.y - 30, text, color: '#c5e1a5', t: 0, dur: 1.6 });
+    const item = [def.gives].flat()[0];
+    if (!f.gather && item && t(`item.${item}.found`) !== `item.${item}.found`) { // what you see when you find it, and what it is
+      state.note = { text: `${t(`item.${item}.found`)}\n\n${t(`item.${item}.name`)}: ${t(`item.${item}.desc`)}`, title: 'quest.' + f.id + '.title', t: 0, dur: 12 };
+    }
+    if (def.person && !state.ui.panel) { // a person you were looking for: they speak first
+      const who = state.people?.get(def.person);
+      if (who) openNpc(state, who, null);
+    }
+  }
+  for (const { raid, spot } of raidsDue(state)) { // what comes for a place that lost its ward
+    const def = state.enemyDefs.find((d) => d.id === raid.enemy);
+    if (!def) continue;
+    const a = Math.atan2(spot.py - p.y, spot.px - p.x); // from the far side of the place, out of the trees
+    for (let k = 0; k < raid.count; k++) {
+      const b = a + (k - (raid.count - 1) / 2) * 0.5;
+      const x = spot.px + Math.cos(b) * (spot.r + 6) * TILE;
+      const y = spot.py + Math.sin(b) * (spot.r + 6) * TILE;
+      if (!state.world.isWalkable(x, y)) continue;
+      const e = makeEnemy(def, x, y, state.world.tierAt?.(Math.floor(x / TILE), Math.floor(y / TILE)) ?? 0);
+      e.raid = raid.spot;
+      e.home = { x: spot.px + Math.cos(b) * 3 * TILE, y: spot.py + Math.sin(b) * 3 * TILE + 2 * TILE }; // at the step
+      state.enemies.push(e);
+    }
+  }
+  for (const id of ready) state.floaters.push({ x: p.x, y: p.y - 60, key: 'quest.ready', questId: id, color: '#9ccc65', t: 0, dur: 2.2 });
+  for (const id of state.closedNow ?? []) {
+    state.floaters.push({ x: p.x, y: p.y - 80, text: t('quest.closed', { title: t('quest.' + id + '.title') }), color: '#ef9a9a', t: 0, dur: 3.2 });
+  }
+  state.closedNow = null;
+}
+
+// A ward (a warm stone under a farm's step) keeps its monsters out: one that wanders in is turned back at the edge.
+function keepOffWards(state) {
+  if (!state.wards?.length || state.area) return;
+  for (const e of state.enemies) {
+    const s = warded(state, e.x, e.y, e.def?.id);
+    if (!s) continue;
+    const w = state.wards.find((x) => x.spot === s.id);
+    const d = Math.hypot(e.x - s.px, e.y - s.py) || 1;
+    const R = w.r * TILE;
+    e.x = s.px + ((e.x - s.px) / d) * R;
+    e.y = s.py + ((e.y - s.py) / d) * R;
+    if (e.home && Math.hypot(e.home.x - s.px, e.home.y - s.py) < R) e.home = { x: e.x, y: e.y };
+    if (e.mode === 'chase') { e.mode = 'return'; e.atk = null; }
+  }
+}
+
 function stepGame(game, input, dt) {
   const { state, timers } = game;
   timers.acc += dt;
@@ -645,6 +729,8 @@ function stepGame(game, input, dt) {
     // (or a lair of the open world could wake up at your dungeon coordinates and follow you down)
     const world = state.world;
     updateEnemies(state, world, STEP);
+    keepOffWards(state);
+    stepSideQuests(state);
     tickStatuses(state, STEP);
     updateEnemyProjectiles(state, world, STEP);
     updateLairs(state, world, STEP);
@@ -713,7 +799,7 @@ function stepGame(game, input, dt) {
 async function main() {
   const canvas = document.getElementById('game');
   const settings = loadSettings();
-  const [biomes, weapons, enemyDefs, skillData, armor, accessories, questDefs, bossDefs, dungeonDefs, ammoData, relicData, campDefs, mainMap] = await Promise.all([
+  const [biomes, weapons, enemyDefs, skillData, armor, accessories, questDefs, bossDefs, dungeonDefs, ammoData, relicData, campDefs, mainMap, sideStories] = await Promise.all([
     loadJson('data/biomes.json'),
     loadJson('data/weapons.json'),
     loadJson('data/enemies.json'),
@@ -727,9 +813,10 @@ async function main() {
     loadJson('data/relics.json'),
     loadJson('data/camps.json'),
     loadJson('data/maps/main.json'),
+    loadJson('data/sidestories.json'),
     loadLang(settings.lang),
   ]);
-  const assets = { biomes, weapons, enemyDefs, skillData, armor, accessories, questDefs, bossDefs, dungeonDefs, ammoData, relicData, campDefs, maps: { main: mainMap } };
+  const assets = { biomes, weapons, enemyDefs, skillData, armor, accessories, questDefs, bossDefs, dungeonDefs, ammoData, relicData, campDefs, maps: { main: mainMap }, sideStories };
   const input = new Input(canvas);
   input.touch.setMode(settings.touch);
   const renderer = new Renderer(canvas);

@@ -18,7 +18,7 @@ const best = (list, key) => list.reduce((a, b) => (b[key] > a[key] ? b : a));
 export function startStory(state, stage) {
   if (!STORY_STAGES.includes(stage)) return false;
   const p = state.player;
-  for (const def of state.questDefs) if (def.giver === '0,0' && !def.story && !def.titleKey) done(state, def.id); // act 1
+  for (const def of state.questDefs) if (def.giver === '0,0' && !def.story && !def.titleKey && !def.side) done(state, def.id); // act 1 (the side stories stay open)
   if (stage !== '2') for (const id of ['m:1', 'm:2', 'm:3', 'm:4', 'm:5']) if (state.questIndex.has(id)) done(state, id);
   while (p.level < LEVEL[stage]) grantXp(state, xpToNext(p.level) - p.xp); // one level at a time, with its skill point
   p.gold = GOLD[stage];

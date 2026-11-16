@@ -6,6 +6,7 @@ export function mmss(seconds) {
 
 // Splits text into lines no wider than maxWidth in the context's current font.
 export function wrapText(ctx, text, maxWidth) {
+  if (text.includes('\n')) return text.split('\n').flatMap((part) => (part ? wrapText(ctx, part, maxWidth) : [''])); // paragraphs
   const lines = [];
   let line = '';
   for (const word of text.split(' ')) {
