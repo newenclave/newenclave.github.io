@@ -4,7 +4,8 @@ import { arenaRoster } from '../systems/arena.js';
 import { rarityById } from '../sim/loot.js';
 
 const X = 10;
-const TOP = 84;
+export const ARENA_TOP = 190; // below the HUD: health, mana, level, gold and points
+const TOP = ARENA_TOP;
 const W = 260;
 const ROW = 30;
 const GAP = 4;

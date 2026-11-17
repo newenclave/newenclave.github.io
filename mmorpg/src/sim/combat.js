@@ -126,16 +126,43 @@ export function tryAttack(state, player, aim) {
   const lo = loadoutOf(state);
   let acted = false;
   if (!(player.cooldown > 0)) { // (a missing cooldown means ready)
-    swing(state, player, aim, player.weapon, { ammo: lo.mode === 'ammo' ? lo.off : null });
-    player.cooldown = cooldownOf(player, player.weapon);
-    acted = true;
+    if (payMana(state, player, player.weapon)) {
+      swing(state, player, aim, player.weapon, { ammo: lo.mode === 'ammo' ? lo.off : null });
+      player.cooldown = cooldownOf(player, player.weapon);
+      acted = true;
+    } else player.cooldown = NO_MANA_WAIT;
   }
   if (lo.mode === 'dual' && !(player.cooldownOff > 0)) {
-    swing(state, player, aim, lo.off, { mult: OFFHAND_DAMAGE });
-    player.cooldownOff = cooldownOf(player, lo.off);
-    acted = true;
+    if (payMana(state, player, lo.off)) {
+      swing(state, player, aim, lo.off, { mult: OFFHAND_DAMAGE });
+      player.cooldownOff = cooldownOf(player, lo.off);
+      acted = true;
+    } else player.cooldownOff = NO_MANA_WAIT;
   }
   return acted;
+}
+
+// A weapon with `mana` (data/weapons.json) spends that much on every blow; without enough, the blow does not come.
+// A god in the test arena casts for free.
+export const NO_MANA_WAIT = 0.25; // seconds before the next try, so a held button does not spam the warning
+
+export function payMana(state, player, w) {
+  const cost = w?.mana ?? 0;
+  if (!(cost > 0) || state.arena?.god) return true;
+  if ((player.mana ?? 0) >= cost) {
+    player.mana -= cost;
+    return true;
+  }
+  if (!state.floaters.some((f) => f.key === 'combat.noMana')) {
+    state.floaters.push({ x: player.x, y: player.y - 44, key: 'combat.noMana', color: '#90caf9', t: 0, dur: 1 });
+  }
+  return false;
+}
+
+// Mana comes back by itself, a little faster with intellect.
+export function regenMana(player, dt) {
+  if (!(player.maxMana > 0)) return;
+  player.mana = Math.min(player.maxMana, (player.mana ?? 0) + (player.stats?.manaRegen ?? 0) * dt);
 }
 
 // A shot with special ammo uses one up; when the stack is empty the off hand is free again.

@@ -52,6 +52,7 @@
     "recover": 0.4,
     "moveMult": 0.25,
     "delay": 0.45,
+    "mana": 12,
     "cap": 3,
     "range": 320,
     "radius": 70,

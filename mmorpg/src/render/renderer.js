@@ -1489,18 +1489,29 @@ export class Renderer {
     ctx.fillStyle = '#fff';
     ctx.fillText(t('hud.hp', { hp: Math.ceil(p.hp), max: p.maxHp }), 16, 92);
 
+    let by = 100; // the next bar
+    if (p.maxMana > 0 && [...state.weapons, ...(state.offhands ?? [])].some((it) => it?.mana > 0)) { // mana, for a caster
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(10, by, barW, 14);
+      ctx.fillStyle = '#5c6bc0';
+      ctx.fillRect(10, by, barW * Math.max(0, Math.min(1, (p.mana ?? 0) / p.maxMana)), 14);
+      ctx.fillStyle = '#fff';
+      ctx.font = '12px monospace';
+      ctx.fillText(t('hud.mana', { n: Math.floor(p.mana ?? 0), max: p.maxMana }), 16, by + 11);
+      by += 18;
+    }
     const need = xpToNext(p.level);
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(10, 100, barW, 14);
+    ctx.fillRect(10, by, barW, 14);
     ctx.fillStyle = '#42a5f5';
-    ctx.fillRect(10, 100, barW * (p.xp / need), 14);
+    ctx.fillRect(10, by, barW * (p.xp / need), 14);
     ctx.fillStyle = '#fff';
     ctx.font = '12px monospace';
-    ctx.fillText(t('hud.level', { level: p.level, xp: p.xp, need }), 16, 111);
+    ctx.fillText(t('hud.level', { level: p.level, xp: p.xp, need }), 16, by + 11);
     ctx.font = '14px monospace';
     ctx.fillStyle = '#ffd54f';
-    ctx.fillText(t('hud.gold', { n: p.gold }), 10, 132);
-    let y = 150;
+    ctx.fillText(t('hud.gold', { n: p.gold }), 10, by + 32);
+    let y = by + 50;
     if (p.skillPoints > 0) {
       ctx.fillStyle = Math.floor(performance.now() / 400) % 2 ? '#ffd54f' : '#fff';
       ctx.fillText(t(touchMode ? 'hud.points.touch' : 'hud.points', { n: p.skillPoints }), 10, y);

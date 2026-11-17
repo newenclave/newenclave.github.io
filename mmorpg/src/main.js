@@ -4,7 +4,7 @@ import { World, TILE, WORLD_GEN } from './world/world.js';
 import { MapWorld, MAP_GEN } from './world/map.js';
 import { goodStart } from './world/reach.js';
 import { Renderer } from './render/renderer.js';
-import { tryAttack, updateProjectiles, updateEffects, tickStatuses, moveFactor, tickPlayerCombat } from './sim/combat.js';
+import { tryAttack, updateProjectiles, updateEffects, tickStatuses, moveFactor, tickPlayerCombat, regenMana } from './sim/combat.js';
 import { moveWithCollision, moveBoat, isFlying, bodyY } from './sim/entity.js';
 import { toggleBoat, boatHint, BOAT_SPEED } from './systems/boat.js';
 import { updateEnemies, updateEnemyProjectiles } from './sim/enemy.js';
@@ -225,6 +225,7 @@ function updatePlayer(state, input, world) {
       p.x = home.x;
       p.y = home.y;
       p.hp = p.maxHp;
+      p.mana = p.maxMana;
       p.rollTime = 0;
       p.boating = false;
       state.dead = false;
@@ -236,6 +237,7 @@ function updatePlayer(state, input, world) {
     else if (p.sinceHit > 5) p.hp = Math.min(p.maxHp, p.hp + (BASE_REGEN + p.stats.regen) * STEP);
   }
 
+  regenMana(p, STEP);
   p.cooldown = Math.max(0, p.cooldown - STEP);
   p.cooldownOff = Math.max(0, (p.cooldownOff ?? 0) - STEP);
   tickPlayerCombat(p, STEP);

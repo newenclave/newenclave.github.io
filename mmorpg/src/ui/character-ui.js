@@ -55,6 +55,7 @@ export function heroLines(state) {
   return [
     ['hero.stat.hp', String(Math.round(p.maxHp))],
     ['hero.stat.regen', `${s.regen >= 0 ? '+' : ''}${s.regen.toFixed(1)}/s`],
+    ['hero.stat.mana', `${p.maxMana} (+${s.manaRegen.toFixed(1)}/s)`],
     ['hero.stat.damage', w ? String(Math.round(hitAmount(p, w))) : '-'],
     ['hero.stat.speed', pct(s.attackSpeed)],
     ['hero.stat.crit', `${Math.round(s.critChance * 100)}%`],
@@ -135,7 +136,7 @@ export function drawCharacter(ctx, state, w, h) {
   const sx = ROW_X + ROW_W + 40;
   ctx.font = '14px sans-serif';
   heroLines(state).forEach(([key, value], i) => {
-    const y = ROW_Y + 10 + i * 22;
+    const y = ROW_Y + 10 + i * 20;
     ctx.textAlign = 'left';
     ctx.fillStyle = '#bdbdbd';
     ctx.fillText(t(key), sx, y);

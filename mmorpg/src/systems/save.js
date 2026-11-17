@@ -56,7 +56,7 @@ export function serializeState(state, seed) {
     gen: (ow ? ow.world : state.world)?.gen ?? WORLD_GEN,
     savedAt: Date.now(),
     player: {
-      x: ow ? ow.x : p.x, y: ow ? ow.y : p.y, hp: p.hp, level: p.level, xp: p.xp, skillPoints: p.skillPoints, gold: p.gold,
+      x: ow ? ow.x : p.x, y: ow ? ow.y : p.y, hp: p.hp, mana: p.mana ?? 0, level: p.level, xp: p.xp, skillPoints: p.skillPoints, gold: p.gold,
       ranks: { ...p.ranks }, attrs: { ...(p.attrs ?? baseAttrs()) }, attrPoints: p.attrPoints | 0, weaponIndex: Math.max(0, state.weapons.indexOf(p.weapon)),
       tracked: p.tracked ?? null,
       boat: !!p.boat, boating: !!p.boating,
@@ -254,6 +254,7 @@ export function applySave(state, data, seed) {
   state.lastRevealTile = null;
   recalcStats(state);
   p.hp = num(s.hp, 1, p.maxHp, p.maxHp);
+  p.mana = num(s.mana, 0, p.maxMana, p.maxMana);
   return true;
 }
 

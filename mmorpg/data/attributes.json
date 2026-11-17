@@ -9,7 +9,10 @@
     { "stat": "regen", "value": 0.3, "kind": "flat" },
     { "stat": "toughness", "value": 0.04, "kind": "pct" }
   ] },
-  { "id": "int", "color": "#ba68c8", "effects": [] },
+  { "id": "int", "color": "#ba68c8", "effects": [
+    { "stat": "maxMana", "value": 10, "kind": "flat" },
+    { "stat": "manaRegen", "value": 0.5, "kind": "flat" }
+  ] },
   { "id": "per", "color": "#4fc3f7", "effects": [
     { "stat": "sight", "value": 0.5, "kind": "flat" },
     { "stat": "range", "value": 0.03, "kind": "pct" },

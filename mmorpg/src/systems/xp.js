@@ -17,6 +17,7 @@ export function grantXp(state, amount) {
   if (leveled) {
     recalcStats(state);
     p.hp = p.maxHp;
+    p.mana = p.maxMana;
     state.floaters.push({ x: p.x, y: p.y - 50, text: 'LEVEL UP', key: 'hud.levelup', color: '#ffd54f', t: 0, dur: 2 });
   }
 }

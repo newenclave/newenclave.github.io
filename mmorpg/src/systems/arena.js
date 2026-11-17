@@ -129,7 +129,7 @@ export function arenaAction(state, id, rng = Math.random) {
     case 'tier': a.tier = (a.tier + 1) % (MAX_TIER + 1); break;
     case 'rarity': a.rarity = cycleIn(RARITIES.map((r) => r.id), a.rarity); armArena(state); break;
     case 'god': a.god = !a.god; break;
-    case 'heal': state.player.hp = state.player.maxHp; break;
+    case 'heal': state.player.hp = state.player.maxHp; state.player.mana = state.player.maxMana; break;
     case 'clear': state.enemies = []; state.enemyProjectiles = []; state.blasts = []; break;
     case 'meter': state.meter = newMeter(); break;
     default: return false;
