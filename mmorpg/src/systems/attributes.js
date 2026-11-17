@@ -4,6 +4,8 @@
 // a stronger attribute adds, a weaker one takes away. What each point gives is in data/attributes.json; how much
 // a weapon gains from an attribute is that weapon's `scale` (data/weapons.json).
 import { recalcStats } from './stats.js';
+import { learn } from './skilltree.js';
+import { buildItem } from '../sim/loot.js';
 
 export const ATTRS = ['str', 'dex', 'end', 'int', 'per', 'lck', 'cha'];
 export const BASE = 3;
@@ -15,19 +17,21 @@ export const PER_LEVEL = 1; // attribute points for each level
 
 export const baseAttrs = () => Object.fromEntries(ATTRS.map((a) => [a, BASE]));
 
-export const attrOf = (player, id) => player?.attrs?.[id] ?? BASE;
+// The points the hero has spent on an attribute, and what it comes to with what the skill web adds (stats.js).
+export const ownAttr = (player, id) => player?.attrs?.[id] ?? BASE;
+export const attrOf = (player, id) => player?.stats?.attrs?.[id] ?? ownAttr(player, id);
 
 // Points above (or below) the base: what the effects are counted from.
 export const attrBonus = (player, id) => attrOf(player, id) - BASE;
 
 export function canRaise(player, id) {
-  return ATTRS.includes(id) && (player.attrPoints | 0) > 0 && attrOf(player, id) < MAX;
+  return ATTRS.includes(id) && (player.attrPoints | 0) > 0 && ownAttr(player, id) < MAX;
 }
 
 export function raiseAttr(state, id) {
   const p = state.player;
   if (!canRaise(p, id)) return false;
-  p.attrs = { ...baseAttrs(), ...p.attrs, [id]: attrOf(p, id) + 1 };
+  p.attrs = { ...baseAttrs(), ...p.attrs, [id]: ownAttr(p, id) + 1 };
   p.attrPoints -= 1;
   recalcStats(state);
   return true;
@@ -40,10 +44,10 @@ export function scaleBonus(player, weapon) {
   return k;
 }
 
-// The attributes' share of the stats (stats.js adds it to the skill web's and the gear's).
-export function addAttrStats(s, player, defs) {
+// The attributes' share of the stats (`attrs`: what each attribute comes to; stats.js adds it to the rest).
+export function addAttrStats(s, attrs, defs) {
   for (const def of defs ?? []) {
-    const n = attrBonus(player, def.id);
+    const n = (attrs[def.id] ?? BASE) - BASE;
     if (!n) continue;
     for (const e of def.effects) s[e.stat] = (s[e.stat] ?? 0) + e.value * n;
   }
@@ -52,7 +56,21 @@ export function addAttrStats(s, player, defs) {
 // ---- making a hero (ui/create-ui.js): a draft of the attributes, spent from CREATE_POINTS, between MIN and CREATE_MAX
 export const CREATE_SKILL_POINTS = 2; // skill points a new hero starts with
 
-export const newDraft = () => ({ attrs: baseAttrs(), sel: ATTRS[0] });
+export const newDraft = () => ({ attrs: baseAttrs(), sel: ATTRS[0], train: [] });
+
+// The first skills of the web's sectors (`entry`): each trains a kind of weapon. A new hero may take up to two.
+export const entriesOf = (web) => (web?.nodes ?? []).filter((n) => n.kind === 'entry');
+
+export function toggleTraining(draft, id) {
+  draft.train ??= [];
+  if (draft.train.includes(id)) draft.train = draft.train.filter((x) => x !== id);
+  else if (draft.train.length < CREATE_SKILL_POINTS) draft.train.push(id);
+  else return false;
+  return true;
+}
+
+// What a new hero gets to go with the training: a weapon to try it with (the sword is always there).
+export const STARTER_KIT = { heavyArms: 'spear', archery: 'bow', arcane: 'staff', dualWield: 'dagger' };
 
 // Points still free in the draft: lowering an attribute below the base frees points for others.
 export const draftLeft = (draft) => CREATE_POINTS - ATTRS.reduce((sum, id) => sum + draft.attrs[id] - BASE, 0);
@@ -71,11 +89,33 @@ export function adjustDraft(draft, id, d) {
 }
 
 // The hero is made: the draft becomes the attributes, points left over stay to spend later.
+// The training picked is learned on the web with the two skill points, and comes with a weapon to try it with.
 export function finishCreation(state, draft) {
   const p = state.player;
   p.attrs = { ...draft.attrs };
   p.attrPoints = Math.max(0, draftLeft(draft));
   p.skillPoints = (p.skillPoints | 0) + CREATE_SKILL_POINTS;
   recalcStats(state);
+  for (const id of draft.train ?? []) {
+    if (!learn(state, id)) continue;
+    for (const g of state.web.index.get(id).grants ?? []) giveStarter(state, STARTER_KIT[g]);
+  }
+  recalcStats(state);
   p.hp = p.maxHp;
+  p.mana = p.maxMana;
+}
+
+function giveStarter(state, weaponId) {
+  const base = state.catalog?.weapon?.find((w) => w.id === weaponId);
+  if (!base || !state.weapons) return;
+  const item = buildItem('weapon', base, 'common');
+  if (weaponId === 'dagger') { // two blades: a dagger in the other hand of the sword
+    const slot = state.weapons.findIndex((w) => w?.id === 'sword' && w.grip === 'one');
+    if (slot >= 0 && state.offhands && !state.offhands[slot]) {
+      state.offhands[slot] = item;
+      return;
+    }
+  }
+  const free = state.weapons.findIndex((w) => !w);
+  if (free >= 0) state.weapons[free] = item;
 }

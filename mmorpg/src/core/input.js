@@ -16,13 +16,30 @@ export class Input {
     canvas.addEventListener('mousemove', (e) => { this.mouse.x = e.clientX; this.mouse.y = e.clientY; });
     this.clicks = [];
     this.rightClicks = []; // quick actions on panels (sell, equip)
+    this.releases = []; // left button let go: { x, y, moved } (a click that was not a drag, for screens you can drag)
+    this.wheel = 0; // wheel turned this frame (positive: away from you, zoom out)
+    this.downAt = null;
     canvas.addEventListener('mousedown', (e) => {
       if (e.button === 2 && !this.touch.recent()) this.rightClicks.push({ x: e.clientX, y: e.clientY });
       if (e.button !== 0 || this.touch.recent()) return; // ignore mouse events synthesized from touch
       this.mouse.down = true;
+      this.downAt = { x: e.clientX, y: e.clientY };
       this.clicks.push({ x: e.clientX, y: e.clientY });
     });
-    addEventListener('mouseup', (e) => { if (e.button === 0) this.mouse.down = false; });
+    addEventListener('mouseup', (e) => {
+      if (e.button !== 0) return;
+      this.mouse.down = false;
+      if (this.downAt) {
+        const x = e.clientX ?? this.mouse.x;
+        const y = e.clientY ?? this.mouse.y;
+        this.releases.push({ x, y, moved: Math.hypot(x - this.downAt.x, y - this.downAt.y) > 6 });
+      }
+      this.downAt = null;
+    });
+    canvas.addEventListener('wheel', (e) => {
+      this.wheel += Math.sign(e.deltaY);
+      e.preventDefault?.();
+    }, { passive: false });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
@@ -32,6 +49,8 @@ export class Input {
     this.pressed.clear();
     this.clicks.length = 0;
     this.rightClicks.length = 0;
+    this.releases.length = 0;
+    this.wheel = 0;
     this.touch.endFrame();
   }
 }

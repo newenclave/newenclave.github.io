@@ -3,7 +3,7 @@
 // Laid out in "design" coordinates and scaled to fit any screen, like the character sheet.
 import { t } from '../core/i18n.js';
 import { wrapText } from '../core/format.js';
-import { ATTRS, BASE, canAdjust, draftLeft } from '../systems/attributes.js';
+import { ATTRS, BASE, canAdjust, draftLeft, entriesOf, CREATE_SKILL_POINTS } from '../systems/attributes.js';
 
 const DW = 640;
 const DH = 450;
@@ -19,6 +19,10 @@ const SIDE_X = ROW_X + ROW_W + 32;
 const RESET = { x: ROW_X, y: 384, w: 140, h: 44 };
 const BEGIN = { x: DW - 28 - 180, y: 384, w: 180, h: 44 };
 const MIN_TOUCH = 22;
+// the training buttons: two by two, in the lower right
+const TRAIN_Y = 300;
+const TRAIN = { w: 112, h: 30, gap: 8 };
+const trainRect = (i) => ({ x: SIDE_X + (i % 2) * (TRAIN.w + TRAIN.gap), y: TRAIN_Y + Math.floor(i / 2) * (TRAIN.h + 6), w: TRAIN.w, h: TRAIN.h });
 
 function view(w, h) {
   const k = Math.min(1, (w - 16) / DW, (h - 16) / DH);
@@ -32,10 +36,12 @@ function inside(r, d, pad = 0) {
   return d.x >= r.x - pad && d.x <= r.x + r.w + pad && d.y >= r.y - pad && d.y <= r.y + r.h + pad;
 }
 
-// What is under (mx, my): { kind: 'minus' | 'plus' | 'row', id } | { kind: 'reset' | 'begin' } | null.
-export function hitCreate(mx, my, w, h) {
+// What is under (mx, my): { kind: 'minus' | 'plus' | 'row' | 'train', id } | { kind: 'reset' | 'begin' } | null.
+// `entries`: the trainings to pick from (the web's entry skills).
+export function hitCreate(mx, my, w, h, entries = []) {
   const v = view(w, h);
   const d = { x: (mx - v.ox) / v.k, y: (my - v.oy) / v.k };
+  for (let i = 0; i < entries.length && i < 4; i++) if (inside(trainRect(i), d)) return { kind: 'train', id: entries[i].id };
   const pad = Math.max(0, (MIN_TOUCH * 2 / v.k - BTN.h) / 2); // a finger gets a target of at least 44 px
   if (inside(BEGIN, d)) return { kind: 'begin' };
   if (inside(RESET, d)) return { kind: 'reset' };
@@ -122,11 +128,30 @@ export function drawCreate(ctx, state, w, h) {
   ctx.fillText(t('attr.' + draft.sel), SIDE_X, ROW_Y + 14);
   ctx.font = '13px sans-serif';
   ctx.fillStyle = '#e0e0e0';
-  const lines = wrapText(ctx, t('attr.' + draft.sel + '.desc'), DW - 28 - SIDE_X);
-  lines.slice(0, 8).forEach((line, i) => ctx.fillText(line, SIDE_X, ROW_Y + 38 + i * 18));
+  const lines = wrapText(ctx, t('attr.' + draft.sel + '.desc'), DW - 28 - SIDE_X).slice(0, 6);
+  lines.forEach((line, i) => ctx.fillText(line, SIDE_X, ROW_Y + 36 + i * 17));
   ctx.fillStyle = '#9e9e9e';
-  wrapText(ctx, t('create.scale'), DW - 28 - SIDE_X).slice(0, 4)
-    .forEach((line, i) => ctx.fillText(line, SIDE_X, ROW_Y + 50 + Math.min(lines.length, 8) * 18 + i * 18));
+  wrapText(ctx, t('create.scale'), DW - 28 - SIDE_X).slice(0, 3)
+    .forEach((line, i) => ctx.fillText(line, SIDE_X, ROW_Y + 44 + lines.length * 17 + i * 16));
+
+  // the training: up to two of the web's entry skills, each with a weapon to try it
+  const entries = entriesOf(state.web).slice(0, 4);
+  if (entries.length) {
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillStyle = '#90caf9';
+    ctx.fillText(t('create.train', { n: CREATE_SKILL_POINTS - (draft.train?.length ?? 0) }), SIDE_X, TRAIN_Y - 10);
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 13px sans-serif';
+    entries.forEach((e, i) => {
+      const on = draft.train?.includes(e.id);
+      if (on) { // picked: lit from inside
+        ctx.fillStyle = 'rgba(144,202,249,0.3)';
+        ctx.fillRect(trainRect(i).x, trainRect(i).y, TRAIN.w, TRAIN.h);
+      }
+      button(ctx, trainRect(i), (on ? '* ' : '') + t('web.' + e.id), on || (draft.train?.length ?? 0) < CREATE_SKILL_POINTS, on ? '#90caf9' : '#bdbdbd');
+    });
+    ctx.textBaseline = 'alphabetic';
+  }
 
   ctx.textBaseline = 'middle';
   ctx.font = 'bold 16px sans-serif';

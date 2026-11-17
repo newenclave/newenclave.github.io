@@ -1,5 +1,6 @@
 import { recalcStats } from './stats.js';
-import { ATTRS, MIN as ATTR_MIN, MAX as ATTR_MAX, baseAttrs, CREATE_POINTS, PER_LEVEL } from './attributes.js';
+import { restoreLearned, learnedSet, START } from './skilltree.js';
+import { ATTRS, MIN as ATTR_MIN, MAX as ATTR_MAX, baseAttrs, CREATE_POINTS, PER_LEVEL, CREATE_SKILL_POINTS } from './attributes.js';
 import { INV_SIZE } from './inventory.js';
 import { MAX_PLUS } from './economy.js';
 import { ensureTracked } from './quests.js';
@@ -57,7 +58,7 @@ export function serializeState(state, seed) {
     savedAt: Date.now(),
     player: {
       x: ow ? ow.x : p.x, y: ow ? ow.y : p.y, hp: p.hp, mana: p.mana ?? 0, level: p.level, xp: p.xp, skillPoints: p.skillPoints, gold: p.gold,
-      ranks: { ...p.ranks }, attrs: { ...(p.attrs ?? baseAttrs()) }, attrPoints: p.attrPoints | 0, weaponIndex: Math.max(0, state.weapons.indexOf(p.weapon)),
+      learned: [...learnedSet(p)].filter((id) => id !== START), attrs: { ...(p.attrs ?? baseAttrs()) }, attrPoints: p.attrPoints | 0, weaponIndex: Math.max(0, state.weapons.indexOf(p.weapon)),
       tracked: p.tracked ?? null,
       boat: !!p.boat, boating: !!p.boating,
       // a quest that ended with a choice keeps it, and when (systems/deeds.js); a side quest also what you picked, and
@@ -150,10 +151,12 @@ export function applySave(state, data, seed) {
   } else {
     p.attrPoints = CREATE_POINTS + PER_LEVEL * (p.level - 1);
   }
-  p.ranks = {};
-  for (const node of state.skills) {
-    const r = Math.round(num(s.ranks?.[node.id], 0, node.maxRank, 0));
-    if (r > 0) p.ranks[node.id] = r;
+  // the skill web; a save from before it (ranks of the old tree) gets every point back to spend
+  if (Array.isArray(s.learned)) {
+    p.learned = restoreLearned(state.web, s.learned);
+  } else {
+    p.learned = new Set([START]);
+    p.skillPoints = Math.min(1000, CREATE_SKILL_POINTS + (p.level - 1));
   }
   p.x = num(s.x, -1e7, 1e7, p.x);
   p.y = num(s.y, -1e7, 1e7, p.y);

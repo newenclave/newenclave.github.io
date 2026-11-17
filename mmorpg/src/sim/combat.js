@@ -9,7 +9,8 @@ import { onKill } from '../systems/quests.js';
 import { recordKill } from '../systems/bestiary.js';
 import { loadoutOf, slotOf, OFFHAND_DAMAGE } from '../systems/loadout.js';
 import { applyDot, applySlow, DOT_STEP } from './status.js';
-import { scaleBonus } from '../systems/attributes.js';
+import { scaleBonus, attrBonus } from '../systems/attributes.js';
+import { hasRule } from '../systems/skilltree.js';
 
 export { damagePlayer }; // kept here too: it is part of the combat API
 
@@ -25,22 +26,43 @@ export function angleDiff(a, b) {
 
 // What a blow of this weapon does without a critical hit: the weapon's damage, raised by the skills and by the
 // weapon's own attributes (its `scale`: a bow grows with dexterity, a staff with intellect).
+// A melee weapon, a spell (a weapon that costs mana) or a shot: each has its own bonus from the skill web.
+export const isSpell = (weapon) => (weapon?.mana ?? 0) > 0;
+export const isShot = (weapon) => weapon?.type === 'projectile' && !isSpell(weapon);
+
 export function hitAmount(player, weapon) {
   const s = player.stats;
-  const classBonus = MELEE_TYPES.has(weapon.type) ? s.meleeDamage : s.rangedDamage;
-  return weapon.damage * Math.max(0.1, 1 + s.damage + classBonus + scaleBonus(player, weapon));
+  let classBonus = MELEE_TYPES.has(weapon.type) ? s.meleeDamage : isSpell(weapon) ? s.spellDamage ?? 0 : s.rangedDamage;
+  if (isShot(weapon)) classBonus += (s.arrowInt ?? 0) * attrBonus(player, 'int'); // arcane arrows: a shot learns from the mind
+  const steady = isShot(weapon) && hasRule(player, 'steadyHand') ? STEADY_HAND : 1; // a keystone: harder shots, no crits
+  return weapon.damage * Math.max(0.1, 1 + s.damage + classBonus + scaleBonus(player, weapon)) * steady;
 }
+
+// Keystones (data/skills.json, `rule`): the steady hand shoots harder and never crits; the gambler crits harder and
+// hits softer otherwise.
+export const STEADY_HAND = 1.3;
+export const GAMBLER_PLAIN = 0.75;
 
 export function rollDamage(player, weapon, rng = Math.random) {
   const s = player.stats;
   let amount = hitAmount(player, weapon);
-  const crit = rng() < s.critChance;
+  const critChance = isShot(weapon) && hasRule(player, 'steadyHand') ? 0 : s.critChance;
+  const crit = rng() < critChance;
+  if (!crit && hasRule(player, 'gambler')) amount *= GAMBLER_PLAIN;
   if (crit) amount *= 1.5 + s.critDamage;
   return { amount, crit };
 }
 
+// A monster still recovering from its own attack is open: a backstab (the skill web, `openDamage`) hits it harder.
+export const isOpen = (enemy) => enemy.atk?.phase === 'recover';
+
 export function damageEnemy(state, enemy, hit) {
   if (enemy.hp <= 0) return;
+  const ps = state.player?.stats;
+  if (ps?.openDamage && isOpen(enemy)) hit = { ...hit, amount: hit.amount * (1 + ps.openDamage) };
+  if (hit.crit && ps?.manaOnCrit && state.player.maxMana > 0) { // the trickster: a crit gives mana back
+    state.player.mana = Math.min(state.player.maxMana, (state.player.mana ?? 0) + ps.manaOnCrit);
+  }
   if (state.meter) state.meter.dealt += Math.min(hit.amount, enemy.hp); // the test arena counts (systems/arena.js)
   enemy.hp -= hit.amount;
   enemy.flash = 0.12;
@@ -84,7 +106,8 @@ function reachable(state, ax, ay, bx, by) {
   return { x: ax, y: ay };
 }
 
-const cooldownOf = (player, weapon) => weapon.cooldown / (1 + player.stats.attackSpeed);
+// With two weapons, the duelist (the skill web) is faster still.
+const cooldownOf = (player, weapon, dual = false) => weapon.cooldown / (1 + player.stats.attackSpeed + (dual ? player.stats.dualAttackSpeed ?? 0 : 0));
 
 // A blow costs you your feet for a moment (`recover` seconds at `moveMult` of your speed, see weapons.json): you cannot
 // run away at full speed and hit back over your shoulder. Hitting against the way you walk drags you more still.
@@ -128,14 +151,14 @@ export function tryAttack(state, player, aim) {
   if (!(player.cooldown > 0)) { // (a missing cooldown means ready)
     if (payMana(state, player, player.weapon)) {
       swing(state, player, aim, player.weapon, { ammo: lo.mode === 'ammo' ? lo.off : null });
-      player.cooldown = cooldownOf(player, player.weapon);
+      player.cooldown = cooldownOf(player, player.weapon, lo.mode === 'dual');
       acted = true;
     } else player.cooldown = NO_MANA_WAIT;
   }
   if (lo.mode === 'dual' && !(player.cooldownOff > 0)) {
     if (payMana(state, player, lo.off)) {
       swing(state, player, aim, lo.off, { mult: OFFHAND_DAMAGE });
-      player.cooldownOff = cooldownOf(player, lo.off);
+      player.cooldownOff = cooldownOf(player, lo.off, true);
       acted = true;
     } else player.cooldownOff = NO_MANA_WAIT;
   }
@@ -149,6 +172,16 @@ export const NO_MANA_WAIT = 0.25; // seconds before the next try, so a held butt
 export function payMana(state, player, w) {
   const cost = w?.mana ?? 0;
   if (!(cost > 0) || state.arena?.god) return true;
+  if (hasRule(player, 'bloodMagic')) { // a keystone: the spell is paid in health, and it never takes the last of it
+    if (player.hp > cost) {
+      player.hp -= cost;
+      return true;
+    }
+    if (!state.floaters.some((f) => f.key === 'combat.noBlood')) {
+      state.floaters.push({ x: player.x, y: player.y - 44, key: 'combat.noBlood', color: '#ef9a9a', t: 0, dur: 1 });
+    }
+    return false;
+  }
   if ((player.mana ?? 0) >= cost) {
     player.mana -= cost;
     return true;
@@ -176,6 +209,13 @@ function useAmmo(state, ammo) {
 function swing(state, player, aim, w, { mult = 1, ammo = null } = {}) {
   const ang = Math.atan2(aim.y - player.y, aim.x - player.x);
   dragAfter(player, w, ang);
+  // the skirmisher (the skill web): a melee blow readies a stronger next shot
+  let skirmish = 1;
+  if (MELEE_TYPES.has(w.type)) player.skirmish = true;
+  else if (isShot(w)) {
+    if (player.skirmish) skirmish = 1 + (player.stats?.skirmish ?? 0);
+    player.skirmish = false;
+  }
   // Weapons that only reach the ground cannot touch flyers; a shot or a spell can (see `reach` in weapons.json).
   const reachesAir = w.reach === 'both';
   const withinReach = [];
@@ -188,7 +228,7 @@ function swing(state, player, aim, w, { mult = 1, ammo = null } = {}) {
   const alive = withinReach;
   const hit = () => {
     const h = rollDamage(player, w);
-    h.amount *= mult;
+    h.amount *= mult * skirmish;
     return h;
   };
   const noteMiss = (area) => { // tell the player why nothing happened

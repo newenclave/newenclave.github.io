@@ -40,6 +40,9 @@ export class TouchControls {
     this.pressed = new Set();
     this.taps = [];
     this.longPresses = []; // a finger held still on a panel: the touch version of a right click
+    this.cleanTaps = []; // a short touch on a panel that did not move: lifted, not dragged (for screens you can drag)
+    this.drag = { dx: 0, dy: 0 }; // one finger dragging on a panel, this frame
+    this.pinch = 1; // two fingers on a panel: how much they spread apart this frame
     this.held = new Map(); // pointer id -> where and when a touch on a panel began
     this.pointers = new Map();
     this.move = { x: 0, y: 0 };
@@ -98,6 +101,24 @@ export class TouchControls {
   }
 
   onMove(e) {
+    const held = this.held.get(e.pointerId);
+    if (held) { // a finger on a panel: drag with one, pinch with two
+      const x = e.clientX;
+      const y = e.clientY;
+      const others = [...this.held.entries()].filter(([id]) => id !== e.pointerId).map(([, h]) => h);
+      if (others.length === 0) {
+        this.drag.dx += x - (held.cx ?? held.x);
+        this.drag.dy += y - (held.cy ?? held.y);
+      } else if (others.length === 1) {
+        const o = others[0];
+        const before = Math.hypot((held.cx ?? held.x) - (o.cx ?? o.x), (held.cy ?? held.y) - (o.cy ?? o.y));
+        const after = Math.hypot(x - (o.cx ?? o.x), y - (o.cy ?? o.y));
+        if (before > 10) this.pinch *= after / before;
+      }
+      if (Math.hypot(x - held.x, y - held.y) > LONG_PRESS_SLOP) held.moved = true;
+      held.cx = x;
+      held.cy = y;
+    }
     const p = this.pointers.get(e.pointerId);
     if (!p || p.kind === 'button') return;
     p.x = e.clientX;
@@ -110,6 +131,7 @@ export class TouchControls {
     this.held.delete(e.pointerId);
     if (held && e.type === 'pointerup' && performance.now() - held.t >= LONG_PRESS_MS
       && Math.hypot(e.clientX - held.x, e.clientY - held.y) <= LONG_PRESS_SLOP) this.longPresses.push({ x: held.x, y: held.y });
+    else if (held && e.type === 'pointerup' && !held.moved && this.held.size === 0) this.cleanTaps.push({ x: held.x, y: held.y });
     if (this.pointers.delete(e.pointerId)) this.refresh();
   }
 
@@ -139,5 +161,8 @@ export class TouchControls {
     this.pressed.clear();
     this.taps.length = 0;
     this.longPresses.length = 0;
+    this.cleanTaps.length = 0;
+    this.drag = { dx: 0, dy: 0 };
+    this.pinch = 1;
   }
 }

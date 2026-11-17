@@ -16,8 +16,8 @@ import {
 import { updateLairs } from './systems/lairs.js';
 import { buildItem, rarityById } from './sim/loot.js';
 import { recalcStats } from './systems/stats.js';
-import { rankUp } from './systems/skilltree.js';
-import { baseAttrs, raiseAttr, CREATE_POINTS, ATTRS, newDraft, adjustDraft, finishCreation } from './systems/attributes.js';
+import { buildWeb, learnPath, forget, START } from './systems/skilltree.js';
+import { baseAttrs, raiseAttr, CREATE_POINTS, ATTRS, newDraft, adjustDraft, finishCreation, entriesOf, toggleTraining } from './systems/attributes.js';
 import { hitCharacter } from './ui/character-ui.js';
 import { hitCreate } from './ui/create-ui.js';
 import { emptyInventory, updateDrops, clickInventory, quickAction } from './systems/inventory.js';
@@ -39,7 +39,7 @@ import { emptyEquipment } from './systems/equipment.js';
 import { identifyRelics } from './systems/relics.js';
 import { hitEnding } from './ui/ending-ui.js';
 import { inscription } from './ui/chronicle-ui.js';
-import { hitTest, hitClose } from './ui/skilltree-ui.js';
+import { hitWeb, webView, zoomAt, panBy, fitZoom } from './ui/skilltree-ui.js';
 import { hitInventory } from './ui/inventory-ui.js';
 import { hitDialog, dialogView, openDialog } from './ui/dialog-ui.js';
 import { hitJournal } from './ui/journal-ui.js';
@@ -330,7 +330,7 @@ function updatePlayer(state, input, world) {
     const rollTapped = touch.pressed.has('roll');
     if ((input.wasPressed('Space') || rollTapped) && p.rollCooldown <= 0 && (len > 0 || rollTapped) && !p.boating) {
       p.rollTime = ROLL_TIME;
-      p.rollCooldown = ROLL_COOLDOWN * (1 - p.stats.rollCooldown);
+      p.rollCooldown = ROLL_COOLDOWN * (1 - p.stats.rollCooldown) * (p.stats.rules.includes('unshaken') ? 2 : 1); // the price of the unshaken
       p.rollDir = len > 0 ? { x: dx / len, y: dy / len } : p.facing;
     }
     const speed = SPEED * (1 + p.stats.moveSpeed) * (p.boating ? BOAT_SPEED : moveFactor(p, dx, dy)); // a blow slows you
@@ -341,21 +341,46 @@ function updatePlayer(state, input, world) {
   if (aim) tryAttack(state, p, aim);
 }
 
+// The skill web (ui/skilltree-ui.js): drag to look around, zoom with the wheel, two fingers or the buttons; a click on a
+// skill learns the way to it (a tap shows it first, a second tap learns). In the arena, a right click gives one back.
 function handleSkillClicks(state, input) {
   const w = innerWidth;
   const h = innerHeight;
-  const clicks = [...input.clicks, ...input.touch.taps.map((c) => ({ ...c, touch: true }))];
+  const v = webView(state, w, h);
+  const touch = input.touch;
+  // dragging: the mouse with its button held, or one finger
+  const m = input.mouse;
+  if (m.down && v.last) panBy(v, m.x - v.last.x, m.y - v.last.y);
+  v.last = m.down ? { x: m.x, y: m.y } : null;
+  if (touch.drag.dx || touch.drag.dy) panBy(v, touch.drag.dx, touch.drag.dy);
+  if (touch.pinch !== 1) zoomAt(v, w, h, touch.pinch);
+  if (input.wheel) zoomAt(v, w, h, Math.pow(1.15, -input.wheel), m.x, m.y);
+  if (input.wasPressed('Equal') || input.wasPressed('NumpadAdd')) zoomAt(v, w, h, 1.25);
+  if (input.wasPressed('Minus') || input.wasPressed('NumpadSubtract')) zoomAt(v, w, h, 0.8);
+  const clicks = [...input.releases.filter((r) => !r.moved), ...touch.cleanTaps.map((c) => ({ ...c, touch: true }))];
   for (const c of clicks) {
-    if (hitClose(c.x, c.y, w, h)) {
-      state.ui.panel = null;
-      state.ui.selectedSkill = null;
-      return;
+    const hit = hitWeb(state, c.x, c.y, w, h);
+    if (!hit) continue;
+    if (hit.kind === 'button') {
+      if (hit.id === 'close') {
+        state.ui.panel = null;
+        v.sel = null;
+        return;
+      }
+      if (hit.id === 'zoomIn') zoomAt(v, w, h, 1.25);
+      else if (hit.id === 'zoomOut') zoomAt(v, w, h, 0.8);
+      else Object.assign(v, { x: 0, y: 0, zoom: fitZoom(w, h) });
+      continue;
     }
-    const node = hitTest(state, c.x, c.y, w, h);
-    if (!node) continue;
-    // touch has no hover: first tap selects (shows tooltip), second tap learns
-    if (c.touch && state.ui.selectedSkill !== node.id) state.ui.selectedSkill = node.id;
-    else rankUp(state, node.id);
+    // touch has no hover: the first tap shows the skill, a second one learns it
+    if (c.touch && v.sel !== hit.node.id) v.sel = hit.node.id;
+    else learnPath(state, hit.node.id);
+  }
+  if (state.arena) { // the test arena: give a skill back
+    for (const c of [...input.rightClicks, ...touch.longPresses]) {
+      const hit = hitWeb(state, c.x, c.y, w, h);
+      if (hit?.kind === 'node') forget(state, hit.node.id);
+    }
   }
 }
 
@@ -385,11 +410,12 @@ function handleCreate(state, input) {
   if (input.wasPressed('ArrowRight') || input.wasPressed('Equal')) adjustDraft(draft, draft.sel, 1);
   let begin = input.wasPressed('Enter');
   for (const c of [...input.clicks, ...input.touch.taps]) {
-    const hit = hitCreate(c.x, c.y, innerWidth, innerHeight);
+    const hit = hitCreate(c.x, c.y, innerWidth, innerHeight, entriesOf(state.web));
     if (!hit) continue;
     if (hit.kind === 'minus') adjustDraft(draft, hit.id, -1);
     else if (hit.kind === 'plus') adjustDraft(draft, hit.id, 1);
     else if (hit.kind === 'row') draft.sel = hit.id;
+    else if (hit.kind === 'train') toggleTraining(draft, hit.id);
     else if (hit.kind === 'reset') ui.create = newDraft();
     else if (hit.kind === 'begin') begin = true;
   }
@@ -593,15 +619,13 @@ function createGame({ assets, seed, gen = MAP_GEN, saveData, settings, input, ar
     player: {
       ...spawn, weapon: hotbar[0], cooldown: 0, rollTime: 0, rollCooldown: 0, rollDir: { x: 0, y: 0 },
       hp: PLAYER_MAX_HP, maxHp: PLAYER_MAX_HP, hurt: 0, sinceHit: 99,
-      level: 1, xp: 0, skillPoints: 0, ranks: {}, stats: null, facing: { x: 1, y: 0 },
+      level: 1, xp: 0, skillPoints: 0, learned: new Set([START]), stats: null, facing: { x: 1, y: 0 },
       attrs: baseAttrs(), attrPoints: CREATE_POINTS, // the seven attributes (systems/attributes.js)
       cooldownOff: 0, equipment: emptyEquipment(), gold: 0, quests: {}, tracked: null, boat: false, boating: false,
       items: {}, // things carried for quests (systems/sidequests.js)
     },
     attrDefs: assets.attrDefs ?? [],
-    skills: skillData.nodes,
-    skillBranches: skillData.branches,
-    skillIndex: new Map(skillData.nodes.map((n) => [n.id, n])),
+    web: buildWeb(skillData), // the skill web (systems/skilltree.js)
     questDefs: [...questDefs],
     questIndex: new Map(questDefs.map((q) => [q.id, q])),
     ui: {
