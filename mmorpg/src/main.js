@@ -17,8 +17,9 @@ import { updateLairs } from './systems/lairs.js';
 import { buildItem, rarityById } from './sim/loot.js';
 import { recalcStats } from './systems/stats.js';
 import { rankUp } from './systems/skilltree.js';
-import { baseAttrs, raiseAttr, CREATE_POINTS } from './systems/attributes.js';
+import { baseAttrs, raiseAttr, CREATE_POINTS, ATTRS, newDraft, adjustDraft, finishCreation } from './systems/attributes.js';
 import { hitCharacter } from './ui/character-ui.js';
+import { hitCreate } from './ui/create-ui.js';
 import { emptyInventory, updateDrops, clickInventory, quickAction } from './systems/inventory.js';
 import { openShop } from './systems/shop.js';
 import { acceptQuest, turnIn, onVisit, clickJournal, ensureTracked, recallBosses, listForGiver, QUEST_ROLES } from './systems/quests.js';
@@ -370,6 +371,35 @@ function handleCharacterClicks(state, input) {
   }
 }
 
+// The hero-making screen: - and + (or the arrow keys) move points, Reset starts over, Begin (or Enter) starts the game.
+function handleCreate(state, input) {
+  const ui = state.ui;
+  const draft = ui.create;
+  input.touch.blocked = true;
+  const at = ATTRS.indexOf(draft.sel);
+  if (input.wasPressed('ArrowUp')) draft.sel = ATTRS[(at + ATTRS.length - 1) % ATTRS.length];
+  if (input.wasPressed('ArrowDown')) draft.sel = ATTRS[(at + 1) % ATTRS.length];
+  if (input.wasPressed('ArrowLeft') || input.wasPressed('Minus')) adjustDraft(draft, draft.sel, -1);
+  if (input.wasPressed('ArrowRight') || input.wasPressed('Equal')) adjustDraft(draft, draft.sel, 1);
+  let begin = input.wasPressed('Enter');
+  for (const c of [...input.clicks, ...input.touch.taps]) {
+    const hit = hitCreate(c.x, c.y, innerWidth, innerHeight);
+    if (!hit) continue;
+    if (hit.kind === 'minus') adjustDraft(draft, hit.id, -1);
+    else if (hit.kind === 'plus') adjustDraft(draft, hit.id, 1);
+    else if (hit.kind === 'row') draft.sel = hit.id;
+    else if (hit.kind === 'reset') ui.create = newDraft();
+    else if (hit.kind === 'begin') begin = true;
+  }
+  if (!begin) return;
+  finishCreation(state, ui.create);
+  ui.panel = null;
+  ui.create = null;
+  state.note = ui.afterCreate ?? null; // and now, how you got here
+  ui.afterCreate = null;
+  input.touch.releaseAll();
+}
+
 const ERROR_KEYS = {
   full: 'err.full', gold: 'err.gold', max: 'err.max', limit: 'err.limit',
   noboat: 'err.noboat', nowater: 'err.nowater', noland: 'err.noland', indungeon: 'err.indungeon',
@@ -671,10 +701,16 @@ function createGame({ assets, seed, gen = MAP_GEN, saveData, settings, input, ar
     }
   }
   if (arena) enterArena(state); // the test arena (systems/arena.js): no prologue, no wanderers, never saved
-  else if (!loaded) { // a new game opens with how you got here (docs/prologue.md)
-    state.note = { text: [0, 1, 2, 3].map((i) => t('intro.' + i)).join(' '), title: 'intro.title', t: 0, dur: 20 };
+  else if (!loaded) { // a new game: first you make the hero (ui/create-ui.js), then how you got here (docs/prologue.md)
+    state.ui.panel = 'create';
+    state.ui.create = newDraft();
+    state.ui.afterCreate = { text: [0, 1, 2, 3].map((i) => t('intro.' + i)).join(' '), title: 'intro.title', t: 0, dur: 20 };
   }
-  if (!saveData && startStory(state, storyFromUrl())) state.note = null; // a shortcut into the story
+  if (!saveData && startStory(state, storyFromUrl())) { // a shortcut into the story: no hero to make, no prologue
+    state.note = null;
+    state.ui.panel = null;
+    state.ui.create = null;
+  }
   if (!arena) {
     updateExploration(state, world); // reveal the start; towns seen right now count as already discovered
     topUpEnemies(state, world, enemyDefs, 600, 1300, Math.random, 3); // a few wanderers about from the start
@@ -758,6 +794,12 @@ function stepGame(game, input, dt) {
   const { state, timers } = game;
   timers.acc += dt;
   while (timers.acc >= STEP) {
+    if (state.ui.panel === 'create') { // making the hero: the world waits
+      handleCreate(state, input);
+      input.endFrame();
+      timers.acc -= STEP;
+      continue;
+    }
     state.clock = (state.clock ?? 0) + STEP; // seconds of play (deeds take a while to get around: systems/deeds.js)
     updatePlayer(state, input, state.world);
     // read the world again: going through a door in updatePlayer swaps it, and the rest of the step must see the new one

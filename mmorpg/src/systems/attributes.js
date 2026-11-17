@@ -48,3 +48,34 @@ export function addAttrStats(s, player, defs) {
     for (const e of def.effects) s[e.stat] = (s[e.stat] ?? 0) + e.value * n;
   }
 }
+
+// ---- making a hero (ui/create-ui.js): a draft of the attributes, spent from CREATE_POINTS, between MIN and CREATE_MAX
+export const CREATE_SKILL_POINTS = 2; // skill points a new hero starts with
+
+export const newDraft = () => ({ attrs: baseAttrs(), sel: ATTRS[0] });
+
+// Points still free in the draft: lowering an attribute below the base frees points for others.
+export const draftLeft = (draft) => CREATE_POINTS - ATTRS.reduce((sum, id) => sum + draft.attrs[id] - BASE, 0);
+
+export function canAdjust(draft, id, d) {
+  if (!ATTRS.includes(id)) return false;
+  const v = draft.attrs[id] + d;
+  return v >= MIN && v <= CREATE_MAX && (d < 0 || draftLeft(draft) >= d);
+}
+
+export function adjustDraft(draft, id, d) {
+  if (!canAdjust(draft, id, d)) return false;
+  draft.attrs[id] += d;
+  draft.sel = id;
+  return true;
+}
+
+// The hero is made: the draft becomes the attributes, points left over stay to spend later.
+export function finishCreation(state, draft) {
+  const p = state.player;
+  p.attrs = { ...draft.attrs };
+  p.attrPoints = Math.max(0, draftLeft(draft));
+  p.skillPoints = (p.skillPoints | 0) + CREATE_SKILL_POINTS;
+  recalcStats(state);
+  p.hp = p.maxHp;
+}

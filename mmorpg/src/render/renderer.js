@@ -31,6 +31,7 @@ import { drawInventory } from '../ui/inventory-ui.js';
 import { drawTouchControls } from '../ui/touch-ui.js';
 import { drawArenaPanel } from '../ui/arena-ui.js';
 import { drawCharacter } from '../ui/character-ui.js';
+import { drawCreate } from '../ui/create-ui.js';
 import { drawMenu, drawMenuBackground } from '../ui/menu-ui.js';
 import { hotbarLayout } from '../core/touch.js';
 import { loadoutOf } from '../systems/loadout.js';
@@ -1558,6 +1559,7 @@ export class Renderer {
 
     if (state.ui.panel === 'skills') drawSkillTree(ctx, state, w, h);
     else if (state.ui.panel === 'hero') drawCharacter(ctx, state, w, h);
+    else if (state.ui.panel === 'create') drawCreate(ctx, state, w, h);
     else if (state.ui.panel === 'inventory') drawInventory(ctx, state, w, h);
     else if (state.ui.panel === 'quests') drawDialog(ctx, state, w, h);
     else if (state.ui.panel === 'journal') drawJournal(ctx, state, w, h);
