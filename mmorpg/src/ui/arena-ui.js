@@ -18,9 +18,10 @@ const BUTTONS = [
   ['god', 3, 0, 2], ['heal', 3, 1, 2],
   ['clear', 4, 0, 2], ['meter', 4, 1, 2],
   ['reqs', 5, 0, 1],
+  ['build', 6, 0, 2], ['unlearn', 6, 1, 2],
 ];
 const ARROW = 34;
-const ROWS = 6;
+const ROWS = 7;
 
 export function layoutArena() {
   return BUTTONS.map(([id, row, col, cols]) => {
@@ -31,7 +32,7 @@ export function layoutArena() {
   });
 }
 
-export const arenaPanelBottom = () => TOP + ROWS * (ROW + GAP) + 92;
+export const arenaPanelBottom = () => TOP + ROWS * (ROW + GAP) + 110;
 export const overArenaPanel = (x, y) => x >= X && x <= X + W && y >= TOP && y <= arenaPanelBottom();
 export const hitArena = (x, y) => layoutArena().find((b) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h)?.id ?? null;
 
@@ -46,6 +47,7 @@ function label(state, id) {
     case 'rarity': return t('rarity.' + a.rarity);
     case 'god': return t('arena.god', { state: t(a.god ? 'menu.on' : 'menu.off') });
     case 'reqs': return t('arena.reqs', { state: t(state.ignoreReqs ? 'menu.off' : 'menu.on') });
+    case 'build': return a.build === undefined ? t('arena.build.none') : t('arena.build', { name: t('build.' + state.builds.builds[a.build].id) });
     default: return t('arena.' + id);
   }
 }
@@ -83,6 +85,7 @@ export function drawArenaPanel(ctx, state) {
     t('arena.meter.kills', { n: m.kills, time: m.t.toFixed(1) }),
     t('arena.keys.0'),
     t('arena.keys.1'),
+    t('arena.keys.2'),
   ];
   lines.forEach((s, i) => {
     ctx.fillStyle = i >= 3 ? '#9e9e9e' : '#e0e0e0';

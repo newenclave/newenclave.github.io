@@ -113,6 +113,19 @@ export function forgetAll(state) {
   return n;
 }
 
+// Forgetting everything costs gold at a town elder (docs/character.md, section 6): more for a hero who knows more.
+export const RESPEC_PER_LEVEL = 25;
+export const respecCost = (player) => RESPEC_PER_LEVEL * Math.max(1, player.level | 0);
+
+export function respec(state) {
+  const p = state.player;
+  if (learnedSet(p).size <= 1) return { error: 'none' };
+  const cost = respecCost(p);
+  if ((p.gold | 0) < cost) return { error: 'gold' };
+  p.gold -= cost;
+  return { ok: true, n: forgetAll(state), cost };
+}
+
 // Learned skills from a save: only ids the web knows, and only those still linked to the start.
 export function restoreLearned(web, ids) {
   const want = new Set((Array.isArray(ids) ? ids : []).filter((id) => typeof id === 'string' && web.index.has(id)));

@@ -16,7 +16,7 @@ import {
 import { updateLairs } from './systems/lairs.js';
 import { buildItem, rarityById } from './sim/loot.js';
 import { recalcStats } from './systems/stats.js';
-import { buildWeb, learnPath, forget, START } from './systems/skilltree.js';
+import { buildWeb, learnPath, forget, respec, START } from './systems/skilltree.js';
 import { baseAttrs, raiseAttr, CREATE_POINTS, ATTRS, newDraft, adjustDraft, finishCreation, entriesOf, toggleTraining } from './systems/attributes.js';
 import { hitCharacter } from './ui/character-ui.js';
 import { hitCreate } from './ui/create-ui.js';
@@ -472,6 +472,8 @@ function answerDialog(state, o) {
   if (!d) return;
   if (o.kind === 'close' || o.kind === 'bye') ui.dialog = null;
   else if (o.kind === 'trade' && ui.talkNpc) openTrade(state, ui.talkNpc, state.town);
+  else if (o.kind === 'respec') d.stage = 'respec';
+  else if (o.kind === 'respecYes') d.stage = respec(state).ok ? 'respecDone' : 'respecPoor';
   else if (o.kind === 'ask') Object.assign(d, { id: o.id, status: 'available', stage: 'offer' });
   else if (o.kind === 'done') Object.assign(d, { id: o.id, status: 'complete', stage: 'offer' });
   else if (o.kind === 'job') Object.assign(d, { id: o.id, status: 'active', stage: 'offer' });
@@ -626,6 +628,7 @@ function createGame({ assets, seed, gen = MAP_GEN, saveData, settings, input, ar
       items: {}, // things carried for quests (systems/sidequests.js)
     },
     attrDefs: assets.attrDefs ?? [],
+    builds: assets.builds ?? null, // ready heroes for the test arena (data/builds.json)
     web: buildWeb(skillData), // the skill web (systems/skilltree.js)
     questDefs: [...questDefs],
     questIndex: new Map(questDefs.map((q) => [q.id, q])),
@@ -904,7 +907,7 @@ function stepGame(game, input, dt) {
 async function main() {
   const canvas = document.getElementById('game');
   const settings = loadSettings();
-  const [biomes, weapons, enemyDefs, skillData, armor, accessories, questDefs, bossDefs, dungeonDefs, ammoData, relicData, campDefs, mainMap, sideStories, attrDefs] = await Promise.all([
+  const [biomes, weapons, enemyDefs, skillData, armor, accessories, questDefs, bossDefs, dungeonDefs, ammoData, relicData, campDefs, mainMap, sideStories, attrDefs, builds] = await Promise.all([
     loadJson('data/biomes.json'),
     loadJson('data/weapons.json'),
     loadJson('data/enemies.json'),
@@ -920,9 +923,10 @@ async function main() {
     loadJson('data/maps/main.json'),
     loadJson('data/sidestories.json'),
     loadJson('data/attributes.json'),
+    loadJson('data/builds.json'),
     loadLang(settings.lang),
   ]);
-  const assets = { biomes, weapons, enemyDefs, skillData, armor, accessories, questDefs, bossDefs, dungeonDefs, ammoData, relicData, campDefs, maps: { main: mainMap }, sideStories, attrDefs };
+  const assets = { biomes, weapons, enemyDefs, skillData, armor, accessories, questDefs, bossDefs, dungeonDefs, ammoData, relicData, campDefs, maps: { main: mainMap }, sideStories, attrDefs, builds };
   const input = new Input(canvas);
   input.touch.setMode(settings.touch);
   const renderer = new Renderer(canvas);

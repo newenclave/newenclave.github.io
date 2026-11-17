@@ -1,4 +1,5 @@
 import { t } from '../core/i18n.js';
+import { learnedSet, respecCost } from '../systems/skilltree.js';
 import { wrapText } from '../core/format.js';
 import { questArgs, questTitle, questSpeech, objectiveText, rewardText } from './quest-ui.js';
 import { questDef, giverRole, listForGiver } from '../systems/quests.js';
@@ -178,6 +179,8 @@ function topics(state, role) {
   for (const r of rows.filter((r) => r.status === 'active')) out.push({ kind: 'job', id: r.def.id, text: t('dlg.ask.job', { title: questTitle(r.def) }) });
   const npc = state.ui.talkNpc;
   if (npc?.person && TRADERS.includes(npc.id)) out.push({ kind: 'trade', text: t('dlg.ask.trade.' + (npc.id === 'blacksmith' ? 'smith' : 'shop')) });
+  // the elder can help you forget what you learned (systems/skilltree.js, the respec)
+  if (role === 'elder' && learnedSet(state.player).size > 1) out.push({ kind: 'respec', text: t('dlg.ask.respec', { n: respecCost(state.player) }) });
   out.push({ kind: 'place', text: pick('ask.place', state.ui.questTown + role, {}, 'dlg.fallback.place') });
   out.push({ kind: 'bye', text: pick('ask.bye', state.ui.questTown + role, {}, 'dlg.fallback.bye') });
   return out.slice(-MAX_OPTIONS);
@@ -191,6 +194,11 @@ export function dialogView(state) {
   const town = state.world?.getTownById?.(state.ui.questTown);
   if (d.stage === 'hub') return { def: null, role, say: [greeting(state, role, town)].flat(), options: topics(state, role) };
   if (d.stage === 'place') return { def: null, role, say: [placeTalk(state, role, town)], options: [{ kind: 'back', text: t('dlg.back') }] };
+  if (d.stage === 'respec') {
+    const n = respecCost(state.player);
+    return { def: null, role, say: [t('dlg.respec.offer', { n })], options: [{ kind: 'respecYes', text: t('dlg.respec.yes', { n }) }, { kind: 'back', text: t('dlg.respec.no') }] };
+  }
+  if (d.stage === 'respecDone' || d.stage === 'respecPoor') return { def: null, role, say: [t('dlg.' + d.stage)], options: [{ kind: 'back', text: t('dlg.back') }] };
   const def = questDef(state, d.id);
   if (!def) return null;
   const base = dialogBase(def);

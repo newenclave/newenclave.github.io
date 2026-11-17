@@ -1,0 +1,42 @@
+{
+  "level": 20,
+  "note": "Ready heroes for the test arena (systems/arena.js): a level-20 hero with every point spent. attrs: what each attribute comes to (31 points above the base of 3); skills: what to learn, in order (each learns the way to it), and the points left go to the nearest skills of the same sectors; belt: [main hand, off hand] for each place.",
+  "builds": [
+    {
+      "id": "warrior",
+      "attrs": { "str": 14, "dex": 6, "end": 13, "int": 3, "per": 5, "lck": 6, "cha": 5 },
+      "skills": ["w_heavyHand", "w_bloodlust", "w_bulwark", "w_unshaken", "w_c6b", "w_l6", "w_r6"],
+      "belt": [["greatsword"], ["sword"], ["mace"]]
+    },
+    {
+      "id": "archer",
+      "attrs": { "str": 5, "dex": 14, "end": 7, "int": 3, "per": 13, "lck": 7, "cha": 3 },
+      "skills": ["r_keenEye", "r_volley", "r_fleet", "r_steadyHand", "r_c6b", "r_l6", "r_r6"],
+      "belt": [["bow"], ["crossbow"], ["dagger"]]
+    },
+    {
+      "id": "mage",
+      "attrs": { "str": 3, "dex": 5, "end": 9, "int": 16, "per": 7, "lck": 6, "cha": 6 },
+      "skills": ["m_focus", "m_wideBlast", "m_deepWell", "m_c6a", "m_c6b", "m_l6", "m_r6"],
+      "belt": [["staff"], ["wand"], ["sword"]]
+    },
+    {
+      "id": "rogue",
+      "attrs": { "str": 6, "dex": 13, "end": 8, "int": 3, "per": 5, "lck": 12, "cha": 5 },
+      "skills": ["g_backstab", "g_quickHands", "g_fortune", "g_c6b", "g_c6a", "g_gambler", "g_l6"],
+      "belt": [["dagger", "dagger"], ["sword", "dagger"], ["mace"]]
+    },
+    {
+      "id": "swordbow",
+      "attrs": { "str": 10, "dex": 12, "end": 9, "int": 3, "per": 9, "lck": 6, "cha": 3 },
+      "skills": ["w_heavyHand", "r_keenEye", "j_skirmisher", "r_volley", "j_wr_c"],
+      "belt": [["sword"], ["bow"], ["greatsword"]]
+    },
+    {
+      "id": "magethief",
+      "attrs": { "str": 3, "dex": 10, "end": 8, "int": 12, "per": 6, "lck": 10, "cha": 3 },
+      "skills": ["m_focus", "g_backstab", "j_trickster", "g_quickHands", "m_wideBlast", "j_mg_c"],
+      "belt": [["wand", "dagger"], ["staff"], ["dagger", "dagger"]]
+    }
+  ]
+}

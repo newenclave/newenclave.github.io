@@ -8,6 +8,8 @@ import { buildItem, RARITIES } from '../sim/loot.js';
 import { Explored, updateExploration } from './explore.js';
 import { recalcStats } from './stats.js';
 import { MAX_TIER } from './difficulty.js';
+import { forgetAll, learnPath, learn, canLearn } from './skilltree.js';
+import { baseAttrs, BASE } from './attributes.js';
 
 export const ARENA_SIZE = 64;
 const HALL = { x0: 3, y0: 3, x1: 60, y1: 44 }; // the floor, in tiles
@@ -117,7 +119,38 @@ function summon(state, count, rng) {
 
 const cycleIn = (list, v, d = 1) => list[(list.indexOf(v) + d + list.length) % list.length];
 
-// The arena's buttons and keys: prev, next, one, pack, tier, rarity, god, heal, clear, meter, reqs.
+// A ready hero: the level, the attributes and the skills of the build, every point spent, and its weapons in the belt.
+// Requirements go on, so the hero is tried as the game would have it.
+export function applyBuild(state, build, level = state.builds?.level ?? 20) {
+  const p = state.player;
+  p.level = level;
+  p.xp = 0;
+  p.attrs = { ...baseAttrs(), ...build.attrs };
+  p.attrPoints = 0;
+  forgetAll(state);
+  p.skillPoints = 2 + (level - 1); // two from making the hero, one a level
+  for (const id of build.skills) learnPath(state, id);
+  // the points left go to the nearest skills of the build's own sectors (and of where they meet), then wherever is near
+  const sectors = new Set(build.skills.map((id) => state.web.index.get(id)?.sector).filter(Boolean).flatMap((s) => s.split('+')));
+  const ours = (n) => (n.sector && n.sector.split('+').every((s) => sectors.has(s)) ? 0 : 1);
+  while (p.skillPoints > 0) {
+    const next = state.web.nodes.filter((n) => canLearn(state, n.id)).sort((a, b) => ours(a) - ours(b) || a.ring - b.ring)[0];
+    if (!next || !learn(state, next.id)) break;
+  }
+  state.weapons = build.belt.map(([main]) => buildItem('weapon', state.catalog.weapon.find((w) => w.id === main), state.arena.rarity));
+  state.offhands = build.belt.map(([, off]) => (off ? buildItem('weapon', state.catalog.weapon.find((w) => w.id === off), state.arena.rarity) : null));
+  p.weapon = state.weapons[0];
+  state.ignoreReqs = false;
+  recalcStats(state);
+  p.hp = p.maxHp;
+  p.mana = p.maxMana;
+  state.meter = newMeter();
+}
+
+// Points the build puts into attributes (above the base).
+export const buildAttrPoints = (build) => Object.values(build.attrs).reduce((s, v) => s + v - BASE, 0);
+
+// The arena's buttons and keys: prev, next, one, pack, tier, rarity, god, heal, clear, meter, reqs, build, unlearn.
 export function arenaAction(state, id, rng = Math.random) {
   const a = state.arena;
   if (!a) return false;
@@ -131,6 +164,14 @@ export function arenaAction(state, id, rng = Math.random) {
     case 'rarity': a.rarity = cycleIn(RARITIES.map((r) => r.id), a.rarity); armArena(state); break;
     case 'god': a.god = !a.god; break;
     case 'reqs': state.ignoreReqs = !state.ignoreReqs; break; // what weapons and armor ask of you: on or off
+    case 'build': { // the next ready hero (data/builds.json)
+      const list = state.builds?.builds ?? [];
+      if (!list.length) return false;
+      a.build = ((a.build ?? -1) + 1) % list.length;
+      applyBuild(state, list[a.build]);
+      break;
+    }
+    case 'unlearn': forgetAll(state); break; // the whole web back, for free
     case 'heal': state.player.hp = state.player.maxHp; state.player.mana = state.player.maxMana; break;
     case 'clear': state.enemies = []; state.enemyProjectiles = []; state.blasts = []; break;
     case 'meter': state.meter = newMeter(); break;
@@ -139,7 +180,7 @@ export function arenaAction(state, id, rng = Math.random) {
   return true;
 }
 
-export const ARENA_KEYS = { KeyZ: 'prev', KeyX: 'next', KeyF: 'one', KeyV: 'pack', KeyT: 'tier', KeyR: 'rarity', KeyG: 'god', KeyH: 'heal', KeyL: 'clear', KeyY: 'meter', KeyU: 'reqs' };
+export const ARENA_KEYS = { KeyZ: 'prev', KeyX: 'next', KeyF: 'one', KeyV: 'pack', KeyT: 'tier', KeyR: 'rarity', KeyG: 'god', KeyH: 'heal', KeyL: 'clear', KeyY: 'meter', KeyU: 'reqs', KeyP: 'build', KeyO: 'unlearn' };
 
 // Every tick: the fight clock of the meter runs while something is after you.
 export function updateArena(state, dt) {
