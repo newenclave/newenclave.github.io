@@ -3,7 +3,7 @@
 // Laid out in "design" coordinates and scaled to fit any screen, like the character sheet.
 import { t } from '../core/i18n.js';
 import { wrapText } from '../core/format.js';
-import { ATTRS, BASE, canAdjust, draftLeft, entriesOf, CREATE_SKILL_POINTS } from '../systems/attributes.js';
+import { ATTRS, BASE, canAdjust, draftLeft, entriesOf, CREATE_SKILL_POINTS, STARTER_KIT } from '../systems/attributes.js';
 
 const DW = 640;
 const DH = 450;
@@ -55,6 +55,19 @@ export function hitCreate(mx, my, w, h, entries = []) {
     if (d.x >= ROW_X && d.x <= ROW_X + ROW_W && d.y >= rowY(i) && d.y < rowY(i) + ROW_H) return { kind: 'row', id: ATTRS[i] };
   }
   return null;
+}
+
+// "Greatsword needs Strength 7." for each weapon of the picked training the draft is not up to.
+export function kitWarnings(state, draft) {
+  const out = [];
+  for (const id of draft.train ?? []) {
+    for (const g of state.web?.index.get(id)?.grants ?? []) {
+      const base = state.catalog?.weapon?.find((w) => w.id === STARTER_KIT[g]);
+      const short = Object.entries(base?.req ?? {}).filter(([a, n]) => (draft.attrs[a] ?? BASE) < n);
+      if (short.length) out.push(t('create.kitShort', { weapon: t('weapon.' + base.id), needs: short.map(([a, n]) => `${t('attr.' + a)} ${n}`).join(', ') }));
+    }
+  }
+  return out;
 }
 
 function button(ctx, r, label, on, accent = '#ffd54f') {
@@ -130,8 +143,10 @@ export function drawCreate(ctx, state, w, h) {
   ctx.fillStyle = '#e0e0e0';
   const lines = wrapText(ctx, t('attr.' + draft.sel + '.desc'), DW - 28 - SIDE_X).slice(0, 6);
   lines.forEach((line, i) => ctx.fillText(line, SIDE_X, ROW_Y + 36 + i * 17));
-  ctx.fillStyle = '#9e9e9e';
-  wrapText(ctx, t('create.scale'), DW - 28 - SIDE_X).slice(0, 3)
+  // the weapon that comes with a training may ask for more than the hero has: say so (else, how the numbers work)
+  const warn = kitWarnings(state, draft);
+  ctx.fillStyle = warn.length ? '#ef9a9a' : '#9e9e9e';
+  wrapText(ctx, warn.length ? warn.join(' ') : t('create.scale'), DW - 28 - SIDE_X).slice(0, 3)
     .forEach((line, i) => ctx.fillText(line, SIDE_X, ROW_Y + 44 + lines.length * 17 + i * 16));
 
   // the training: up to two of the web's entry skills, each with a weapon to try it

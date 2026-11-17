@@ -11,6 +11,7 @@ import { loadoutOf, slotOf, OFFHAND_DAMAGE } from '../systems/loadout.js';
 import { applyDot, applySlow, DOT_STEP } from './status.js';
 import { scaleBonus, attrBonus } from '../systems/attributes.js';
 import { hasRule } from '../systems/skilltree.js';
+import { canUse } from '../systems/requirements.js';
 
 export { damagePlayer }; // kept here too: it is part of the combat API
 
@@ -149,13 +150,18 @@ export function tryAttack(state, player, aim) {
   const lo = loadoutOf(state);
   let acted = false;
   if (!(player.cooldown > 0)) { // (a missing cooldown means ready)
-    if (payMana(state, player, player.weapon)) {
+    if (!canUse(state, player.weapon)) { // not strong (or trained) enough for it: it does not strike
+      player.cooldown = NO_MANA_WAIT;
+      if (!state.floaters.some((f) => f.key === 'combat.cannotWield')) {
+        state.floaters.push({ x: player.x, y: player.y - 44, key: 'combat.cannotWield', color: '#ef9a9a', t: 0, dur: 1.2 });
+      }
+    } else if (payMana(state, player, player.weapon)) {
       swing(state, player, aim, player.weapon, { ammo: lo.mode === 'ammo' ? lo.off : null });
       player.cooldown = cooldownOf(player, player.weapon, lo.mode === 'dual');
       acted = true;
     } else player.cooldown = NO_MANA_WAIT;
   }
-  if (lo.mode === 'dual' && !(player.cooldownOff > 0)) {
+  if (lo.mode === 'dual' && !(player.cooldownOff > 0) && canUse(state, lo.off)) {
     if (payMana(state, player, lo.off)) {
       swing(state, player, aim, lo.off, { mult: OFFHAND_DAMAGE });
       player.cooldownOff = cooldownOf(player, lo.off, true);

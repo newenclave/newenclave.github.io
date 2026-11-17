@@ -1,4 +1,5 @@
 import { t } from '../core/i18n.js';
+import { requirementsOf } from '../systems/requirements.js';
 import { artName } from './chronicle-ui.js';
 import { rarityById } from '../sim/loot.js';
 import { INV_SIZE, selectedItem } from '../systems/inventory.js';
@@ -143,7 +144,7 @@ function wouldReplace(state, item) {
 export function itemLines(state, item) {
   const p = state.player;
   const out = [];
-  const add = (text, d = null) => out.push({ text, delta: d || null });
+  const add = (text, d = null, color = null) => out.push({ text, delta: d || null, color });
 
   if (item.slot === 'relic') { // a curio: what people think it is, or what it really was
     add(t(isKnown(state, item.id) ? `relic.${item.id}.truth` : `relic.${item.id}.local`));
@@ -176,6 +177,10 @@ export function itemLines(state, item) {
       same && delta((item.value - cur.value) * scale, item.kind === 'pct' ? 0 : 1, item.kind === 'pct' ? '%' : ''),
     );
     if (cur && !same) add(t('inv.line.replaces', { name: itemName(cur) }));
+  }
+  for (const r of requirementsOf(state, item)) { // what it asks of you (systems/requirements.js)
+    const text = r.kind === 'attr' ? t('req.attr', { name: t('attr.' + r.id), n: r.need }) : t('req.grant', { name: t('grant.name.' + r.id) });
+    add(text, null, r.ok ? '#a5d6a7' : '#ef9a9a');
   }
   if (item.art) add(t('art.lore', { owner: item.art.owner, town: t('town.name.' + item.art.town), year: item.art.year })); // its story
   if (item.relic) { // a worn relic: what it does beyond its numbers, and what it is
@@ -453,9 +458,9 @@ export function drawInventory(ctx, state, w, h) {
     ctx.font = 'bold 16px sans-serif';
     ctx.fillText(`${t('rarity.' + item.rarity)} ${itemName(item)}`, tx, DETAIL.y + 26, tw);
     ctx.font = '13px sans-serif';
-    itemLines(state, item).slice(0, 5).forEach((l, i) => {
-      const y = DETAIL.y + 48 + i * 19;
-      ctx.fillStyle = '#eee';
+    itemLines(state, item).slice(0, 7).forEach((l, i) => {
+      const y = DETAIL.y + 48 + i * 17;
+      ctx.fillStyle = l.color ?? '#eee';
       ctx.fillText(l.text, tx, y, tw);
       if (l.delta) {
         ctx.fillStyle = l.delta.up ? '#81c784' : '#e57373';

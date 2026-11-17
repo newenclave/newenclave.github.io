@@ -62,6 +62,7 @@ const ROLL_TIME = 0.22;
 const ROLL_COOLDOWN = 0.8;
 const PLAYER_MAX_HP = 100;
 const BASE_REGEN = 3;
+const HOTBAR = 6; // places in the belt (keys 1-6)
 const TOWN_REGEN = 25; // HP/s inside a town
 const AIM_DRAG_MIN = 14;
 const AUTO_AIM_RANGE = Math.min(450, SIGHT_PX); // you cannot auto-aim at what the fog hides
@@ -612,7 +613,7 @@ function createGame({ assets, seed, gen = MAP_GEN, saveData, settings, input, ar
   const world = gen === MAP_GEN ? new MapWorld(seed, assets.biomes, assets.maps.main) : new World(seed, assets.biomes, gen);
   const spawn = world.findSpawn();
   // you start with a plain sword; the other five weapon sets are empty until you find, buy or earn something for them
-  const hotbar = weapons.map((w, i) => (i === 0 ? buildItem('weapon', w, 'common') : null));
+  const hotbar = Array.from({ length: HOTBAR }, (_, i) => (i === 0 ? buildItem('weapon', weapons[0], 'common') : null));
   const state = {
     seed,
     spawn,

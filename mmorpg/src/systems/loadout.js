@@ -2,6 +2,8 @@
 //   - a one-handed weapon next to another one-handed weapon: you fight with both (dual wielding);
 //   - arrows or bolts next to a bow or crossbow: the shots carry the special effect;
 //   - anything else is "not in use" until the main hand changes.
+import { canDualWield } from './requirements.js';
+
 export const OFFHAND_DAMAGE = 0.65; // the off hand hits a little weaker than the main hand
 
 // Which hotbar slot the main-hand weapon is in (-1 when it is not from the hotbar).
@@ -14,7 +16,7 @@ export const canEquipOffhand = (item) => !!item && (item.slot === 'ammo' || (ite
 
 // What the hands do: { main, off, mode, reason }. Without a slot it is about the weapon in your hand now.
 //   mode: 'single' (nothing in the off hand), 'dual', 'ammo', or 'idle' (the off hand item cannot be used with this main weapon)
-//   reason (for 'idle'): 'twoHanded' | 'wrongAmmo' | 'noQuiver'
+//   reason (for 'idle'): 'twoHanded' | 'wrongAmmo' | 'noQuiver' | 'untrained' (two weapons need the training "Two Blades")
 export function loadoutOf(state, slot) {
   const main = slot === undefined ? state.player.weapon : state.weapons[slot];
   const off = offhandOf(state, slot === undefined ? slotOf(state) : slot);
@@ -24,6 +26,6 @@ export function loadoutOf(state, slot) {
     if (main.ammoKind === off.kind) return { main, off, mode: 'ammo' };
     return { main, off, mode: 'idle', reason: main.ammoKind ? 'wrongAmmo' : 'noQuiver' };
   }
-  if (main.grip === 'one' && off.grip === 'one') return { main, off, mode: 'dual' };
+  if (main.grip === 'one' && off.grip === 'one') return canDualWield(state) ? { main, off, mode: 'dual' } : { main, off, mode: 'idle', reason: 'untrained' };
   return { main, off, mode: 'idle', reason: 'twoHanded' };
 }

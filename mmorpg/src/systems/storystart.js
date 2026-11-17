@@ -4,6 +4,8 @@ import { recalcStats } from './stats.js';
 import { acceptQuest, ensureTracked, setTracked } from './quests.js';
 import { ringSite } from './ring.js';
 import { ARMOR_PARTS } from './equipment.js';
+import { learn } from './skilltree.js';
+import { entriesOf } from './attributes.js';
 
 // A shortcut into the story for trying it out (?story=2, ?story=3, ?story=ring on a new game): the acts before are
 // marked done, the player gets the level and the gear the act expects, and stands where the act begins.
@@ -22,7 +24,12 @@ export function startStory(state, stage) {
   if (stage !== '2') for (const id of ['m:1', 'm:2', 'm:3', 'm:4', 'm:5']) if (state.questIndex.has(id)) done(state, id);
   while (p.level < LEVEL[stage]) grantXp(state, xpToNext(p.level) - p.xp); // one level at a time, with its skill point
   p.gold = GOLD[stage];
-  if (stage !== '2') { // gear for the far end of the world
+  if (stage !== '2') { // gear for the far end of the world, and a hero strong and trained enough for all of it
+    p.attrs = { ...p.attrs, str: 7, dex: 6, int: 6, per: 5 };
+    for (const e of entriesOf(state.web)) {
+      p.skillPoints = (p.skillPoints | 0) + 1;
+      learn(state, e.id);
+    }
     state.weapons = state.catalog.weapon.slice(0, state.weapons.length).map((b) => buildItem('weapon', b, 'epic', 2)); // a full belt
     p.weapon = state.weapons[0];
     for (const part of ARMOR_PARTS) { // the best piece for every part of the body

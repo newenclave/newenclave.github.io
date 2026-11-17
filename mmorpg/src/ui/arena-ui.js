@@ -17,8 +17,10 @@ const BUTTONS = [
   ['tier', 2, 0, 2], ['rarity', 2, 1, 2],
   ['god', 3, 0, 2], ['heal', 3, 1, 2],
   ['clear', 4, 0, 2], ['meter', 4, 1, 2],
+  ['reqs', 5, 0, 1],
 ];
 const ARROW = 34;
+const ROWS = 6;
 
 export function layoutArena() {
   return BUTTONS.map(([id, row, col, cols]) => {
@@ -29,7 +31,7 @@ export function layoutArena() {
   });
 }
 
-export const arenaPanelBottom = () => TOP + 5 * (ROW + GAP) + 92;
+export const arenaPanelBottom = () => TOP + ROWS * (ROW + GAP) + 92;
 export const overArenaPanel = (x, y) => x >= X && x <= X + W && y >= TOP && y <= arenaPanelBottom();
 export const hitArena = (x, y) => layoutArena().find((b) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h)?.id ?? null;
 
@@ -43,6 +45,7 @@ function label(state, id) {
     case 'tier': return t('arena.tier', { n: a.tier });
     case 'rarity': return t('rarity.' + a.rarity);
     case 'god': return t('arena.god', { state: t(a.god ? 'menu.on' : 'menu.off') });
+    case 'reqs': return t('arena.reqs', { state: t(state.ignoreReqs ? 'menu.off' : 'menu.on') });
     default: return t('arena.' + id);
   }
 }
@@ -59,7 +62,7 @@ export function drawArenaPanel(ctx, state) {
   ctx.fillStyle = '#fff';
   ctx.fillText(monsterName(arenaRoster(state)[a.sel]), X + W / 2, TOP + ROW / 2);
   for (const b of layoutArena()) {
-    const on = (b.id === 'god' && a.god);
+    const on = (b.id === 'god' && a.god) || (b.id === 'reqs' && !state.ignoreReqs);
     ctx.fillStyle = on ? 'rgba(255,193,7,0.45)' : 'rgba(255,255,255,0.14)';
     ctx.fillRect(b.x, b.y, b.w, b.h);
     ctx.strokeStyle = 'rgba(255,255,255,0.35)';
@@ -69,7 +72,7 @@ export function drawArenaPanel(ctx, state) {
   }
   // the meter: what you dealt and took since the last reset, and how fast
   const m = state.meter;
-  const y = TOP + 5 * (ROW + GAP) + 8;
+  const y = TOP + ROWS * (ROW + GAP) + 8;
   ctx.textAlign = 'left';
   ctx.font = '12px monospace';
   ctx.fillStyle = '#e0e0e0';

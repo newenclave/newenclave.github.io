@@ -1,4 +1,5 @@
 import { makeDrop } from '../sim/loot.js';
+import { canUse } from './requirements.js';
 import { recalcStats } from './stats.js';
 import { buyStock, sellFromInventory, upgradeSelected } from './shop.js';
 import { buyBoat } from './boat.js';
@@ -34,7 +35,7 @@ export function equipFromInventory(state, idx, place = null) {
     return true;
   }
   const to = place && placesFor(item).includes(place) ? place : placeFor(p.equipment, item);
-  if (!to) return false;
+  if (!to || !canUse(state, item)) return false; // too heavy for you yet (systems/requirements.js)
   state.inventory[idx] = p.equipment[to];
   p.equipment[to] = item;
   recalcStats(state);

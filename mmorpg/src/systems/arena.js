@@ -60,6 +60,7 @@ export function enterArena(state) {
   state.arena = { sel: state.enemyDefs.findIndex((d) => d.id === 'wolf'), tier: 0, rarity: 'common', god: false, n: 0 };
   state.meter = newMeter();
   p.attrPoints = ARENA_ATTR_POINTS; // to try builds with (the sheet, key C)
+  state.ignoreReqs = true; // every weapon works here, until you turn the requirements on (U)
   p.x = spawn.x;
   p.y = spawn.y;
   armArena(state);
@@ -116,7 +117,7 @@ function summon(state, count, rng) {
 
 const cycleIn = (list, v, d = 1) => list[(list.indexOf(v) + d + list.length) % list.length];
 
-// The arena's buttons and keys: prev, next, one, pack, tier, rarity, god, heal, clear, meter.
+// The arena's buttons and keys: prev, next, one, pack, tier, rarity, god, heal, clear, meter, reqs.
 export function arenaAction(state, id, rng = Math.random) {
   const a = state.arena;
   if (!a) return false;
@@ -129,6 +130,7 @@ export function arenaAction(state, id, rng = Math.random) {
     case 'tier': a.tier = (a.tier + 1) % (MAX_TIER + 1); break;
     case 'rarity': a.rarity = cycleIn(RARITIES.map((r) => r.id), a.rarity); armArena(state); break;
     case 'god': a.god = !a.god; break;
+    case 'reqs': state.ignoreReqs = !state.ignoreReqs; break; // what weapons and armor ask of you: on or off
     case 'heal': state.player.hp = state.player.maxHp; state.player.mana = state.player.maxMana; break;
     case 'clear': state.enemies = []; state.enemyProjectiles = []; state.blasts = []; break;
     case 'meter': state.meter = newMeter(); break;
@@ -137,7 +139,7 @@ export function arenaAction(state, id, rng = Math.random) {
   return true;
 }
 
-export const ARENA_KEYS = { KeyZ: 'prev', KeyX: 'next', KeyF: 'one', KeyV: 'pack', KeyT: 'tier', KeyR: 'rarity', KeyG: 'god', KeyH: 'heal', KeyL: 'clear', KeyY: 'meter' };
+export const ARENA_KEYS = { KeyZ: 'prev', KeyX: 'next', KeyF: 'one', KeyV: 'pack', KeyT: 'tier', KeyR: 'rarity', KeyG: 'god', KeyH: 'heal', KeyL: 'clear', KeyY: 'meter', KeyU: 'reqs' };
 
 // Every tick: the fight clock of the meter runs while something is after you.
 export function updateArena(state, dt) {

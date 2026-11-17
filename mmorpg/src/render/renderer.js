@@ -32,6 +32,7 @@ import { drawTouchControls } from '../ui/touch-ui.js';
 import { drawArenaPanel } from '../ui/arena-ui.js';
 import { drawCharacter } from '../ui/character-ui.js';
 import { drawCreate } from '../ui/create-ui.js';
+import { canUse } from '../systems/requirements.js';
 import { drawMenu, drawMenuBackground } from '../ui/menu-ui.js';
 import { hotbarLayout } from '../core/touch.js';
 import { loadoutOf } from '../systems/loadout.js';
@@ -176,6 +177,20 @@ const GROUND_DETAIL = {
     for (let k = 3; k < TILE; k += 8) g.fillRect(x, y + k, TILE, 3);
   },
 };
+
+// A weapon the hero is not up to yet (systems/requirements.js): a red cross over its slot.
+function unusable(ctx, x, y, w, h) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(120,0,0,0.35)';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#ef5350';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x + 4, y + 4); ctx.lineTo(x + w - 4, y + h - 4);
+  ctx.moveTo(x + w - 4, y + 4); ctx.lineTo(x + 4, y + h - 4);
+  ctx.stroke();
+  ctx.restore();
+}
 
 export class Renderer {
   constructor(canvas) {
@@ -1433,6 +1448,7 @@ export class Renderer {
         ctx.lineWidth = 2;
         ctx.strokeRect(s.x, s.y, s.w, s.h);
         drawItemIcon(ctx, wp, s.x + s.w / 2, s.y + s.h / 2 - 2, { scale: 2 });
+        if (!canUse(state, wp)) unusable(ctx, s.x, s.y, s.w, s.h);
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'left';
         ctx.font = 'bold 12px monospace';
@@ -1449,7 +1465,7 @@ export class Renderer {
       });
       ctx.font = '14px monospace';
     } else {
-      const slotW = 150;
+      const slotW = Math.min(150, Math.floor((w - 20) / state.weapons.length)); // the arena's belt holds every kind
       const x0 = w / 2 - (state.weapons.length * slotW) / 2;
       state.weapons.forEach((wp, i) => {
         const sel = wp && wp === p.weapon;
@@ -1466,6 +1482,7 @@ export class Renderer {
         ctx.strokeStyle = rarityById(wp.rarity).color;
         ctx.lineWidth = 2;
         ctx.strokeRect(x0 + i * slotW, h - 44, slotW - 6, 34);
+        if (!canUse(state, wp)) unusable(ctx, x0 + i * slotW, h - 44, slotW - 6, 34);
         ctx.fillStyle = '#fff';
         const off = state.offhands?.[i];
         const sx = x0 + i * slotW;

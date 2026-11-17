@@ -1,7 +1,6 @@
 [
   {
     "id": "sword",
-    "scale": {"str": 0.02, "dex": 0.02},
     "type": "arc",
     "damage": 18,
     "cooldown": 0.45,
@@ -11,11 +10,11 @@
     "arc": 110,
     "color": "#cfd8dc",
     "reach": "ground",
-    "grip": "one"
+    "grip": "one",
+    "scale": {"str": 0.02, "dex": 0.02}
   },
   {
     "id": "spear",
-    "scale": {"str": 0.025, "dex": 0.025},
     "type": "thrust",
     "damage": 22,
     "cooldown": 0.65,
@@ -25,11 +24,12 @@
     "width": 18,
     "color": "#b0bec5",
     "reach": "ground",
-    "grip": "two"
+    "grip": "two",
+    "scale": {"str": 0.025, "dex": 0.025},
+    "req": {"str": 4, "dex": 4}
   },
   {
     "id": "bow",
-    "scale": {"dex": 0.03, "per": 0.02},
     "type": "projectile",
     "damage": 14,
     "cooldown": 0.55,
@@ -41,28 +41,32 @@
     "color": "#a1887f",
     "reach": "both",
     "grip": "two",
-    "ammoKind": "arrow"
+    "ammoKind": "arrow",
+    "scale": {"dex": 0.03, "per": 0.02},
+    "req": {"dex": 5, "per": 4},
+    "needs": ["archery"]
   },
   {
     "id": "staff",
-    "scale": {"int": 0.05},
     "type": "aoe",
     "damage": 26,
     "cooldown": 1.1,
     "recover": 0.4,
     "moveMult": 0.25,
     "delay": 0.45,
-    "mana": 12,
     "cap": 3,
+    "mana": 12,
     "range": 320,
     "radius": 70,
     "color": "#ba68c8",
     "reach": "both",
-    "grip": "two"
+    "grip": "two",
+    "scale": {"int": 0.05},
+    "req": {"int": 5},
+    "needs": ["arcane"]
   },
   {
     "id": "dagger",
-    "scale": {"dex": 0.04},
     "type": "arc",
     "damage": 8,
     "cooldown": 0.18,
@@ -72,11 +76,11 @@
     "arc": 70,
     "color": "#ffcc80",
     "reach": "ground",
-    "grip": "one"
+    "grip": "one",
+    "scale": {"dex": 0.04}
   },
   {
     "id": "crossbow",
-    "scale": {"per": 0.04},
     "type": "projectile",
     "damage": 30,
     "cooldown": 1.1,
@@ -88,6 +92,57 @@
     "color": "#bcaaa4",
     "reach": "both",
     "grip": "two",
-    "ammoKind": "bolt"
+    "ammoKind": "bolt",
+    "scale": {"per": 0.04},
+    "req": {"str": 5, "per": 5}
+  },
+  {
+    "id": "mace",
+    "type": "arc",
+    "damage": 16,
+    "cooldown": 0.55,
+    "recover": 0.3,
+    "moveMult": 0.5,
+    "range": 62,
+    "arc": 100,
+    "color": "#b0bec5",
+    "reach": "ground",
+    "grip": "one",
+    "scale": {"str": 0.04},
+    "req": {"str": 5}
+  },
+  {
+    "id": "greatsword",
+    "type": "arc",
+    "damage": 34,
+    "cooldown": 0.9,
+    "recover": 0.45,
+    "moveMult": 0.35,
+    "range": 86,
+    "arc": 140,
+    "color": "#eceff1",
+    "reach": "ground",
+    "grip": "two",
+    "scale": {"str": 0.05},
+    "req": {"str": 7},
+    "needs": ["heavyArms"]
+  },
+  {
+    "id": "wand",
+    "type": "projectile",
+    "damage": 9,
+    "cooldown": 0.4,
+    "recover": 0.12,
+    "moveMult": 0.7,
+    "mana": 3,
+    "range": 420,
+    "speed": 560,
+    "radius": 5,
+    "color": "#ce93d8",
+    "reach": "both",
+    "grip": "one",
+    "scale": {"int": 0.04},
+    "req": {"int": 4},
+    "needs": ["arcane"]
   }
 ]

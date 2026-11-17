@@ -70,7 +70,7 @@ export function toggleTraining(draft, id) {
 }
 
 // What a new hero gets to go with the training: a weapon to try it with (the sword is always there).
-export const STARTER_KIT = { heavyArms: 'spear', archery: 'bow', arcane: 'staff', dualWield: 'dagger' };
+export const STARTER_KIT = { heavyArms: 'greatsword', archery: 'bow', arcane: 'wand', dualWield: 'dagger' };
 
 // Points still free in the draft: lowering an attribute below the base frees points for others.
 export const draftLeft = (draft) => CREATE_POINTS - ATTRS.reduce((sum, id) => sum + draft.attrs[id] - BASE, 0);
