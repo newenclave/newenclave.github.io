@@ -30,6 +30,7 @@ import { drawSkillTree } from '../ui/skilltree-ui.js';
 import { drawInventory } from '../ui/inventory-ui.js';
 import { drawTouchControls } from '../ui/touch-ui.js';
 import { drawArenaPanel } from '../ui/arena-ui.js';
+import { drawCharacter } from '../ui/character-ui.js';
 import { drawMenu, drawMenuBackground } from '../ui/menu-ui.js';
 import { hotbarLayout } from '../core/touch.js';
 import { loadoutOf } from '../systems/loadout.js';
@@ -1504,6 +1505,11 @@ export class Renderer {
       ctx.fillText(t(touchMode ? 'hud.points.touch' : 'hud.points', { n: p.skillPoints }), 10, y);
       y += 18;
     }
+    if (p.attrPoints > 0) {
+      ctx.fillStyle = Math.floor(performance.now() / 400) % 2 ? '#ffd54f' : '#fff';
+      ctx.fillText(t(touchMode ? 'hud.attrPoints.touch' : 'hud.attrPoints', { n: p.attrPoints }), 10, y);
+      y += 18;
+    }
     this.drawQuestTracker(state, y + 4);
     this.drawBossBar(state, w, h);
     this.drawBoatHint(state, w, h);
@@ -1551,6 +1557,7 @@ export class Renderer {
     }
 
     if (state.ui.panel === 'skills') drawSkillTree(ctx, state, w, h);
+    else if (state.ui.panel === 'hero') drawCharacter(ctx, state, w, h);
     else if (state.ui.panel === 'inventory') drawInventory(ctx, state, w, h);
     else if (state.ui.panel === 'quests') drawDialog(ctx, state, w, h);
     else if (state.ui.panel === 'journal') drawJournal(ctx, state, w, h);

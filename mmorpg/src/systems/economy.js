@@ -12,16 +12,25 @@ export function itemScore(item) {
   return item.kind === 'pct' ? item.value * PCT_SCORE : item.value * (FLAT_SCORE[item.stat] ?? 1);
 }
 
-export function itemPrice(item) {
+function listPrice(item) {
   if (item.relic) return item.price ?? 100; // a relic of the old world has its own price
   if (item.slot === 'ammo') return Math.max(5, Math.round(item.count * item.unit)); // a stack costs what its shots cost
   return Math.max(5, Math.round(itemScore(item) * (RARITY_PRICE[item.rarity] ?? 1)));
 }
 
-export function sellPrice(item) {
-  return Math.max(1, Math.floor(itemPrice(item) * SELL_RATE));
+// Charisma bargains: buying is cheaper and selling dearer, by up to this much either way.
+export const MAX_BARTER = 0.3;
+const barterOf = (player) => Math.max(-MAX_BARTER, Math.min(MAX_BARTER, player?.stats?.barter ?? 0));
+
+// What a merchant asks for the item (from this hero, if one is given).
+export function itemPrice(item, player = null) {
+  return Math.max(1, Math.round(listPrice(item) * (1 - barterOf(player))));
+}
+
+export function sellPrice(item, player = null) {
+  return Math.max(1, Math.floor(listPrice(item) * SELL_RATE * (1 + barterOf(player))));
 }
 
 export function upgradeCost(item) {
-  return Math.round(itemPrice(item) * 0.5 + 30 * ((item.plus | 0) + 1));
+  return Math.round(listPrice(item) * 0.5 + 30 * ((item.plus | 0) + 1));
 }

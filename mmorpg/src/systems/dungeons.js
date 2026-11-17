@@ -383,7 +383,7 @@ export function updateChests(state, rng = Math.random) {
       const a = (i / items) * Math.PI * 2 + 0.5;
       state.drops.push(makeDrop(c.x + Math.cos(a) * 36, c.y + Math.sin(a) * 36, rollItemMin(state.catalog, c.minRarity ?? 'uncommon', rng, c.tier)));
     }
-    const gold = Math.round((25 + Math.floor(rng() * 25)) * (1 + 0.5 * c.tier));
+    const gold = Math.round((25 + Math.floor(rng() * 25)) * (1 + 0.5 * c.tier) * (1 + (p.stats?.goldFind ?? 0)));
     p.gold += gold;
     const pool = notePool(runId, state.area?.theme);
     if (pool) state.note = { key: noteKey(pool, runId, c.idx), t: 0 }; // someone left a few words in it

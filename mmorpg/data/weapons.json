@@ -1,6 +1,7 @@
 [
   {
     "id": "sword",
+    "scale": {"str": 0.02, "dex": 0.02},
     "type": "arc",
     "damage": 18,
     "cooldown": 0.45,
@@ -14,6 +15,7 @@
   },
   {
     "id": "spear",
+    "scale": {"str": 0.025, "dex": 0.025},
     "type": "thrust",
     "damage": 22,
     "cooldown": 0.65,
@@ -27,6 +29,7 @@
   },
   {
     "id": "bow",
+    "scale": {"dex": 0.03, "per": 0.02},
     "type": "projectile",
     "damage": 14,
     "cooldown": 0.55,
@@ -42,6 +45,7 @@
   },
   {
     "id": "staff",
+    "scale": {"int": 0.05},
     "type": "aoe",
     "damage": 26,
     "cooldown": 1.1,
@@ -57,6 +61,7 @@
   },
   {
     "id": "dagger",
+    "scale": {"dex": 0.04},
     "type": "arc",
     "damage": 8,
     "cooldown": 0.18,
@@ -70,6 +75,7 @@
   },
   {
     "id": "crossbow",
+    "scale": {"per": 0.04},
     "type": "projectile",
     "damage": 30,
     "cooldown": 1.1,

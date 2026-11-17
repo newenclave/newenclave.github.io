@@ -195,10 +195,10 @@ function actionFor(state) {
 
   if (mode === 'merchant') {
     if (sel.kind === 'stock') {
-      const price = itemPrice(item);
+      const price = itemPrice(item, state.player);
       return { label: t('shop.buy', { price }), enabled: gold >= price, canDrop: false };
     }
-    if (sel.kind === 'inv') return { label: t('shop.sell', { price: sellPrice(item) }), enabled: true, canDrop: false };
+    if (sel.kind === 'inv') return { label: t('shop.sell', { price: sellPrice(item, state.player) }), enabled: true, canDrop: false };
     return null;
   }
   if (mode === 'blacksmith') {
@@ -221,7 +221,7 @@ function priceLine(state, item) {
   const mode = modeOf(state);
   const sel = state.ui.selected;
   if (mode === 'merchant') {
-    return sel?.kind === 'stock' ? t('shop.price', { n: itemPrice(item) }) : t('shop.sellsFor', { n: sellPrice(item) });
+    return sel?.kind === 'stock' ? t('shop.price', { n: itemPrice(item, state.player) }) : t('shop.sellsFor', { n: sellPrice(item, state.player) });
   }
   if (mode === 'blacksmith') return t('shop.level', { n: item.plus | 0, max: MAX_PLUS });
   return null;

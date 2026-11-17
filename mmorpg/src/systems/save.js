@@ -1,4 +1,5 @@
 import { recalcStats } from './stats.js';
+import { ATTRS, MIN as ATTR_MIN, MAX as ATTR_MAX, baseAttrs, CREATE_POINTS, PER_LEVEL } from './attributes.js';
 import { INV_SIZE } from './inventory.js';
 import { MAX_PLUS } from './economy.js';
 import { ensureTracked } from './quests.js';
@@ -56,7 +57,7 @@ export function serializeState(state, seed) {
     savedAt: Date.now(),
     player: {
       x: ow ? ow.x : p.x, y: ow ? ow.y : p.y, hp: p.hp, level: p.level, xp: p.xp, skillPoints: p.skillPoints, gold: p.gold,
-      ranks: { ...p.ranks }, weaponIndex: Math.max(0, state.weapons.indexOf(p.weapon)),
+      ranks: { ...p.ranks }, attrs: { ...(p.attrs ?? baseAttrs()) }, attrPoints: p.attrPoints | 0, weaponIndex: Math.max(0, state.weapons.indexOf(p.weapon)),
       tracked: p.tracked ?? null,
       boat: !!p.boat, boating: !!p.boating,
       // a quest that ended with a choice keeps it, and when (systems/deeds.js); a side quest also what you picked, and
@@ -141,6 +142,14 @@ export function applySave(state, data, seed) {
   p.level = Math.round(num(s.level, 1, MAX_LEVEL, 1));
   p.xp = num(s.xp, 0, 1e9, 0);
   p.skillPoints = Math.round(num(s.skillPoints, 0, 1000, 0));
+  // the attributes; a save from before them starts at the base with every point it would have had to spend
+  p.attrs = baseAttrs();
+  if (s.attrs && typeof s.attrs === 'object') {
+    for (const id of ATTRS) p.attrs[id] = Math.round(num(s.attrs[id], ATTR_MIN, ATTR_MAX, p.attrs[id]));
+    p.attrPoints = Math.round(num(s.attrPoints, 0, 1000, 0));
+  } else {
+    p.attrPoints = CREATE_POINTS + PER_LEVEL * (p.level - 1);
+  }
   p.ranks = {};
   for (const node of state.skills) {
     const r = Math.round(num(s.ranks?.[node.id], 0, node.maxRank, 0));

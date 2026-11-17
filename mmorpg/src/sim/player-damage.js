@@ -18,7 +18,7 @@ export function damagePlayer(state, amount, from = null) {
   state.floaters.push({ x: p.x, y: p.y - 24, text: String(Math.round(taken)), color: '#ff5252', t: 0, dur: 0.8 });
   if (hitFromBehind(p, from)) {
     if (!(p.dazed > 0)) state.floaters.push({ x: p.x, y: p.y - 44, key: 'combat.dazed', color: '#ffcc80', t: 0, dur: 1.2 });
-    p.dazed = DAZE_TIME;
+    p.dazed = DAZE_TIME * Math.max(0.3, 1 - (p.stats?.toughness ?? 0)); // endurance shakes it off sooner
   }
   if (p.hp <= 0) {
     p.hp = 0;

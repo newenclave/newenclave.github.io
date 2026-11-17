@@ -262,7 +262,7 @@ export function turnIn(state, id, townId, choice = null) {
   if (choices.length ? !choices.includes(choice) : choice) return { error: 'choice' };
   const p = state.player;
   const r = rewardOf(def, choice);
-  p.gold += r.gold ?? 0;
+  p.gold += Math.round((r.gold ?? 0) * (1 + Math.max(0, p.stats?.rewardBonus ?? 0))); // charisma talks the reward up
   if (r.xp) grantXp(state, r.xp);
   if (r.item) {
     const base = state.catalog[r.item.slot]?.find((b) => b.id === r.item.id);

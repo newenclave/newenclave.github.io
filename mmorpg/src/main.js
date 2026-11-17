@@ -17,6 +17,8 @@ import { updateLairs } from './systems/lairs.js';
 import { buildItem, rarityById } from './sim/loot.js';
 import { recalcStats } from './systems/stats.js';
 import { rankUp } from './systems/skilltree.js';
+import { baseAttrs, raiseAttr, CREATE_POINTS } from './systems/attributes.js';
+import { hitCharacter } from './ui/character-ui.js';
 import { emptyInventory, updateDrops, clickInventory, quickAction } from './systems/inventory.js';
 import { openShop } from './systems/shop.js';
 import { acceptQuest, turnIn, onVisit, clickJournal, ensureTracked, recallBosses, listForGiver, QUEST_ROLES } from './systems/quests.js';
@@ -250,6 +252,7 @@ function updatePlayer(state, input, world) {
     touch.releaseAll();
   };
   if (input.wasPressed('KeyK') || touch.pressed.has('skills')) toggle('skills');
+  if (input.wasPressed('KeyC') || touch.pressed.has('hero')) toggle('hero');
   if (input.wasPressed('KeyI') || touch.pressed.has('bag')) toggle('inventory');
   if (input.wasPressed('KeyJ') || touch.pressed.has('journal')) toggle('journal');
   if (input.wasPressed('KeyM') || touch.pressed.has('map')) toggle('map');
@@ -275,6 +278,7 @@ function updatePlayer(state, input, world) {
   }
   if (touch.pressed.has('menu') && !ui.panel) state.wantPause = true;
   if (ui.panel === 'skills') handleSkillClicks(state, input);
+  else if (ui.panel === 'hero') handleCharacterClicks(state, input);
   else if (ui.panel === 'inventory') handleInventoryClicks(state, input);
   else if (ui.panel === 'quests') handleQuestClicks(state, input);
   else if (ui.panel === 'journal') handleJournalClicks(state, input);
@@ -349,6 +353,20 @@ function handleSkillClicks(state, input) {
     // touch has no hover: first tap selects (shows tooltip), second tap learns
     if (c.touch && state.ui.selectedSkill !== node.id) state.ui.selectedSkill = node.id;
     else rankUp(state, node.id);
+  }
+}
+
+function handleCharacterClicks(state, input) {
+  const clicks = [...input.clicks, ...input.touch.taps];
+  for (const c of clicks) {
+    const hit = hitCharacter(state, c.x, c.y, innerWidth, innerHeight);
+    if (!hit) continue;
+    if (hit.kind === 'close') {
+      state.ui.panel = null;
+      return;
+    }
+    state.ui.selectedAttr = hit.id; // touch has no hover: a tap on a row shows what it does
+    if (hit.kind === 'plus') raiseAttr(state, hit.id);
   }
 }
 
@@ -544,9 +562,11 @@ function createGame({ assets, seed, gen = MAP_GEN, saveData, settings, input, ar
       ...spawn, weapon: hotbar[0], cooldown: 0, rollTime: 0, rollCooldown: 0, rollDir: { x: 0, y: 0 },
       hp: PLAYER_MAX_HP, maxHp: PLAYER_MAX_HP, hurt: 0, sinceHit: 99,
       level: 1, xp: 0, skillPoints: 0, ranks: {}, stats: null, facing: { x: 1, y: 0 },
+      attrs: baseAttrs(), attrPoints: CREATE_POINTS, // the seven attributes (systems/attributes.js)
       cooldownOff: 0, equipment: emptyEquipment(), gold: 0, quests: {}, tracked: null, boat: false, boating: false,
       items: {}, // things carried for quests (systems/sidequests.js)
     },
+    attrDefs: assets.attrDefs ?? [],
     skills: skillData.nodes,
     skillBranches: skillData.branches,
     skillIndex: new Map(skillData.nodes.map((n) => [n.id, n])),
@@ -815,7 +835,7 @@ function stepGame(game, input, dt) {
 async function main() {
   const canvas = document.getElementById('game');
   const settings = loadSettings();
-  const [biomes, weapons, enemyDefs, skillData, armor, accessories, questDefs, bossDefs, dungeonDefs, ammoData, relicData, campDefs, mainMap, sideStories] = await Promise.all([
+  const [biomes, weapons, enemyDefs, skillData, armor, accessories, questDefs, bossDefs, dungeonDefs, ammoData, relicData, campDefs, mainMap, sideStories, attrDefs] = await Promise.all([
     loadJson('data/biomes.json'),
     loadJson('data/weapons.json'),
     loadJson('data/enemies.json'),
@@ -830,9 +850,10 @@ async function main() {
     loadJson('data/camps.json'),
     loadJson('data/maps/main.json'),
     loadJson('data/sidestories.json'),
+    loadJson('data/attributes.json'),
     loadLang(settings.lang),
   ]);
-  const assets = { biomes, weapons, enemyDefs, skillData, armor, accessories, questDefs, bossDefs, dungeonDefs, ammoData, relicData, campDefs, maps: { main: mainMap }, sideStories };
+  const assets = { biomes, weapons, enemyDefs, skillData, armor, accessories, questDefs, bossDefs, dungeonDefs, ammoData, relicData, campDefs, maps: { main: mainMap }, sideStories, attrDefs };
   const input = new Input(canvas);
   input.touch.setMode(settings.touch);
   const renderer = new Renderer(canvas);

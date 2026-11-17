@@ -6,7 +6,7 @@ const DEADZONE = 0.12;
 
 // Window buttons sit in one row left of the minimap, so they never collide with the action buttons below.
 const TOP_ROW = ['skills', 'bag', 'journal', 'map', 'menu'];
-const SECOND_ROW = ['bestiary'];
+const SECOND_ROW = ['bestiary', 'hero'];
 
 export function buttonLayout(w, h) {
   return [

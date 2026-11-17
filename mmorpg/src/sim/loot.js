@@ -34,8 +34,9 @@ export function rarityById(id) {
 }
 
 // A rarity for a place of this danger tier (no tier: the middle of the world).
-export function rollRarity(rng = Math.random, tier = 2) {
-  const w = tierRow(tier);
+// Luck (`luck`, from the attributes) makes rare and better things that much likelier.
+export function rollRarity(rng = Math.random, tier = 2, luck = 0) {
+  const w = tierRow(tier).map((x, i) => (i >= 2 ? x * Math.max(0.5, 1 + luck) : x));
   let roll = rng() * w.reduce((s, x) => s + x, 0);
   for (let i = 0; i < RARITIES.length; i++) {
     roll -= w[i];
@@ -79,11 +80,11 @@ function rollSlot(catalog, rng) {
 }
 
 // A random item for a place of this danger tier: its kind, its base (what fits the tier) and its rarity.
-export function rollItem(catalog, rng = Math.random, tier = 2) {
+export function rollItem(catalog, rng = Math.random, tier = 2, luck = 0) {
   const slot = rollSlot(catalog, rng);
   const list = basesFor(catalog[slot], tier);
   const base = list[Math.floor(rng() * list.length)];
-  return buildItem(slot, base, rollRarity(rng, tier).id);
+  return buildItem(slot, base, rollRarity(rng, tier, luck).id);
 }
 
 // Like rollItem, but never worse than minRarity (chests and bosses). Above it, the tier decides as usual; where the tier
@@ -109,5 +110,5 @@ export function makeDrop(x, y, item, delay = 0) {
 
 export function dropLoot(state, enemy) {
   if (Math.random() >= enemy.def.drop) return;
-  state.drops.push(makeDrop(enemy.x, enemy.y, rollItem(state.catalog, Math.random, enemy.tier ?? 0)));
+  state.drops.push(makeDrop(enemy.x, enemy.y, rollItem(state.catalog, Math.random, enemy.tier ?? 0, state.player?.stats?.rarityLuck ?? 0)));
 }

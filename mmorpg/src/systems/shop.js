@@ -44,7 +44,7 @@ export function openShop(state, town, npc = null) {
 export function buyStock(state, idx) {
   const item = state.shop?.stock[idx];
   if (!item) return { error: 'none' };
-  const price = itemPrice(item);
+  const price = itemPrice(item, state.player);
   if (state.player.gold < price) return { error: 'gold' };
   if (!fitsInBackpack(state.inventory, item)) return { error: 'full' };
   state.player.gold -= price;
@@ -56,7 +56,7 @@ export function buyStock(state, idx) {
 export function sellFromInventory(state, idx) {
   const item = state.inventory[idx];
   if (!item) return { error: 'none' };
-  state.player.gold += sellPrice(item);
+  state.player.gold += sellPrice(item, state.player);
   state.inventory[idx] = null;
   return { ok: true };
 }

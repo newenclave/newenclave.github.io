@@ -10,7 +10,8 @@ const FAR_SIGHT = 1.4; // safety glasses (a relic): see this much farther below 
 // How far you see right now, in tiles: farther below ground with something on that gives far sight.
 export function sightOf(state) {
   const far = state.area && Object.values(state.player?.equipment ?? {}).some((it) => it?.effect === 'farSight');
-  return far ? Math.round(SIGHT * FAR_SIGHT) : SIGHT;
+  const own = SIGHT + Math.trunc(state.player?.stats?.sight ?? 0); // perception: a tile more for every two points
+  return far ? Math.round(own * FAR_SIGHT) : own;
 }
 export const MAX_SAVED_CHUNKS = 4000;
 

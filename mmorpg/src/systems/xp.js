@@ -1,4 +1,5 @@
 import { recalcStats } from './stats.js';
+import { PER_LEVEL } from './attributes.js';
 
 export const xpToNext = (level) => Math.round(40 * Math.pow(level, 1.4));
 
@@ -10,6 +11,7 @@ export function grantXp(state, amount) {
     p.xp -= xpToNext(p.level);
     p.level++;
     p.skillPoints++;
+    p.attrPoints = (p.attrPoints | 0) + PER_LEVEL;
     leveled = true;
   }
   if (leveled) {

@@ -181,7 +181,7 @@ export function quickAction(state, region) {
       return { armed: true };
     }
     ui.sellArmed = null;
-    const price = sellPrice(item);
+    const price = sellPrice(item, state.player);
     pick({ kind: 'inv', index: region.index });
     const r = runAction(state, mode, ui.selected);
     return r.error ? r : { sold: true, price };

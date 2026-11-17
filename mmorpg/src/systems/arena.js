@@ -59,12 +59,15 @@ export function enterArena(state) {
   state.area = { kind: 'arena', id: 'arena', theme: 'crypt', tier: 0, entrance: { id: 'arena', ...spawn, px: spawn.x, py: spawn.y }, spawn, exits: [] };
   state.arena = { sel: state.enemyDefs.findIndex((d) => d.id === 'wolf'), tier: 0, rarity: 'common', god: false, n: 0 };
   state.meter = newMeter();
+  p.attrPoints = ARENA_ATTR_POINTS; // to try builds with (the sheet, key C)
   p.x = spawn.x;
   p.y = spawn.y;
   armArena(state);
   updateExploration(state, dungeon);
   return dungeon;
 }
+
+export const ARENA_ATTR_POINTS = 50;
 
 // Every weapon in the hotbar, at the arena's rarity.
 function armArena(state) {
@@ -134,7 +137,7 @@ export function arenaAction(state, id, rng = Math.random) {
   return true;
 }
 
-export const ARENA_KEYS = { KeyZ: 'prev', KeyX: 'next', KeyC: 'one', KeyV: 'pack', KeyT: 'tier', KeyR: 'rarity', KeyG: 'god', KeyH: 'heal', KeyL: 'clear', KeyY: 'meter' };
+export const ARENA_KEYS = { KeyZ: 'prev', KeyX: 'next', KeyF: 'one', KeyV: 'pack', KeyT: 'tier', KeyR: 'rarity', KeyG: 'god', KeyH: 'heal', KeyL: 'clear', KeyY: 'meter' };
 
 // Every tick: the fight clock of the meter runs while something is after you.
 export function updateArena(state, dt) {

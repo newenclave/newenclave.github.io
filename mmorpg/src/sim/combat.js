@@ -9,6 +9,7 @@ import { onKill } from '../systems/quests.js';
 import { recordKill } from '../systems/bestiary.js';
 import { loadoutOf, slotOf, OFFHAND_DAMAGE } from '../systems/loadout.js';
 import { applyDot, applySlow, DOT_STEP } from './status.js';
+import { scaleBonus } from '../systems/attributes.js';
 
 export { damagePlayer }; // kept here too: it is part of the combat API
 
@@ -22,10 +23,17 @@ export function angleDiff(a, b) {
   return Math.abs(d);
 }
 
-export function rollDamage(player, weapon, rng = Math.random) {
+// What a blow of this weapon does without a critical hit: the weapon's damage, raised by the skills and by the
+// weapon's own attributes (its `scale`: a bow grows with dexterity, a staff with intellect).
+export function hitAmount(player, weapon) {
   const s = player.stats;
   const classBonus = MELEE_TYPES.has(weapon.type) ? s.meleeDamage : s.rangedDamage;
-  let amount = weapon.damage * (1 + s.damage + classBonus);
+  return weapon.damage * Math.max(0.1, 1 + s.damage + classBonus + scaleBonus(player, weapon));
+}
+
+export function rollDamage(player, weapon, rng = Math.random) {
+  const s = player.stats;
+  let amount = hitAmount(player, weapon);
   const crit = rng() < s.critChance;
   if (crit) amount *= 1.5 + s.critDamage;
   return { amount, crit };
@@ -50,7 +58,7 @@ export function damageEnemy(state, enemy, hit) {
     p.hp = Math.min(p.maxHp, p.hp + p.stats.lifeOnKill);
     grantXp(state, enemy.xp ?? enemy.def.xp); // tougher monsters (farther from the start) pay more
     const [lo, hi] = enemy.def.gold ?? [0, 0];
-    const gold = Math.round((lo + Math.floor(Math.random() * (hi - lo + 1))) * (enemy.goldMult ?? 1));
+    const gold = Math.round((lo + Math.floor(Math.random() * (hi - lo + 1))) * (enemy.goldMult ?? 1) * (1 + (p.stats?.goldFind ?? 0)));
     if (gold > 0) {
       p.gold += gold;
       state.floaters.push({ x: enemy.x, y: enemy.y - 36, text: `+${gold}g`, color: '#ffd54f', t: 0, dur: 1 });
@@ -102,10 +110,13 @@ export function tickPlayerCombat(p, dt) {
 function dragAfter(player, w, ang) {
   if (!(w.recover > 0)) return;
   if (player.drag > 0 && (player.dragMult ?? 1) < (w.moveMult ?? 1)) return; // a heavier blow still holds you
-  player.drag = w.recover;
+  player.drag = w.recover * toughFactor(player); // endurance shortens it
   player.dragMult = w.moveMult ?? 1;
   player.dragAim = ang;
 }
+
+// Endurance makes the daze and the drag after a blow shorter (and a weak body makes them longer).
+export const toughFactor = (p) => Math.max(0.3, 1 - (p.stats?.toughness ?? 0));
 
 // Area damage has a soft cap (WoW, patch 9.1.5): past `cap` targets every one of them takes sqrt(cap / n) of the hit.
 export const aoeShare = (n, cap) => (n > cap ? Math.sqrt(cap / n) : 1);
@@ -193,7 +204,7 @@ function swing(state, player, aim, w, { mult = 1, ammo = null } = {}) {
     case 'projectile': {
       const shot = {
         x: player.x, y: player.y, vx: Math.cos(ang) * w.speed, vy: Math.sin(ang) * w.speed,
-        left: w.range, r: w.radius, hit: hit(), color: w.color,
+        left: w.range * Math.max(0.5, 1 + (player.stats?.range ?? 0)), r: w.radius, hit: hit(), color: w.color, // perception carries it farther
       };
       const fx = ammo && state.ammoEffects?.[ammo.effect];
       if (fx) { // special ammo: the effect travels with the shot

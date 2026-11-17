@@ -43,13 +43,14 @@ export function drawTouchControls(ctx, touch, state, w, h) {
     }
     ctx.fillStyle = '#fff';
     ctx.fillText(t('touch.' + b.id), b.x, b.y + 5);
-    if (b.id === 'skills' && p.skillPoints > 0) {
+    const badge = b.id === 'skills' ? p.skillPoints : b.id === 'hero' ? p.attrPoints : 0; // points to spend
+    if (badge > 0) {
       ctx.fillStyle = '#ffd54f';
       ctx.beginPath();
       ctx.arc(b.x + b.r * 0.7, b.y - b.r * 0.7, 9, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#000';
-      ctx.fillText(String(p.skillPoints), b.x + b.r * 0.7, b.y - b.r * 0.7 + 4);
+      ctx.fillText(String(badge), b.x + b.r * 0.7, b.y - b.r * 0.7 + 4);
     }
   }
 
