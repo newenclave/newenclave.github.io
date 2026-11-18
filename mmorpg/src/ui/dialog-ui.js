@@ -2,7 +2,7 @@ import { t } from '../core/i18n.js';
 import { learnedSet, respecCost } from '../systems/skilltree.js';
 import { wrapText } from '../core/format.js';
 import { questArgs, questTitle, questSpeech, objectiveText, rewardText } from './quest-ui.js';
-import { questDef, giverRole, listForGiver } from '../systems/quests.js';
+import { questDef, giverRole, listForGiver, isMain } from '../systems/quests.js';
 import { elderLine } from '../systems/lore.js';
 import { eventText } from './chronicle-ui.js';
 import { answersOf, deedsIn, greetsBy, echoKeys, rewardOf } from '../systems/deeds.js';
@@ -173,7 +173,7 @@ function topics(state, role) {
   const out = [];
   for (const r of rows.filter((r) => r.status === 'complete')) out.push({ kind: 'done', id: r.def.id, text: t('dlg.ask.done', { title: questTitle(r.def) }) });
   // story quests first: the one trouble they tell you about now
-  const open = rows.filter((r) => r.status === 'available' && !d.skipped.includes(r.def.id)).sort((a, b) => (b.def.story ? 1 : 0) - (a.def.story ? 1 : 0));
+  const open = rows.filter((r) => r.status === 'available' && !d.skipped.includes(r.def.id)).sort((a, b) => (isMain(b.def) ? 1 : 0) - (isMain(a.def) ? 1 : 0));
   if (open.length) {
     out.push({ kind: 'ask', id: open[0].def.id, text: pick(d.asked ? 'ask.else' : 'ask.trouble', state.ui.questTown + role, {}, 'dlg.fallback.ask') });
   }

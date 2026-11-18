@@ -1,6 +1,6 @@
 import { t } from '../core/i18n.js';
 import { TILE, CHUNK, BIOME_IDS } from '../world/world.js';
-import { trackedWaypoint } from '../systems/quests.js';
+import { guideWaypoint } from '../systems/quests.js';
 import { lairById, LAIR_ID } from '../systems/lairs.js';
 import { entranceById, DUNGEON_ID } from '../systems/dungeons.js';
 
@@ -174,7 +174,7 @@ export class WorldMapView {
       ctx.fillText(name, x, y - 12);
     }
 
-    const wp = trackedWaypoint(state, this.world);
+    const wp = guideWaypoint(state, this.world);
     if (wp) {
       const x = sx(wp.tx);
       const y = sy(wp.ty);

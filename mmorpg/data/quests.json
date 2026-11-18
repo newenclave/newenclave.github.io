@@ -1,6 +1,6 @@
 [
-  { "id": "q_slimes",     "giver": "0,0", "kind": "kill", "target": "slime",    "count": 5,  "reward": { "gold": 40,  "xp": 60 } },
-  { "id": "q_wolves",     "giver": "0,0", "kind": "kill", "target": "wolf",     "count": 4,  "requires": "q_slimes",
+  { "id": "q_slimes",     "giver": "0,0", "kind": "kill", "target": "slime",    "count": 5,  "main": true, "reward": { "gold": 40,  "xp": 60 } },
+  { "id": "q_wolves",     "giver": "0,0", "kind": "kill", "target": "wolf",     "count": 4,  "requires": "q_slimes", "main": true,
     "reward": { "gold": 80, "xp": 100 } },
   { "id": "q_scorpions",  "giver": "0,0", "kind": "kill", "target": "scorpion", "count": 4,  "requires": "q_slimes",
     "reward": { "gold": 80, "xp": 100, "item": { "slot": "armor", "id": "chain", "rarity": "uncommon" } } },
@@ -8,7 +8,7 @@
     "reward": { "gold": 250, "xp": 300, "item": { "slot": "weapon", "id": "spear", "rarity": "rare" } } },
   { "id": "q_cull",       "giver": "0,0", "kind": "kill", "target": "any",      "count": 20, "requires": "q_wolves",
     "reward": { "gold": 200, "xp": 250 } },
-  { "id": "q_packleader", "giver": "0,0", "kind": "kill", "target": "wolf",     "count": 10, "requires": "q_cull",
+  { "id": "q_packleader", "giver": "0,0", "kind": "kill", "target": "wolf",     "count": 10, "requires": "q_wolves", "main": true,
     "reward": { "gold": 300, "xp": 400, "item": { "slot": "accessory", "id": "ring_precision", "rarity": "rare" } } },
   { "id": "q_gate_1",    "giver": "0,0", "npc": "captain",   "kind": "kill", "target": "wolf",  "count": 6,  "requires": "q_slimes",
     "reward": { "gold": 70, "xp": 90 } },

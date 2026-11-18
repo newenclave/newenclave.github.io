@@ -30,6 +30,9 @@ export const turnInRole = (def) => (turnInTown(def) === def.giver ? giverRole(de
 export const roleIn = (town, role) => (town?.npcs?.some((n) => n.id === role || n.person === role) ? role : 'elder');
 const npcFor = (town, role) => town?.npcs?.find((n) => n.person === role) ?? town?.npcs?.find((n) => n.id === role && !n.person);
 
+// The main line: the story acts (`story`) and the quests of the first town that lead to them (`main`).
+export const isMain = (def) => !!(def?.story || def?.main);
+
 export const QUEST_ROLES = ['elder', 'priest', 'captain', 'innkeeper', 'chronicler', 'ruler']; // people who give quests
 
 // `requires`: a quest id, or a list of them (all must be done). "quest:choice" asks for that quest done with that answer
@@ -126,7 +129,7 @@ export function acceptQuest(state, id) {
   // the choice at the Ring made before this quest was taken: it is done already, take it back to the capital
   state.player.quests[id] = { status: 'active', progress: def.kind === 'ending' && state.ending ? def.count : 0 };
   if (def.side) onSideAccept(state, def, state.player.quests[id]); // a letter in your hands, a thing already found
-  if (!state.player.tracked) state.player.tracked = id; // the first quest becomes the current one
+  if (!isActive(state, state.player.tracked) || isMain(def)) state.player.tracked = id; // the first quest becomes the current one; the main line always does
   recallBosses(state);
   return { ok: true };
 }
@@ -221,6 +224,29 @@ export function trackedWaypoint(state, world) {
   const target = def && waypointTarget(state, world, def);
   return target ? { ...target, def } : null;
 }
+
+// The next step of the main line you have not taken yet: a quest of it someone would give you now. null when there is
+// none (one is under way and the next is not open yet, or the story is over).
+export function nextMainStep(state) {
+  return state.questDefs.find((def) => isMain(def) && !questEntry(state, def.id) && isUnlocked(state, def)) ?? null;
+}
+
+// Where to go for it: the person who gives it.
+export function mainStepWaypoint(state, world) {
+  const def = nextMainStep(state);
+  if (!def || world.isDungeon) return null;
+  const town = world.getTownById?.(def.giver);
+  if (!town) return null;
+  const npc = npcFor(town, roleIn(town, giverRole(def)));
+  const at = npc ?? { x: town.px, y: town.py };
+  return {
+    id: town.id, x: at.x, y: at.y, tx: Math.floor(at.x / TILE), ty: Math.floor(at.y / TILE), def, next: true,
+    nameKey: 'npc.' + (npc ? npc.person ?? npc.id : 'elder'), townKey: 'town.name.' + town.nameIndex, kind: npc ? 'npc' : 'town',
+  };
+}
+
+// What the arrow follows: the current quest, or with none, the next step of the main line (a new hero: the elder).
+export const guideWaypoint = (state, world) => (state.player.tracked && isActive(state, state.player.tracked) ? trackedWaypoint(state, world) : mainStepWaypoint(state, world));
 
 // Clicks in the journal window. A click on a row selects it and makes it the current quest
 // (clicking the current one again clears it). Abandoning needs two clicks.

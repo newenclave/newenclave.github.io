@@ -1,5 +1,5 @@
 import { TILE, CHUNK, BIOME_IDS, TOWN_RADIUS_PX } from '../world/world.js';
-import { listForGiver, activeQuests, trackedWaypoint, QUEST_ROLES } from '../systems/quests.js';
+import { listForGiver, activeQuests, trackedWaypoint, guideWaypoint, mainStepWaypoint, isMain, QUEST_ROLES } from '../systems/quests.js';
 import { questTitle, objectiveText, questArgs } from '../ui/quest-ui.js';
 import { drawDialog } from '../ui/dialog-ui.js';
 import { artName } from '../ui/chronicle-ui.js';
@@ -668,7 +668,7 @@ export class Renderer {
   }
 
   drawWaypointArrow(state, player) {
-    const wp = trackedWaypoint(state, this.world);
+    const wp = guideWaypoint(state, this.world);
     if (!wp || state.dead) return;
     const dx = wp.x - player.x;
     const dy = wp.y - player.y;
@@ -703,7 +703,7 @@ export class Renderer {
 
   // Ring on the minimap at the tracked destination; pinned to the edge when it is out of range.
   drawMinimapWaypoint(state, player, w, ms) {
-    const wp = trackedWaypoint(state, this.world);
+    const wp = guideWaypoint(state, this.world);
     if (!wp) return;
     const { ctx } = this;
     const scale = ms / 160 / (((this.world.isDungeon ? 1 : 4) * TILE) / 2); // minimap pixels per world pixel
@@ -736,13 +736,25 @@ export class Renderer {
     const p = state.player;
     const list = activeQuests(state).sort((a, b) => (b.def.id === p.tracked) - (a.def.id === p.tracked));
     ctx.textAlign = 'left';
+    const title = (def) => (isMain(def) ? t('hud.story', { title: questTitle(def) }) : questTitle(def));
+    const next = mainStepWaypoint(state, this.world); // the main line goes on with someone you have not spoken to yet
+    if (next) {
+      const tiles = Math.round(Math.hypot(next.x - p.x, next.y - p.y) / TILE);
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillStyle = '#ffab40';
+      ctx.fillText(t('hud.story.next'), 10, y);
+      ctx.font = '12px monospace';
+      ctx.fillStyle = '#90caf9';
+      ctx.fillText(t('hud.story.talk', { who: t(next.nameKey), town: t(next.townKey), n: tiles }), 10, y + 15);
+      y += 34;
+    }
     for (const { def, entry } of list) {
       const ready = entry.progress >= def.count;
       const progress = def.kind === 'kill' || def.kind === 'gather' ? ` ${entry.progress}/${def.count}` : '';
       if (def.id === p.tracked) {
         ctx.font = 'bold 13px sans-serif';
-        ctx.fillStyle = '#ffd54f';
-        ctx.fillText(`★ ${questTitle(def)}`, 10, y);
+        ctx.fillStyle = isMain(def) ? '#ffab40' : '#ffd54f';
+        ctx.fillText(`★ ${title(def)}`, 10, y);
         ctx.font = '12px monospace';
         ctx.fillStyle = ready ? '#9ccc65' : '#fff';
         ctx.fillText(ready ? t('journal.ready') : objectiveText(def) + progress, 10, y + 15);
@@ -762,7 +774,7 @@ export class Renderer {
       } else {
         ctx.font = '11px monospace';
         ctx.fillStyle = ready ? '#9ccc65' : '#999';
-        ctx.fillText(`${questTitle(def)}${progress}`, 10, y);
+        ctx.fillText(`${title(def)}${progress}`, 10, y);
         y += 14;
       }
     }
@@ -1418,7 +1430,7 @@ export class Renderer {
       const ready = rows.find((r) => r.status === 'complete');
       const open = rows.filter((r) => r.status === 'available');
       if (ready || open.length) {
-        const story = (ready ?? open.find((r) => r.def.story) ?? open[0]).def.story || open.some((r) => r.def.story);
+        const story = isMain((ready ?? open.find((r) => isMain(r.def)) ?? open[0]).def) || open.some((r) => isMain(r.def));
         ctx.font = story ? 'bold 26px sans-serif' : 'bold 22px sans-serif';
         ctx.fillStyle = ready ? '#9ccc65' : story ? '#ff9800' : '#ffd54f';
         ctx.lineWidth = 3;

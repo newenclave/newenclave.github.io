@@ -748,7 +748,7 @@ function createGame({ assets, seed, gen = MAP_GEN, saveData, settings, input, ar
   else if (!loaded) { // a new game: first you make the hero (ui/create-ui.js), then how you got here (docs/prologue.md)
     state.ui.panel = 'create';
     state.ui.create = newDraft();
-    state.ui.afterCreate = { text: [0, 1, 2, 3].map((i) => t('intro.' + i)).join(' '), title: 'intro.title', t: 0, dur: 20 };
+    state.ui.afterCreate = { text: [0, 1, 2, 3, 'goal'].map((i) => t('intro.' + i)).join(' '), title: 'intro.title', t: 0, dur: 20 };
   }
   if (!saveData && startStory(state, storyFromUrl())) { // a shortcut into the story: no hero to make, no prologue
     state.note = null;
