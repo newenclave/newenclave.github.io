@@ -2,7 +2,8 @@
 // pair, so it is never saved. In order: the shape of the land and the northern wall, mountain chains and lakes,
 // rivers, the start, regions and how far each is from the start on foot, the places of the recipe and the biomes,
 // the tiles, the spots for towns, lairs, dungeons, camps and valleys, roads, and a last check that everything that
-// must be reached on foot can be (cutting a way through where it cannot).
+// must be reached on foot can be (cutting a way through where it cannot). With `relief` (generator 5) the land also has
+// levels of height, cliffs between them and ramps up them (relief.js).
 // Coordinates: the arrays are N×N from (0,0) at the north-west; the world puts the start town's centre at tile (0,0),
 // so world tile = array index + (x0, y0).
 import { fbm } from '../../core/noise.js';
@@ -12,21 +13,22 @@ import { K, isMount, shapeLand, raiseMountains, coarsen, runRivers, cutRegions }
 import { F, chooseStart, measure, assignPlaces, placeSites } from './places.js';
 import { buildRoads } from './roads.js';
 import { Heap, fingerprint } from './util.js';
+import { shapeRelief, rampUp, makeRamp, stepOk } from './relief.js';
 
 const ID = Object.fromEntries(BIOME_IDS.map((n, i) => [n, i]));
 const TOWN_TILES = { [TT.STREET]: ID.town, [TT.YARD]: ID.yard, [TT.HOUSE]: ID.house, [TT.WALL]: ID.town_wall, [TT.FIELD]: ID.field };
 
 const memo = new Map(); // "seed:recipe" -> map (the last few)
 
-export function generateMap(seed, recipe, walkable, { fresh = false } = {}) {
-  const key = seed + ':' + recipe.id;
+export function generateMap(seed, recipe, walkable, { fresh = false, relief = false } = {}) {
+  const key = seed + ':' + recipe.id + (relief ? ':relief' : '');
   if (!fresh && memo.has(key)) return memo.get(key);
   // a seed whose land cannot hold the recipe tries again with a seed made from it: still the same map for that seed
   let out = null;
   let attempt = 0;
   for (; !out && attempt < 8; attempt++) {
     try {
-      out = build(attempt ? (Math.imul(seed ^ 0x9e3779b9, attempt + 1) >>> 1) % 2147483647 : seed, recipe, walkable);
+      out = build(attempt ? (Math.imul(seed ^ 0x9e3779b9, attempt + 1) >>> 1) % 2147483647 : seed, recipe, walkable, relief);
     } catch (e) {
       if (attempt === 7) throw e;
     }
@@ -38,7 +40,7 @@ export function generateMap(seed, recipe, walkable, { fresh = false } = {}) {
   return out;
 }
 
-function build(seed, recipe, walkable) {
+function build(seed, recipe, walkable, relief) {
   const ms = {};
   const t0 = now();
   const lap = (name) => { ms[name] = Math.round(now() - (lap.t ?? t0)); lap.t = now(); };
@@ -56,7 +58,9 @@ function build(seed, recipe, walkable) {
   assignPlaces(m, start); lap('places');
   placeSites(m, start); lap('sites');
   buildRoads(m); lap('roads');
+  if (relief && recipe.relief) { shapeRelief(m); lap('relief'); }
   const tiles = raster(m); lap('tiles');
+  if (m.height) { rampUp(m, tiles, walkable); lap('ramps'); }
   const repairs = reach(m, tiles, walkable); lap('reach');
   const out = output(m, tiles, start, repairs);
   out.stats = { ms, total: Math.round(now() - t0), repairs, eased: m.eased ?? [] };
@@ -163,9 +167,14 @@ function stampSpot(m, tiles, S) {
 // Everything that matters must be reachable on foot from the start: a flood fill shows what is; for each place that is
 // not, the cheapest way to the reached land is cut through (rock becomes ground, a river gets a ford, a chasm a
 // bridge). Water is never crossed: places on islands are left to the boat.
+// With relief the walk keeps to the rule of the levels (relief.js, stepOk): first every piece of land that is only cut
+// off by a cliff of one level gets a ramp to what is reached, then the places that are still out of reach get a way
+// cut, which climbs one level at a time (ramps where it does).
 function reach(m, tiles, walkable) {
   const { N, flags } = m;
+  const H = m.height;
   const start = m.towns[0];
+  const cliffs = []; // [reached tile, its walkable neighbour one level up or down], found while flooding
   const flood = (seeds) => {
     const q = [...seeds];
     for (const k of q) flags[k] |= F.REACH;
@@ -175,12 +184,26 @@ function reach(m, tiles, walkable) {
       for (const n of [k - 1, k + 1, k - N, k + N]) {
         if (n < 0 || n >= N * N || (n === k - 1 && x === 0) || (n === k + 1 && x === N - 1)) continue;
         if (flags[n] & F.REACH || !walkable[tiles[n]]) continue;
+        if (H && !stepOk(H, flags, k, n)) {
+          if (H[k] - H[n] === 1 || H[n] - H[k] === 1) cliffs.push(k, n);
+          continue;
+        }
         flags[n] |= F.REACH;
         q.push(n);
       }
     }
   };
   flood([start.y * N + start.x]);
+  if (H) { // land behind a cliff of one level: a ramp joins it (the flood that follows finds more)
+    for (let i = 0; i < cliffs.length; i += 2) {
+      const k = cliffs[i];
+      const n = cliffs[i + 1];
+      if (flags[n] & F.REACH || flags[n] & (F.VRING | F.VIN)) continue;
+      if (H[k] > H[n]) makeRamp(m, tiles, walkable, k, n);
+      else makeRamp(m, tiles, walkable, n, k);
+      flood([n]);
+    }
+  }
   const targets = [
     ...m.towns.map((t) => ({ x: t.x, y: t.y, kind: 'town', ref: t })),
     ...m.lairs.map((l) => ({ x: l.x, y: l.y, kind: 'lair', ref: l })),
@@ -203,6 +226,15 @@ function reach(m, tiles, walkable) {
       if (id === ID.river) tiles[k] = ID.ford;
       else if (id === ID.chasm) tiles[k] = ID.bridge;
       else tiles[k] = ID.grass;
+    }
+    if (H) { // the way climbs one level at a time, from the reached end to the place
+      for (let i = 1; i < path.length; i++) {
+        const a = path[i - 1];
+        const b = path[i];
+        if (H[b] > H[a] + 1) H[b] = H[a] + 1;
+        else if (H[b] < H[a] - 1) H[b] = H[a] - 1;
+        if (H[a] !== H[b]) flags[H[a] > H[b] ? a : b] |= F.RAMP;
+      }
     }
     repairs++;
     flood(path.filter((k) => !(flags[k] & F.REACH)));
@@ -236,6 +268,7 @@ function cutThrough(m, tiles, walkable, k0) {
       else if (id === ID.water || id === ID.town_wall || id === ID.house || id === ID.palisade || flags[n] & (F.VRING | F.VIN)) continue;
       else if (id === ID.river) c = 6;
       else c = 14; // mountain, cliff, chasm
+      if (m.height && !stepOk(m.height, flags, k, n)) c += 10; // a cliff to be cut into a ramp
       const nd = d.get(k) + c;
       if (nd < (d.get(n) ?? Infinity)) { d.set(n, nd); prev.set(n, k); heap.push(n, nd); }
     }
@@ -292,6 +325,7 @@ function output(m, tiles, start, repairs) {
     story: { start: towns[0].id, road: storyId('road'), city: storyId('city'), capital: storyId('capital'), plates, ring: 'r:ring' },
     spots: Object.fromEntries(Object.values(m.spots).map((S) => [S.id, { id: S.id, ...W(S), r: S.r, look: S.look, region: S.region, biome: S.biome, tier: S.tier }])),
     islands: m.islands.map((i) => ({ tx: i.x + x0, ty: i.y + y0, r: i.r })),
-    fp: fingerprint(tiles),
+    height: m.height ?? null, // levels 0-4 (relief.js), null on a map without relief
+    fp: m.height ? fingerprint(tiles) + fingerprint(m.height.map((h, k) => h | (flags[k] & F.RAMP))) : fingerprint(tiles),
   };
 }

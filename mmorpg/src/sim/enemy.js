@@ -1,10 +1,12 @@
-import { moveToward, moveWithCollision, chasePlayer, canSee } from './entity.js';
+import { moveToward, moveWithCollision, chasePlayer, canSee, goHome } from './entity.js';
 import { damagePlayer } from './player-damage.js';
 import { tierScale } from '../systems/difficulty.js';
 import { speedFactor } from './status.js';
 
 const LEASH = 520;
 const PLAYER_R = 14;
+export const GIVE_UP = 3; // seconds with no way to you (a cliff, a river) before a monster gives up and goes home...
+export const CALM = 4; // ... and leaves you alone for a while
 
 // A monster of a given danger tier: tougher and stronger far from the start, and worth more.
 export function makeEnemy(def, x, y, tier = 0) {
@@ -190,8 +192,9 @@ export function updateEnemies(state, world, dt) {
     const dist = Math.hypot(p.x - e.x, p.y - e.y);
     const homeDist = Math.hypot(e.home.x - e.x, e.home.y - e.y);
 
+    e.calm = Math.max(0, (e.calm ?? 0) - dt);
     if (e.mode === 'idle') {
-      if (!playerSafe && dist < def.aggro && canSee(world, e.x, e.y, p.x, p.y)) { e.mode = 'chase'; continue; } // no waking up through a wall
+      if (!playerSafe && !e.calm && dist < def.aggro && canSee(world, e.x, e.y, p.x, p.y)) { e.mode = 'chase'; e.lost = 0; continue; } // no waking up through a wall
       e.wanderT -= dt;
       if (e.wanderT <= 0) {
         e.wanderT = 2 + Math.random() * 3;
@@ -201,10 +204,18 @@ export function updateEnemies(state, world, dt) {
       }
       moveToward(world, e, e.wander.x, e.wander.y, def.speed * 0.3 * speedFactor(e), dt, true);
     } else if (e.mode === 'chase') {
-      if (playerSafe || homeDist > LEASH || dist > def.aggro * 1.8) { e.mode = 'return'; e.atk = null; continue; }
+      if (playerSafe || homeDist > LEASH || dist > def.aggro * 1.8) { e.mode = 'return'; e.atk = null; e.lost = 0; continue; }
+      // no way to you: a monster that cannot shoot you from where it stands gives up for a while
+      if ((e.lost ?? 0) > GIVE_UP && !(def.ai === 'ranged' && canSee(world, e.x, e.y, p.x, p.y))) {
+        e.mode = 'return';
+        e.atk = null;
+        e.lost = 0;
+        e.calm = CALM;
+        continue;
+      }
       (CHASE[def.ai ?? 'melee'] ?? chaseMelee)(state, world, e, dist, dt);
     } else if (e.mode === 'return') {
-      moveToward(world, e, e.home.x, e.home.y, def.speed * 1.2 * speedFactor(e), dt, true);
+      goHome(world, e, def.speed * 1.2 * speedFactor(e), dt);
       e.hp = Math.min(e.maxHp, e.hp + e.maxHp * 0.3 * dt);
       if (homeDist < 8) e.mode = 'idle';
     }

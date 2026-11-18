@@ -6,7 +6,7 @@ import { generateTown, TT, TOWN_KINDS } from '../towngen.js';
 import { K, isMount, walkDistance } from './terrain.js';
 import { stream, between, intBetween, pickOne, clamp, dist, sinTurn, cosTurn } from './util.js';
 
-export const F = { RESERVED: 1, VRING: 2, VIN: 4, REACH: 8, ROAD: 16 }; // flags per tile
+export const F = { RESERVED: 1, VRING: 2, VIN: 4, REACH: 8, ROAD: 16, RAMP: 32 }; // flags per tile (RAMP: relief.js)
 
 // The start: on the southern shore of the continent, with room for its town.
 export function chooseStart(m) {

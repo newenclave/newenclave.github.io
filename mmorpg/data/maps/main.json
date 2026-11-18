@@ -28,6 +28,7 @@
   },
   "lakes": [2, 4],
   "rivers": {"threshold": 260, "ford": [90, 140]},
+  "relief": {"scale": 14, "north": 0.25, "jitter": 0.08, "jitterScale": 9, "shore": 6, "shoreGap": 12, "levels": [0.47, 0.58, 0.68], "minPatch": 120, "rampEvery": 40},
   "places": [
     {"id": "start", "biome": "grass", "town": {"kind": "town"}, "camps": ["slime_pool", "slime_pool", "bat_roost"]},
     {"id": "ring", "biome": "snow"},

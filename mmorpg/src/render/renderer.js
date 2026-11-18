@@ -192,6 +192,72 @@ function unusable(ctx, x, y, w, h) {
   ctx.restore();
 }
 
+
+// The relief of one tile (world/mapgen/relief.js), drawn over its ground in the chunk picture. Seen from above and a
+// little from the south: where the ground below is lower, the tile ends in a rock face; the north edge of a raised tile
+// catches the light, its east and west edges are dark lines; a tile at the foot of a cliff lies in its shadow. A ramp
+// has steps going down to the lower side and no face.
+const SIDES = [[0, 1], [1, 0], [-1, 0], [0, -1]]; // south, east, west, north
+function drawRelief(g, world, tx, ty, px, py) {
+  const lv = world.heightAt(tx, ty);
+  if (lv >= 4 || BIOME_IDS[world.tileAt(tx, ty)] === 'water') return;
+  const ground = (dx, dy) => {
+    const n = BIOME_IDS[world.tileAt(tx + dx, ty + dy)];
+    return n !== 'water' && n !== 'mountain';
+  };
+  const nl = (dx, dy) => world.heightAt(tx + dx, ty + dy);
+  const ramp = world.isRamp(tx, ty);
+  const T = TILE;
+  if (ramp) { // steps down towards the lower neighbour
+    const side = SIDES.find(([dx, dy]) => ground(dx, dy) && nl(dx, dy) === lv - 1);
+    if (side) {
+      const [dx, dy] = side;
+      for (let i = 0; i < 4; i++) {
+        const t = (i + 1) / 4; // 0 at the top of the ramp, 1 at its foot
+        g.fillStyle = `rgba(0,0,0,${0.05 + 0.08 * t})`;
+        if (dy) g.fillRect(px, dy > 0 ? py + i * 8 + 6 : py + T - i * 8 - 8, T, 2);
+        else g.fillRect(dx > 0 ? px + i * 8 + 6 : px + T - i * 8 - 8, py, 2, T);
+      }
+    }
+    return;
+  }
+  // a face down to the south
+  if (ground(0, 1) && nl(0, 1) < lv && !world.isRamp(tx, ty + 1)) {
+    const F = Math.min(14, 6 + 4 * (lv - nl(0, 1)));
+    g.fillStyle = 'rgba(38,30,26,0.78)';
+    g.fillRect(px, py + T - F, T, F);
+    g.fillStyle = 'rgba(255,255,255,0.16)'; // the lip
+    g.fillRect(px, py + T - F, T, 2);
+    g.fillStyle = 'rgba(0,0,0,0.3)'; // cracks
+    const h = hash2(tx, ty, 9907);
+    g.fillRect(px + 4 + Math.floor(h * 10), py + T - F + 3, 2, F - 4);
+    g.fillRect(px + 18 + Math.floor(h * 97 % 10), py + T - F + 5, 2, F - 6);
+  }
+  if (ground(0, -1) && nl(0, -1) < lv && !world.isRamp(tx, ty - 1)) { // the north edge in the light
+    g.fillStyle = 'rgba(255,255,255,0.18)';
+    g.fillRect(px, py, T, 3);
+  }
+  if (ground(1, 0) && nl(1, 0) < lv && !world.isRamp(tx + 1, ty)) {
+    g.fillStyle = 'rgba(0,0,0,0.32)';
+    g.fillRect(px + T - 3, py, 3, T);
+  }
+  if (ground(-1, 0) && nl(-1, 0) < lv && !world.isRamp(tx - 1, ty)) {
+    g.fillStyle = 'rgba(0,0,0,0.2)';
+    g.fillRect(px, py, 3, T);
+  }
+  // at the foot of a cliff: in its shadow
+  if (nl(0, -1) > lv && nl(0, -1) < 4 && !world.isRamp(tx, ty - 1)) {
+    for (const [o, a] of [[0, 0.26], [3, 0.16], [6, 0.08]]) {
+      g.fillStyle = `rgba(0,0,0,${a})`;
+      g.fillRect(px, py + o, T, 3);
+    }
+  }
+  if (nl(-1, 0) > lv && nl(-1, 0) < 4 && !world.isRamp(tx - 1, ty)) {
+    g.fillStyle = 'rgba(0,0,0,0.14)';
+    g.fillRect(px, py, 4, T);
+  }
+}
+
 export class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
@@ -238,12 +304,20 @@ export class Renderer {
     const c = document.createElement('canvas');
     c.width = c.height = CHUNK_PX;
     const g = c.getContext('2d');
+    const relief = !!this.world.map?.height; // a map with levels of height (world/mapgen/relief.js)
     for (let y = 0; y < CHUNK; y++) {
       for (let x = 0; x < CHUNK; x++) {
         const id = chunk.tiles[y * CHUNK + x];
         const name = BIOME_IDS[id];
         g.fillStyle = this.world.biomes[name].color;
         g.fillRect(x * TILE, y * TILE, TILE, TILE);
+        if (relief) { // higher ground is a little lighter
+          const lv = this.world.heightAt(chunk.cx * CHUNK + x, chunk.cy * CHUNK + y);
+          if (lv > 0 && lv < 4) {
+            g.fillStyle = `rgba(255,240,210,${0.05 * lv})`;
+            g.fillRect(x * TILE, y * TILE, TILE, TILE);
+          }
+        }
         const h = hash2(chunk.cx * CHUNK + x, chunk.cy * CHUNK + y, this.world.seed);
         if (name.endsWith('_wall')) { // brickwork
           g.strokeStyle = 'rgba(255,255,255,0.07)';
@@ -282,6 +356,7 @@ export class Renderer {
         }
       }
     }
+    if (relief) for (let y = 0; y < CHUNK; y++) for (let x = 0; x < CHUNK; x++) drawRelief(g, this.world, chunk.cx * CHUNK + x, chunk.cy * CHUNK + y, x * TILE, y * TILE);
     chunk.canvas = c;
     return c;
   }
@@ -326,6 +401,7 @@ export class Renderer {
   drawMinimap(state) {
     const player = state.player;
     const g = this.mini.getContext('2d');
+    const relief = !!this.world.map?.height;
     const size = 80;
     const step = this.world.isDungeon ? 1 : 4; // tiles per minimap cell
     const ptx = Math.floor(player.x / TILE);
@@ -340,6 +416,14 @@ export class Renderer {
           g.fillStyle = this.world.biomes[BIOME_IDS[this.world.tileAt(tx, ty)]].color;
         }
         g.fillRect(x * 2, y * 2, 2, 2);
+        if (relief && g.fillStyle !== '#0b0b12') { // the levels: lighter up high, dark along a cliff
+          const lv = this.world.heightAt(tx, ty);
+          const below = this.world.heightAt(tx, ty + step);
+          if (lv > below && below < 4 && lv < 4 && !this.world.isRamp(tx, ty)) g.fillStyle = 'rgba(0,0,0,0.35)';
+          else if (lv > 0 && lv < 4) g.fillStyle = `rgba(255,240,210,${0.06 * lv})`;
+          else continue;
+          g.fillRect(x * 2, y * 2, 2, 2);
+        }
       }
     }
     for (const lair of lairsInRange(this.world, player.x, player.y, (size / 2) * step * TILE, state.bossDefs ?? [])) {

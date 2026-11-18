@@ -1,4 +1,4 @@
-import { moveToward, moveWithCollision, chasePlayer, canSee } from './entity.js';
+import { moveWithCollision, chasePlayer, canSee, goHome } from './entity.js';
 import { damagePlayer } from './player-damage.js';
 import { makeEnemy, spawnEnemyProjectile } from './enemy.js';
 
@@ -138,7 +138,7 @@ export function updateBoss(state, world, e, dt, rng = Math.random) {
   }
   if (e.mode === 'return') {
     e.atk = null;
-    moveToward(world, e, e.home.x, e.home.y, def.speed * RETURN_SPEED, dt, true);
+    goHome(world, e, def.speed * RETURN_SPEED, dt); // the way round, if a cliff is in the way
     e.hp = Math.min(e.maxHp, e.hp + e.maxHp * RETURN_HEAL * dt);
     if (homeDist < 10) e.mode = 'idle';
     return;

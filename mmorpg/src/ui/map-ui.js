@@ -27,6 +27,17 @@ export class WorldMapView {
     this.rgb = Object.fromEntries(Object.entries(world.biomes).map(([name, b]) => [name, hexToRgb(b.color)]));
   }
 
+  // How much lighter or darker a tile is drawn for the relief (world/mapgen/relief.js); 1 on a flat map.
+  shade(tx, ty) {
+    const w = this.world;
+    if (!w.map?.height) return 1;
+    const lv = w.heightAt(tx, ty);
+    if (lv >= 4) return 1;
+    const below = w.heightAt(tx, ty + 1);
+    if (below < lv && !w.isRamp(tx, ty) && BIOME_IDS[w.tileAt(tx, ty + 1)] !== 'water') return 0.62;
+    return 1 + 0.07 * lv;
+  }
+
   chunkCanvas(chunk, explored) {
     const k = `${chunk.cx},${chunk.cy}`;
     let entry = this.cache.get(k);
@@ -45,8 +56,9 @@ export class WorldMapView {
           const ty = chunk.cy * CHUNK + y;
           if (!explored.has(tx, ty)) continue;
           const [r, gr, b] = this.rgb[BIOME_IDS[this.world.tileAt(tx, ty)]];
+          const k = this.shade(tx, ty); // the relief: lighter up high, dark along the foot of a cliff
           const i = (y * CHUNK + x) * 4;
-          img.data[i] = r; img.data[i + 1] = gr; img.data[i + 2] = b; img.data[i + 3] = 255;
+          img.data[i] = Math.min(255, r * k); img.data[i + 1] = Math.min(255, gr * k); img.data[i + 2] = Math.min(255, b * k); img.data[i + 3] = 255;
         }
       }
       g.putImageData(img, 0, 0);

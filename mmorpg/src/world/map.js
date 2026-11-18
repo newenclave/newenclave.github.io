@@ -8,12 +8,19 @@ import { townTile, TT } from './towngen.js';
 import { beastName } from './names.js';
 import { generateMap } from './mapgen/index.js';
 import { F } from './mapgen/places.js';
+import { buildField, stepAlong } from './flowfield.js';
 
-export const MAP_GEN = 4; // the world generator version saves remember for the finite map
+export const MAP_GEN = 5; // the world generator version saves remember for the finite map (5: with relief)
+export const MAP_GENS = [4, 5]; // 4: the same map, flat (saves from before the relief keep their world)
 const ID = Object.fromEntries(BIOME_IDS.map((n, i) => [n, i]));
 const SOLID = new Set([ID.cliff, ID.town_wall, ID.house, ID.palisade, ID.mountain]);
 const LOS_STEP = 6;
 const SEA_MARGIN = 4; // tiles along the edge of the map no boat can enter
+const CHASE_R = 40; // monsters find their way to you within this many tiles of you
+const HOME_R = 24; // ... and back home within this many tiles of home
+const BODY = 10; // half the width of a walking monster: a straight way must be clear this far to each side
+const WALK_STEP = 8;
+const TOWN_GROUND = new Set([ID.town, ID.yard, ID.field]); // monsters keep out of towns
 
 function insideTown(t, px, py, margin) {
   if (Math.abs(px - t.px) > (t.hx + 0.5) * TILE + margin || Math.abs(py - t.py) > (t.hy + 0.5) * TILE + margin) return false;
@@ -44,16 +51,17 @@ function townRecord(t) {
 }
 
 export class MapWorld {
-  constructor(seed, biomes, recipe) {
+  constructor(seed, biomes, recipe, gen = MAP_GEN) {
     this.seed = seed;
     this.biomes = biomes;
     this.recipe = recipe;
-    this.gen = MAP_GEN;
+    this.gen = gen;
     this.isMap = true;
     this.tileSize = TILE;
     this.chunks = new Map();
     this.walkableIds = BIOME_IDS.map((n) => (biomes[n]?.walkable ? 1 : 0));
-    const M = generateMap(seed, recipe, this.walkableIds);
+    this.wayIds = this.walkableIds.map((v, id) => (v && !TOWN_GROUND.has(id) ? 1 : 0)); // where monsters find their way
+    const M = generateMap(seed, recipe, this.walkableIds, { relief: gen >= 5 });
     this.map = M;
     this.N = M.size;
     this.x0 = M.x0;
@@ -139,6 +147,87 @@ export class MapWorld {
     if (!this.inBounds(tx, ty)) return 0;
     const f = this.map.flags[(ty - this.y0) * this.N + (tx - this.x0)];
     return f & F.VRING ? 1 : f & F.VIN ? 2 : 0;
+  }
+
+  // ---- relief (generator 5, mapgen/relief.js): levels of height, cliffs between them, ramps up them
+  // The level of a tile: 0 (the shore) to 3 on land, 4 for the mountains (and beyond the north edge); 0 on a flat map.
+  heightAt(tx, ty) {
+    if (!this.map.height) return 0;
+    if (!this.inBounds(tx, ty)) return ty < this.y0 ? 4 : 0;
+    return this.map.height[(ty - this.y0) * this.N + (tx - this.x0)];
+  }
+
+  isRamp(tx, ty) {
+    return this.inBounds(tx, ty) && !!(this.map.flags[(ty - this.y0) * this.N + (tx - this.x0)] & F.RAMP);
+  }
+
+  // May a walker step from one point to another close by? Within a tile, or onto a neighbour on the same level, or one
+  // level up or down where either tile is a ramp. A cliff otherwise.
+  canStep(ax, ay, bx, by) {
+    return this.stepTiles(Math.floor(ax / TILE), Math.floor(ay / TILE), Math.floor(bx / TILE), Math.floor(by / TILE));
+  }
+
+  // The same between two tiles.
+  stepTiles(tx, ty, ux, uy) {
+    if (!this.map.height || (tx === ux && ty === uy)) return true;
+    const a = this.heightAt(tx, ty);
+    const b = this.heightAt(ux, uy);
+    return a === b || (Math.abs(a - b) === 1 && (this.isRamp(tx, ty) || this.isRamp(ux, uy)));
+  }
+
+  // ---- finding the way (world/flowfield.js)
+  // Can something with a body walk straight from a to b: open ground all the way, no cliff, three rays wide?
+  walkClear(ax, ay, bx, by) {
+    const len = Math.sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay)) || 1;
+    const nx = (-(by - ay) / len) * BODY;
+    const ny = ((bx - ax) / len) * BODY;
+    return this.rayClear(ax, ay, bx, by) && this.rayClear(ax + nx, ay + ny, bx + nx, by + ny) && this.rayClear(ax - nx, ay - ny, bx - nx, by - ny);
+  }
+
+  rayClear(ax, ay, bx, by) {
+    const n = Math.ceil(Math.sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay)) / WALK_STEP);
+    let ptx = Math.floor(ax / TILE);
+    let pty = Math.floor(ay / TILE);
+    for (let k = 1; k <= n; k++) {
+      const tx = Math.floor((ax + ((bx - ax) * k) / n) / TILE);
+      const ty = Math.floor((ay + ((by - ay) * k) / n) / TILE);
+      if (tx === ptx && ty === pty) continue;
+      if (!this.wayIds[this.tileAt(tx, ty)]) return false;
+      const corner = ptx !== tx && pty !== ty; // a diagonal: one of the ways round must be open too
+      if (!(corner
+        ? (this.wayIds[this.tileAt(tx, pty)] && this.stepTiles(ptx, pty, tx, pty) && this.stepTiles(tx, pty, tx, ty))
+          || (this.wayIds[this.tileAt(ptx, ty)] && this.stepTiles(ptx, pty, ptx, ty) && this.stepTiles(ptx, ty, tx, ty))
+        : this.stepTiles(ptx, pty, tx, ty))) return false;
+      ptx = tx;
+      pty = ty;
+    }
+    return true;
+  }
+
+  // A distance map to a goal tile, within r tiles of it.
+  fieldTo(tx, ty, r) {
+    return buildField(tx, ty, r, (x, y) => this.wayIds[this.tileAt(x, y)] === 1, (x, y, u, v) => this.stepTiles(x, y, u, v));
+  }
+
+  // Which way should a monster at (ex, ey) walk to reach the player at (px, py)? null: straight at them (nothing in the
+  // way); a unit vector: along the way round (a ramp up a cliff, a ford over a river); NO_WAY: there is none near.
+  // One map serves every monster; it is made again when the player steps onto another tile.
+  chaseDirection(ex, ey, px, py) {
+    if (this.walkClear(ex, ey, px, py)) return null;
+    const ptx = Math.floor(px / TILE);
+    const pty = Math.floor(py / TILE);
+    if (!this.field || this.field.cx !== ptx || this.field.cy !== pty) this.field = this.fieldTo(ptx, pty, CHASE_R);
+    return stepAlong(this.field, ex, ey, TILE);
+  }
+
+  // The same for a way to any point (a monster going home): the map is kept on `holder` while the goal stays put.
+  wayTo(ex, ey, gx, gy, holder) {
+    if (this.walkClear(ex, ey, gx, gy)) return null;
+    const gtx = Math.floor(gx / TILE);
+    const gty = Math.floor(gy / TILE);
+    let f = holder.way;
+    if (!f || f.cx !== gtx || f.cy !== gty) f = holder.way = this.fieldTo(gtx, gty, HOME_R);
+    return stepAlong(f, ex, ey, TILE);
   }
 
   // Can this tile be reached on foot from the start (as the generator saw it)?

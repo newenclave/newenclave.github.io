@@ -1,7 +1,7 @@
 import { Input } from './core/input.js';
 import { loadLang, t } from './core/i18n.js';
 import { World, TILE, WORLD_GEN } from './world/world.js';
-import { MapWorld, MAP_GEN } from './world/map.js';
+import { MapWorld, MAP_GEN, MAP_GENS } from './world/map.js';
 import { goodStart } from './world/reach.js';
 import { Renderer } from './render/renderer.js';
 import { tryAttack, updateProjectiles, updateEffects, tickStatuses, moveFactor, tickPlayerCombat, regenMana } from './sim/combat.js';
@@ -623,7 +623,8 @@ const fogEnabled = (settings) => settings.fog && !new URLSearchParams(location.s
 function createGame({ assets, seed, gen = MAP_GEN, saveData, settings, input, arena = false }) {
   const { weapons, armor, accessories, questDefs, skillData, enemyDefs, bossDefs, dungeonDefs, ammoData, relicData } = assets;
   // the finite map (generator 4), or the endless world of the older generators (still there to try things on)
-  const world = gen === MAP_GEN ? new MapWorld(seed, assets.biomes, assets.maps.main) : new World(seed, assets.biomes, gen);
+  // (a save from before the relief keeps its flat map: generator 4)
+  const world = MAP_GENS.includes(gen) ? new MapWorld(seed, assets.biomes, assets.maps.main, gen) : new World(seed, assets.biomes, gen);
   const spawn = world.findSpawn();
   // you start with a plain sword; the other weapon sets are empty until you find, buy or earn something for them
   const hotbar = emptySets();

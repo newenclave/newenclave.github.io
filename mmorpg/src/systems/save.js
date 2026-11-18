@@ -11,9 +11,9 @@ import { EVENT_ID, ECHO_ID, ARTIFACT_ID } from './history.js';
 import { PULSE_EFFECTS, MAX_PULSES } from './pulse.js';
 import { ensureBestiary } from './bestiary.js';
 import { WORLD_GEN, WORLD_GENS as ENDLESS_GENS } from '../world/world.js';
-import { MAP_GEN } from '../world/map.js';
+import { MAP_GENS } from '../world/map.js';
 
-const WORLD_GENS = [...ENDLESS_GENS, MAP_GEN]; // the endless worlds (1-3) and the finite map (4)
+const WORLD_GENS = [...ENDLESS_GENS, ...MAP_GENS]; // the endless worlds (1-3) and the finite map (4 flat, 5 with relief)
 import { buildItem, buildAmmo, rarityById, MAX_STACK } from '../sim/loot.js';
 import { canEquipOffhand, pairError, slotOf, syncHands } from './loadout.js';
 import { addToBackpack } from './backpack.js';
