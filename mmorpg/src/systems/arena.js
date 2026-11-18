@@ -10,6 +10,8 @@ import { recalcStats } from './stats.js';
 import { MAX_TIER } from './difficulty.js';
 import { forgetAll, learnPath, learn, canLearn } from './skilltree.js';
 import { baseAttrs, BASE } from './attributes.js';
+import { emptySets, slotOf, syncHands, SETS } from './loadout.js';
+import { addToBackpack, emptyInventory } from './backpack.js';
 
 export const ARENA_SIZE = 64;
 const HALL = { x0: 3, y0: 3, x1: 60, y1: 44 }; // the floor, in tiles
@@ -72,13 +74,16 @@ export function enterArena(state) {
 
 export const ARENA_ATTR_POINTS = 50;
 
-// Every weapon in the hotbar, at the arena's rarity.
+// Every weapon at the arena's rarity: the first ones in the sets, the rest in the backpack.
 function armArena(state) {
   const p = state.player;
-  const at = Math.max(0, state.weapons.indexOf(p.weapon));
-  state.weapons = state.catalog.weapon.map((w) => buildItem('weapon', w, state.arena.rarity));
-  state.offhands = state.weapons.map(() => null);
-  p.weapon = state.weapons[at] ?? state.weapons[0];
+  const at = slotOf(state);
+  const all = state.catalog.weapon.map((w) => buildItem('weapon', w, state.arena.rarity));
+  state.weapons = emptySets().map((_, i) => all[i] ?? null);
+  state.offhands = emptySets();
+  state.inventory = emptyInventory();
+  for (const w of all.slice(SETS)) addToBackpack(state.inventory, w);
+  syncHands(state, at);
   recalcStats(state);
   p.hp = p.maxHp;
 }
@@ -138,9 +143,10 @@ export function applyBuild(state, build, level = state.builds?.level ?? 20) {
     const next = state.web.nodes.filter((n) => n.kind !== 'keystone' && canLearn(state, n.id)).sort((a, b) => ours(a) - ours(b) || a.ring - b.ring)[0];
     if (!next || !learn(state, next.id)) break;
   }
-  state.weapons = build.belt.map(([main]) => buildItem('weapon', state.catalog.weapon.find((w) => w.id === main), state.arena.rarity));
-  state.offhands = build.belt.map(([, off]) => (off ? buildItem('weapon', state.catalog.weapon.find((w) => w.id === off), state.arena.rarity) : null));
-  p.weapon = state.weapons[0];
+  const make = (id) => (id ? buildItem('weapon', state.catalog.weapon.find((w) => w.id === id), state.arena.rarity) : null);
+  state.weapons = emptySets().map((_, i) => make(build.belt[i]?.[0]));
+  state.offhands = emptySets().map((_, i) => make(build.belt[i]?.[1]));
+  syncHands(state, 0);
   state.ignoreReqs = false;
   recalcStats(state);
   p.hp = p.maxHp;

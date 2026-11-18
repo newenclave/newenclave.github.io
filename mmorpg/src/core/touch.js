@@ -42,6 +42,7 @@ export class TouchControls {
     this.longPresses = []; // a finger held still on a panel: the touch version of a right click
     this.cleanTaps = []; // a short touch on a panel that did not move: lifted, not dragged (for screens you can drag)
     this.drag = { dx: 0, dy: 0 }; // one finger dragging on a panel, this frame
+    this.drops = []; // one finger lifted from a panel after moving: { x0, y0, x, y } (drag and drop)
     this.pinch = 1; // two fingers on a panel: how much they spread apart this frame
     this.held = new Map(); // pointer id -> where and when a touch on a panel began
     this.pointers = new Map();
@@ -132,7 +133,15 @@ export class TouchControls {
     if (held && e.type === 'pointerup' && performance.now() - held.t >= LONG_PRESS_MS
       && Math.hypot(e.clientX - held.x, e.clientY - held.y) <= LONG_PRESS_SLOP) this.longPresses.push({ x: held.x, y: held.y });
     else if (held && e.type === 'pointerup' && !held.moved && this.held.size === 0) this.cleanTaps.push({ x: held.x, y: held.y });
+    else if (held && e.type === 'pointerup' && held.moved && this.held.size === 0) this.drops.push({ x0: held.x, y0: held.y, x: e.clientX, y: e.clientY });
     if (this.pointers.delete(e.pointerId)) this.refresh();
+  }
+
+  // One finger on a panel that has moved: { x0, y0, x, y }, else null.
+  dragNow() {
+    if (this.held.size !== 1) return null;
+    const [h] = this.held.values();
+    return h.moved ? { x0: h.x, y0: h.y, x: h.cx ?? h.x, y: h.cy ?? h.y } : null;
   }
 
   releaseAll() {
@@ -162,6 +171,7 @@ export class TouchControls {
     this.taps.length = 0;
     this.longPresses.length = 0;
     this.cleanTaps.length = 0;
+    this.drops.length = 0;
     this.drag = { dx: 0, dy: 0 };
     this.pinch = 1;
   }

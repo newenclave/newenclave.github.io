@@ -15,12 +15,13 @@ import { MAP_GEN } from '../world/map.js';
 
 const WORLD_GENS = [...ENDLESS_GENS, MAP_GEN]; // the endless worlds (1-3) and the finite map (4)
 import { buildItem, buildAmmo, rarityById, MAX_STACK } from '../sim/loot.js';
-import { canEquipOffhand } from './loadout.js';
+import { canEquipOffhand, pairError, slotOf, syncHands } from './loadout.js';
+import { addToBackpack } from './backpack.js';
 import { EQUIP_SLOTS, upgradeEquipment } from './equipment.js';
 import { buildRelic } from './relics.js';
 
 export const SAVE_KEY = 'mmorpg-draft-save';
-const VERSION = 9;
+const VERSION = 10; // 10: three weapon sets (there were six), a backpack of 40
 const MAX_LEVEL = 200;
 const MAX_GOLD = 1e9;
 export const MAX_SEED = 2147483647;
@@ -58,7 +59,7 @@ export function serializeState(state, seed) {
     savedAt: Date.now(),
     player: {
       x: ow ? ow.x : p.x, y: ow ? ow.y : p.y, hp: p.hp, mana: p.mana ?? 0, level: p.level, xp: p.xp, skillPoints: p.skillPoints, gold: p.gold,
-      learned: [...learnedSet(p)].filter((id) => id !== START), attrs: { ...(p.attrs ?? baseAttrs()) }, attrPoints: p.attrPoints | 0, weaponIndex: Math.max(0, state.weapons.indexOf(p.weapon)),
+      learned: [...learnedSet(p)].filter((id) => id !== START), attrs: { ...(p.attrs ?? baseAttrs()) }, attrPoints: p.attrPoints | 0, weaponIndex: Math.max(0, slotOf(state)),
       tracked: p.tracked ?? null,
       boat: !!p.boat, boating: !!p.boating,
       // a quest that ended with a choice keeps it, and when (systems/deeds.js); a side quest also what you picked, and
@@ -128,15 +129,37 @@ function rebuild(state, raw, expectSlot) {
   return item;
 }
 
+// The weapon sets of a save. A save from before version 10 had six: the ones that hold something keep their order and
+// fill the three sets, the rest go to the backpack (it grew to 40, so they always fit). A pair that does not go together
+// (arrows next to a sword, anything next to a two-handed weapon) puts the off hand in the backpack.
+function restoreSets(state, weapons, savedOff, active) {
+  const n = state.weapons.length;
+  let sets = weapons.map((w, i) => {
+    const off = rebuild(state, savedOff[i], null);
+    return { w, off: canEquipOffhand(off) ? off : null, i };
+  });
+  if (sets.length > n) sets = sets.filter((x) => x.w || x.off);
+  const spill = [];
+  for (const x of sets.slice(n)) spill.push(x.w, x.off);
+  sets = sets.slice(0, n);
+  for (const x of sets) {
+    if (!x.w && x.off?.slot === 'weapon') [x.w, x.off] = [x.off, null]; // a lone blade goes to the main hand
+    if (pairError(x.w, x.off)) { spill.push(x.off); x.off = null; }
+  }
+  for (const item of spill) if (item) addToBackpack(state.inventory, item);
+  state.weapons = Array.from({ length: n }, (_, i) => sets[i]?.w ?? null);
+  state.offhands = Array.from({ length: n }, (_, i) => sets[i]?.off ?? null);
+  syncHands(state, Math.max(0, sets.findIndex((x) => x.i === active)));
+}
+
 // Saved data comes from localStorage, so every field is validated before use.
 export function applySave(state, data, seed) {
   if (!data || !(data.v >= 1 && data.v <= VERSION) || data.seed !== seed) return false;
-  if (!data.player || !Array.isArray(data.weapons) || data.weapons.length > state.weapons.length) return false;
+  if (!data.player || !Array.isArray(data.weapons) || data.weapons.length > 64) return false;
 
-  // a set may be empty (null); one that holds something that cannot be rebuilt makes the save invalid. A save from before
-  // a weapon set was added has fewer: the new ones start empty.
-  const weapons = state.weapons.map((_, i) => (i >= data.weapons.length || data.weapons[i] === null ? null : rebuild(state, data.weapons[i], 'weapon')));
-  if (weapons.some((w, i) => !w && i < data.weapons.length && data.weapons[i] !== null) || !weapons.some(Boolean)) return false;
+  // a set may be empty (null: fists); one that holds something that cannot be rebuilt makes the save invalid
+  const weapons = data.weapons.map((raw) => (raw === null ? null : rebuild(state, raw, 'weapon')));
+  if (weapons.some((w, i) => !w && data.weapons[i] !== null)) return false;
 
   const s = data.player;
   const p = state.player;
@@ -184,15 +207,8 @@ export function applySave(state, data, seed) {
   p.tracked = typeof s.tracked === 'string' && p.quests[s.tracked]?.status === 'active' ? s.tracked : null;
   ensureTracked(state);
 
-  state.weapons = weapons;
-  p.weapon = weapons[Math.round(num(s.weaponIndex, 0, weapons.length - 1, 0))] ?? weapons.find(Boolean);
   state.inventory = Array.from({ length: INV_SIZE }, (_, i) => rebuild(state, data.inventory?.[i], null));
-  // one off hand per hotbar slot; an item that cannot be held there is simply dropped from the save
-  const savedOff = Array.isArray(data.offhands) ? data.offhands : [];
-  state.offhands = weapons.map((_, i) => {
-    const item = rebuild(state, savedOff[i], null);
-    return canEquipOffhand(item) ? item : null;
-  });
+  restoreSets(state, weapons, Array.isArray(data.offhands) ? data.offhands : [], Math.round(num(s.weaponIndex, 0, 63, 0)));
   // older saves wore one armor and one accessory: they are put where they fit on the body
   p.equipment = upgradeEquipment(data.equipment, (raw, slot) => rebuild(state, raw, slot));
   state.explored = Explored.fromJSON(data.explored);

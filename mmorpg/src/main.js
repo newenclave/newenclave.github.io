@@ -20,7 +20,8 @@ import { buildWeb, learnPath, forget, respec, START } from './systems/skilltree.
 import { baseAttrs, raiseAttr, CREATE_POINTS, ATTRS, newDraft, adjustDraft, finishCreation, entriesOf, toggleTraining } from './systems/attributes.js';
 import { hitCharacter } from './ui/character-ui.js';
 import { hitCreate } from './ui/create-ui.js';
-import { emptyInventory, updateDrops, clickInventory, quickAction } from './systems/inventory.js';
+import { emptyInventory, updateDrops, clickInventory, quickAction, dragItem } from './systems/inventory.js';
+import { emptySets, nextSet, selectSet } from './systems/loadout.js';
 import { openShop } from './systems/shop.js';
 import { acceptQuest, turnIn, onVisit, clickJournal, ensureTracked, recallBosses, listForGiver, QUEST_ROLES } from './systems/quests.js';
 import { generateTownQuests, townDifficulty, GENERATED_ID } from './systems/townquests.js';
@@ -40,7 +41,7 @@ import { identifyRelics } from './systems/relics.js';
 import { hitEnding } from './ui/ending-ui.js';
 import { inscription } from './ui/chronicle-ui.js';
 import { hitWeb, webView, zoomAt, panBy, fitZoom } from './ui/skilltree-ui.js';
-import { hitInventory } from './ui/inventory-ui.js';
+import { hitInventory, insideInventory } from './ui/inventory-ui.js';
 import { hitDialog, dialogView, openDialog } from './ui/dialog-ui.js';
 import { hitJournal } from './ui/journal-ui.js';
 import { hitMap } from './ui/map-ui.js';
@@ -62,7 +63,6 @@ const ROLL_TIME = 0.22;
 const ROLL_COOLDOWN = 0.8;
 const PLAYER_MAX_HP = 100;
 const BASE_REGEN = 3;
-const HOTBAR = 6; // places in the belt (keys 1-6)
 const TOWN_REGEN = 25; // HP/s inside a town
 const AIM_DRAG_MIN = 14;
 const AUTO_AIM_RANGE = Math.min(450, SIGHT_PX); // you cannot auto-aim at what the fog hides
@@ -293,16 +293,11 @@ function updatePlayer(state, input, world) {
   touch.talkVisible = !!(state.nearNpc || state.nearDoor) && !ui.panel;
   touch.boatVisible = !!state.boatHint && !ui.panel;
 
-  if (ui.panel !== 'quests') state.weapons.forEach((w, i) => { // in a conversation, 1-3 are answers
-    if (w && (input.wasPressed('Digit' + (i + 1)) || touch.pressed.has('slot' + i))) p.weapon = w; // an empty set does nothing
-  });
-  if (touch.pressed.has('swap')) { // the next set that holds a weapon
-    const n = state.weapons.length;
-    const at = state.weapons.indexOf(p.weapon);
-    for (let k = 1; k < n; k++) {
-      const w = state.weapons[(at + k) % n];
-      if (w) { p.weapon = w; break; }
-    }
+  if (ui.panel !== 'quests') { // in a conversation, 1-3 are answers
+    state.weapons.forEach((w, i) => {
+      if (input.wasPressed('Digit' + (i + 1)) || touch.pressed.has('slot' + i)) selectSet(state, i); // an empty set: fists
+    });
+    if (input.wasPressed('KeyQ') || touch.pressed.has('swap')) nextSet(state); // the next set round the circle
   }
 
   if (state.arena && !ui.panel) { // the test arena's keys and buttons (systems/arena.js)
@@ -432,10 +427,26 @@ function handleCreate(state, input) {
 const ERROR_KEYS = {
   full: 'err.full', gold: 'err.gold', max: 'err.max', limit: 'err.limit',
   noboat: 'err.noboat', nowater: 'err.nowater', noland: 'err.noland', indungeon: 'err.indungeon',
+  fit: 'err.fit', req: 'err.req', twoHanded: 'err.twoHanded', ammoKind: 'err.ammoKind',
 };
 
+// The inventory window (ui/inventory-ui.js). A drag carries a thing from one place to another (off the window: to the
+// ground); a click or a tap that did not move selects, and a second one on the same thing puts it on.
 function handleInventoryClicks(state, input) {
-  const clicks = [...input.clicks, ...input.touch.taps];
+  const W = innerWidth;
+  const H = innerHeight;
+  state.ui.drag = input.dragNow();
+  for (const d of input.drops()) {
+    const from = hitInventory(state, d.x0, d.y0, W, H);
+    if (!from || from.kind === 'close') continue;
+    const out = !insideInventory(d.x, d.y, W, H);
+    const to = out ? null : hitInventory(state, d.x, d.y, W, H);
+    if (!out && (!to || to.kind === 'close')) continue; // let go on nothing: it stays where it was
+    const r = dragItem(state, from, to);
+    if (r.error && ERROR_KEYS[r.error]) notify(state, ERROR_KEYS[r.error]);
+    if (r.sold) state.floaters.push({ x: state.player.x, y: state.player.y - 40, text: t('shop.sold', { price: r.price }), color: '#ffd54f', t: 0, dur: 1.2 });
+  }
+  const clicks = [...input.releases.filter((c) => !c.moved), ...input.touch.cleanTaps];
   for (const c of clicks) {
     const region = hitInventory(state, c.x, c.y, innerWidth, innerHeight);
     if (!region) continue;
@@ -614,8 +625,9 @@ function createGame({ assets, seed, gen = MAP_GEN, saveData, settings, input, ar
   // the finite map (generator 4), or the endless world of the older generators (still there to try things on)
   const world = gen === MAP_GEN ? new MapWorld(seed, assets.biomes, assets.maps.main) : new World(seed, assets.biomes, gen);
   const spawn = world.findSpawn();
-  // you start with a plain sword; the other five weapon sets are empty until you find, buy or earn something for them
-  const hotbar = Array.from({ length: HOTBAR }, (_, i) => (i === 0 ? buildItem('weapon', weapons[0], 'common') : null));
+  // you start with a plain sword; the other weapon sets are empty until you find, buy or earn something for them
+  const hotbar = emptySets();
+  hotbar[0] = buildItem('weapon', weapons[0], 'common');
   const state = {
     seed,
     spawn,
@@ -644,6 +656,7 @@ function createGame({ assets, seed, gen = MAP_GEN, saveData, settings, input, ar
     fog: fogEnabled(settings),
     wantPause: false,
     weapons: hotbar,
+    activeSet: 0, // the weapon set in your hands (systems/loadout.js)
     inventory: emptyInventory(),
     catalog: { weapon: weapons, armor, accessory: accessories, ammo: ammoData.items, relic: relicData?.items ?? [] },
     relicSets: relicData?.sets ?? [], // relics of the old world (systems/relics.js)

@@ -172,6 +172,18 @@ const ICONS = {
     '..BBBBBBBBBb..',
     '...bbbbbbbb...',
   ],
+  fists: [ // bare hands: a set with no weapon (systems/loadout.js)
+    '..............',
+    '....BBBBBB....',
+    '...BbBbBbBB...',
+    '...BBBBBBBBB..',
+    '...BbBbBbBBB..',
+    '...BBBBBBBBb..',
+    '....BBBBBBb...',
+    '.....BBBBb....',
+    '.....BBBBb....',
+    '..............',
+  ],
   gloves: [
     '...B.B.B......',
     '...B.B.B.B....',
@@ -365,6 +377,7 @@ const RELIC = {
 export function itemIcon(item) {
   const id = item?.id ?? '';
   if (RELIC[id]) return { name: 'icon_' + RELIC[id][0], slots: RELIC[id][1] ?? {} };
+  if (item.fists) return { name: 'icon_fists', slots: { B: '#e0b896' } };
   if (item.slot === 'weapon') return { name: 'icon_' + (ICONS[id] ? id : 'sword'), slots: {} };
   if (item.slot === 'armor') {
     const material = Object.keys(MATERIAL).find((m) => id.startsWith(m)) ?? 'leather';

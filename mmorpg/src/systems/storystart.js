@@ -6,6 +6,8 @@ import { ringSite } from './ring.js';
 import { ARMOR_PARTS } from './equipment.js';
 import { learn } from './skilltree.js';
 import { entriesOf } from './attributes.js';
+import { syncHands } from './loadout.js';
+import { addToBackpack } from './backpack.js';
 
 // A shortcut into the story for trying it out (?story=2, ?story=3, ?story=ring on a new game): the acts before are
 // marked done, the player gets the level and the gear the act expects, and stands where the act begins.
@@ -30,8 +32,10 @@ export function startStory(state, stage) {
       p.skillPoints = (p.skillPoints | 0) + 1;
       learn(state, e.id);
     }
-    state.weapons = state.catalog.weapon.slice(0, state.weapons.length).map((b) => buildItem('weapon', b, 'epic', 2)); // a full belt
-    p.weapon = state.weapons[0];
+    const all = state.catalog.weapon.map((b) => buildItem('weapon', b, 'epic', 2)); // every weapon: the sets full, the rest in the backpack
+    state.weapons = state.weapons.map((_, i) => all[i] ?? null);
+    for (const w of all.slice(state.weapons.length)) addToBackpack(state.inventory, w);
+    syncHands(state, 0);
     for (const part of ARMOR_PARTS) { // the best piece for every part of the body
       const pieces = state.catalog.armor.filter((a) => a.part === part);
       if (pieces.length) p.equipment[part] = buildItem('armor', best(pieces, 'defense'), 'epic', 2);

@@ -6,6 +6,8 @@
 import { recalcStats } from './stats.js';
 import { learn } from './skilltree.js';
 import { buildItem } from '../sim/loot.js';
+import { syncHands } from './loadout.js';
+import { addToBackpack } from './backpack.js';
 
 export const ATTRS = ['str', 'dex', 'end', 'int', 'per', 'lck', 'cha'];
 export const BASE = 3;
@@ -132,4 +134,6 @@ function giveStarter(state, weaponId) {
   }
   const free = state.weapons.findIndex((w) => !w);
   if (free >= 0) state.weapons[free] = item;
+  else if (state.inventory) addToBackpack(state.inventory, item); // every set is taken: it waits in the backpack
+  syncHands(state);
 }

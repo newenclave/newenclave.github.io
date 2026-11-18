@@ -1,6 +1,6 @@
 import { MAX_STACK } from '../sim/loot.js';
 
-export const INV_SIZE = 20;
+export const INV_SIZE = 40; // 8 x 5
 
 export function emptyInventory() {
   return new Array(INV_SIZE).fill(null);

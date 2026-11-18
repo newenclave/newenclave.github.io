@@ -35,7 +35,7 @@ import { drawCreate } from '../ui/create-ui.js';
 import { canUse } from '../systems/requirements.js';
 import { drawMenu, drawMenuBackground } from '../ui/menu-ui.js';
 import { hotbarLayout } from '../core/touch.js';
-import { loadoutOf } from '../systems/loadout.js';
+import { loadoutOf, slotOf, FISTS } from '../systems/loadout.js';
 import { drawSprite, drawEnemySprite, enemyScale, pose } from './sprites.js';
 import { drawItemIcon } from './icons.js';
 
@@ -1434,14 +1434,22 @@ export class Renderer {
     const touchMode = state.touch.enabled;
     if (touchMode) {
       // compact tappable slots: number + damage
+      const active = slotOf(state);
       hotbarLayout(w, h, state.weapons.length).forEach((s, i) => {
         const wp = state.weapons[i];
-        ctx.fillStyle = wp && wp === p.weapon ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.55)';
+        ctx.fillStyle = i === active ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.55)';
         ctx.fillRect(s.x, s.y, s.w, s.h);
-        if (!wp) { // an empty set
+        if (!wp) { // an empty set: bare fists
           ctx.strokeStyle = '#444';
           ctx.lineWidth = 2;
           ctx.strokeRect(s.x, s.y, s.w, s.h);
+          ctx.globalAlpha = 0.6;
+          drawItemIcon(ctx, FISTS, s.x + s.w / 2, s.y + s.h / 2 - 2, { scale: 2 });
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = '#bbb';
+          ctx.textAlign = 'left';
+          ctx.font = 'bold 12px monospace';
+          ctx.fillText(String(i + 1), s.x + 4, s.y + 13);
           return;
         }
         ctx.strokeStyle = rarityById(wp.rarity).color;
@@ -1465,18 +1473,22 @@ export class Renderer {
       });
       ctx.font = '14px monospace';
     } else {
-      const slotW = Math.min(150, Math.floor((w - 20) / state.weapons.length)); // the arena's belt holds every kind
+      const slotW = Math.min(170, Math.floor((w - 20) / state.weapons.length));
       const x0 = w / 2 - (state.weapons.length * slotW) / 2;
+      const active = slotOf(state);
       state.weapons.forEach((wp, i) => {
-        const sel = wp && wp === p.weapon;
+        const sel = i === active;
         ctx.fillStyle = sel ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.55)';
         ctx.fillRect(x0 + i * slotW, h - 44, slotW - 6, 34);
-        if (!wp) { // an empty set: just its number
+        if (!wp) { // an empty set: bare fists
           ctx.strokeStyle = '#444';
           ctx.lineWidth = 2;
           ctx.strokeRect(x0 + i * slotW, h - 44, slotW - 6, 34);
-          ctx.fillStyle = '#666';
-          ctx.fillText(`${i + 1}`, x0 + i * slotW + 8, h - 22);
+          ctx.globalAlpha = 0.6;
+          drawItemIcon(ctx, FISTS, x0 + i * slotW + 20, h - 27, { scale: 2 });
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = '#888';
+          ctx.fillText(`${i + 1} ${t('weapon.fists')}`, x0 + i * slotW + 42, h - 22, slotW - 50);
           return;
         }
         ctx.strokeStyle = rarityById(wp.rarity).color;

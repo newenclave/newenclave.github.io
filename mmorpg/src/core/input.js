@@ -30,9 +30,9 @@ export class Input {
       if (e.button !== 0) return;
       this.mouse.down = false;
       if (this.downAt) {
-        const x = e.clientX ?? this.mouse.x;
-        const y = e.clientY ?? this.mouse.y;
-        this.releases.push({ x, y, moved: Math.hypot(x - this.downAt.x, y - this.downAt.y) > 6 });
+        const x = e.clientX ?? this.downAt.x; // (a made-up event without a place: where the button went down)
+        const y = e.clientY ?? this.downAt.y;
+        this.releases.push({ x, y, x0: this.downAt.x, y0: this.downAt.y, moved: Math.hypot(x - this.downAt.x, y - this.downAt.y) > 6 });
       }
       this.downAt = null;
     });
@@ -44,6 +44,16 @@ export class Input {
   }
 
   isDown(code) { return this.keys.has(code); }
+  // Something being dragged right now, by the mouse or by one finger on a panel: { x0, y0, x, y } (where it began, where
+  // it is), or null. Lets a panel draw what is carried.
+  dragNow() {
+    if (this.mouse.down && this.downAt) return { x0: this.downAt.x, y0: this.downAt.y, x: this.mouse.x, y: this.mouse.y };
+    return this.touch.dragNow();
+  }
+  // Drags that ended this frame: [{ x0, y0, x, y }] (the mouse let go after moving, or a finger lifted after moving).
+  drops() {
+    return [...this.releases.filter((r) => r.moved), ...this.touch.drops];
+  }
   wasPressed(code) { return this.pressed.has(code); }
   endFrame() {
     this.pressed.clear();
