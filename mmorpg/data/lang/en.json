@@ -149,6 +149,7 @@
   "build.rogue": "Rogue",
   "build.swordbow": "Sword and bow",
   "build.magethief": "Mage and thief",
+  "dlg.check": "[{attr} {n}]",
   "create.title": "Before the Shift",
   "create.lead": "You were one of the twelve on the night shift. What were you like?",
   "create.left": "Points left: {n}",

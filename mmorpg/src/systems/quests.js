@@ -6,7 +6,8 @@ import { entranceById } from './dungeons.js';
 import { ensureHistory } from './history.js';
 import { ringSite } from './ring.js';
 import { TILE } from '../world/world.js';
-import { choicesOf, rewardOf, parseRequirement } from './deeds.js';
+import { answersOf, outcomeOf, rewardOf, parseRequirement } from './deeds.js';
+import { passesCheck } from './attributes.js';
 import { onSideAccept, onSideTurnIn, onSideAbandon, canHandIn, searchArea, personPos, takeItem, spotOfGiver } from './sidequests.js';
 
 export const MAX_ACTIVE = 5;
@@ -253,13 +254,14 @@ export function clickJournal(state, region) {
   return {};
 }
 
-// choice: the answer the hero gives, for a quest that ends with one (it must be one of its `choices`).
+// choice: the answer the hero gives, for a quest that ends with one (one of its `choices` the hero may give: a check,
+// `when`, must be passed). The quest remembers the outcome the answer leads to (`as`).
 export function turnIn(state, id, townId, choice = null) {
   if (!isComplete(state, id)) return { error: 'none' };
   const def = questDef(state, id);
   if (turnInTown(def) !== townId) return { error: 'none' };
-  const choices = choicesOf(def);
-  if (choices.length ? !choices.includes(choice) : choice) return { error: 'choice' };
+  const answers = answersOf(def, (w) => passesCheck(state.player, w));
+  if (answers.length ? !answers.includes(choice) : choice) return { error: 'choice' };
   const p = state.player;
   const r = rewardOf(def, choice);
   p.gold += Math.round((r.gold ?? 0) * (1 + Math.max(0, p.stats?.rewardBonus ?? 0))); // charisma talks the reward up
@@ -271,9 +273,10 @@ export function turnIn(state, id, townId, choice = null) {
       if (addToBackpack(state.inventory, item) < 0) state.drops.push(makeDrop(p.x + p.facing.x * 60, p.y + p.facing.y * 60, item, 1.5)); // backpack full
     }
   }
-  state.player.quests[id] = choice ? { status: 'done', progress: def.count, choice, at: state.clock ?? 0 } : { status: 'done', progress: def.count };
+  const outcome = choice ? outcomeOf(def, choice) : null;
+  state.player.quests[id] = outcome ? { status: 'done', progress: def.count, choice: outcome, at: state.clock ?? 0 } : { status: 'done', progress: def.count };
   if (def.side) { // things handed over, quests this closes; a side quest's ending is remembered for the talk of the town
-    onSideTurnIn(state, def, choice);
+    onSideTurnIn(state, def, outcome);
     state.player.quests[id].at = state.clock ?? 0;
   }
   ensureTracked(state);

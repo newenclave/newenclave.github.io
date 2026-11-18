@@ -1,5 +1,5 @@
 {
-  "_doc": "Side stories (docs/side-stories-knots.md; engine: src/systems/sidequests.js). Places: @start, @road (towns the map names), @farm, @glade (spots of the map), #name (where a person stands). Conditions: q (done), q:choice, found:q, active:q, closed:q, item:id, heard:key, !x, a|b; a list means all.",
+  "_doc": "Side stories (docs/side-stories-knots.md; engine: src/systems/sidequests.js). Places: @start, @road (towns the map names), @farm, @glade (spots of the map), #name (where a person stands). Conditions: q (done), q:choice, found:q, active:q, closed:q, item:id, heard:key, cha>=6 (an attribute check), !x, a|b; a list means all.",
   "people": {
     "pell": {
       "at": "start", "role": "merchant",
@@ -10,7 +10,8 @@
     "brannoc": {
       "at": "start", "role": "blacksmith",
       "greet": [
-        { "when": "q_hammer_b", "say": ["dlg.q_hammer_b.after.0", "dlg.q_hammer_b.after.1"] }
+        { "when": "q_hammer_b", "say": ["dlg.q_hammer_b.after.0", "dlg.q_hammer_b.after.1"] },
+        { "when": ["q_letter", "!q_hammer_k", "cha>=6"], "once": "brannoc.owns", "say": ["dlg.brannoc.owns.0", "dlg.brannoc.owns.1", ">dlg.brannoc.owns.reply", "dlg.brannoc.owns.2"] }
       ]
     },
     "kell": {

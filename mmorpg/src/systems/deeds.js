@@ -9,8 +9,15 @@ export const DEED_SPREAD = 240; // seconds of play before word of a deed has got
 export const FOLK_DEED_LINES = 3; // folk.deed.<quest>.<choice>.0 .. 2
 export const FOLK_DEED_CHANCE = 0.5; // how often a passer-by talks about what you did rather than the weather
 
-// The answers a quest ends with (none for most quests).
-export const choicesOf = (def) => (def?.choices && typeof def.choices === 'object' ? Object.keys(def.choices) : []);
+// The outcomes a quest ends with (none for most quests): what the world remembers.
+const answerList = (def) => (def?.choices && typeof def.choices === 'object' ? Object.keys(def.choices) : []);
+export const choicesOf = (def) => answerList(def).filter((c) => !def.choices[c].as);
+
+// The answers the hero may give. An answer with `as` is another way to the same outcome, offered only when the hero
+// passes its check (`when`, such as "cha>=6": the hero talks someone round); its reaction and its reward are its own,
+// the world remembers the outcome. `passes(when)` says whether a check is passed.
+export const answersOf = (def, passes = () => false) => answerList(def).filter((c) => !def.choices[c].when || passes(def.choices[c].when));
+export const outcomeOf = (def, answer) => def?.choices?.[answer]?.as ?? answer;
 
 // What a quest gives: the reward of the choice made, if it has its own, else the quest's.
 export const rewardOf = (def, choice) => def.choices?.[choice]?.reward ?? def.reward ?? {};

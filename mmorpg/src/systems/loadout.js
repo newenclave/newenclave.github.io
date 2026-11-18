@@ -4,7 +4,7 @@
 //   - anything else is "not in use" until the main hand changes.
 import { canDualWield } from './requirements.js';
 
-export const OFFHAND_DAMAGE = 0.65; // the off hand hits a little weaker than the main hand
+export const OFFHAND_DAMAGE = 0.55; // the off hand hits a little weaker than the main hand
 
 // Which hotbar slot the main-hand weapon is in (-1 when it is not from the hotbar).
 export const slotOf = (state, weapon = state.player.weapon) => state.weapons?.indexOf(weapon) ?? -1;

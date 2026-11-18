@@ -134,7 +134,8 @@ export function applyBuild(state, build, level = state.builds?.level ?? 20) {
   const sectors = new Set(build.skills.map((id) => state.web.index.get(id)?.sector).filter(Boolean).flatMap((s) => s.split('+')));
   const ours = (n) => (n.sector && n.sector.split('+').every((s) => sectors.has(s)) ? 0 : 1);
   while (p.skillPoints > 0) {
-    const next = state.web.nodes.filter((n) => canLearn(state, n.id)).sort((a, b) => ours(a) - ours(b) || a.ring - b.ring)[0];
+    // (never a keystone the build did not ask for: those change the rules)
+    const next = state.web.nodes.filter((n) => n.kind !== 'keystone' && canLearn(state, n.id)).sort((a, b) => ours(a) - ours(b) || a.ring - b.ring)[0];
     if (!next || !learn(state, next.id)) break;
   }
   state.weapons = build.belt.map(([main]) => buildItem('weapon', state.catalog.weapon.find((w) => w.id === main), state.arena.rarity));

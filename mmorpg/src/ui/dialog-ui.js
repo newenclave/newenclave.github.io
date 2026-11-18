@@ -5,7 +5,8 @@ import { questArgs, questTitle, questSpeech, objectiveText, rewardText } from '.
 import { questDef, giverRole, listForGiver } from '../systems/quests.js';
 import { elderLine } from '../systems/lore.js';
 import { eventText } from './chronicle-ui.js';
-import { choicesOf, deedsIn, greetsBy, echoKeys, rewardOf } from '../systems/deeds.js';
+import { answersOf, deedsIn, greetsBy, echoKeys, rewardOf } from '../systems/deeds.js';
+import { parseCheck, passesCheck } from '../systems/attributes.js';
 import { cond, untoldClosed } from '../systems/sidequests.js';
 
 // Talking to someone who gives quests (texts in data/lang/en.dialogue.json). It starts with a greeting and a few things
@@ -186,6 +187,12 @@ function topics(state, role) {
   return out.slice(-MAX_OPTIONS);
 }
 
+// An answer only a hero who passes a check may give says so first, the way Fallout does: "[Charisma 6] ...".
+function checkTag(def, choice) {
+  const k = parseCheck(def.choices?.[choice]?.when);
+  return k ? t('dlg.check', { attr: t('attr.' + k.id), n: k.n }) + ' ' : '';
+}
+
 // What is on the screen: who speaks, what they say, the job under discussion (if any) and the answers you can pick.
 export function dialogView(state) {
   const d = state.ui.dialog;
@@ -215,9 +222,9 @@ export function dialogView(state) {
   } else if (d.status === 'complete') {
     say = lines(base, 'done', args, state.ending);
     if (!say.length) say = [t('dlg.fallback.done')];
-    const choices = choicesOf(def);
+    const choices = answersOf(def, (w) => passesCheck(state.player, w));
     options = choices.length
-      ? choices.map((choice) => ({ kind: 'choose', choice, text: tOr(`dlg.${base}.choice.${choice}`, choice), note: rewardText(def, rewardOf(def, choice)) }))
+      ? choices.map((choice) => ({ kind: 'choose', choice, text: checkTag(def, choice) + tOr(`dlg.${base}.choice.${choice}`, choice), note: rewardText(def, rewardOf(def, choice)) }))
       : [{ kind: 'turnin', text: reply(def, base, 'turnin') }];
   } else if (d.status === 'active') {
     say = lines(base, 'wait', args, state.ending);

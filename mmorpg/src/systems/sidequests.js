@@ -9,6 +9,7 @@
 import { TILE } from '../world/world.js';
 import { hash2 } from '../core/rng.js';
 import { parseRequirement } from './deeds.js';
+import { parseCheck, passesCheck } from './attributes.js';
 
 export const FIND_REACH = 52; // px: how close you come to what you are looking for to find it
 export const GATHER_REACH = 30;
@@ -66,13 +67,15 @@ export function setupSideStories(state, world, data) {
   return defs.filter((d) => known(d.npc, d.giver) && (!d.turnInNpc || known(d.turnInNpc, d.turnInAt)));
 }
 
-// ---- conditions: "q" (done), "q:choice" (done with that answer), "found:q" (its goal reached), "active:q", "!..."
+// ---- conditions: "q" (done), "q:choice" (done with that answer), "found:q" (its goal reached), "active:q", "!...",
+// "cha>=6" (an attribute check, systems/attributes.js)
 export function cond(state, c) {
   if (!c) return true;
   if (Array.isArray(c)) return c.every((x) => cond(state, x));
   if (c[0] === '!') return !cond(state, c.slice(1));
   if (c.includes('|')) return c.split('|').some((x) => cond(state, x));
   const quests = state.player.quests;
+  if (parseCheck(c)) return passesCheck(state.player, c);
   if (c.startsWith('item:')) return hasItem(state, c.slice(5));
   if (c.startsWith('heard:')) return !!state.player.heard?.includes(c.slice(6));
   if (c.startsWith('found:')) {

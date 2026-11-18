@@ -21,6 +21,20 @@ export const baseAttrs = () => Object.fromEntries(ATTRS.map((a) => [a, BASE]));
 export const ownAttr = (player, id) => player?.attrs?.[id] ?? BASE;
 export const attrOf = (player, id) => player?.stats?.attrs?.[id] ?? ownAttr(player, id);
 
+// A check of an attribute, written "cha>=6" (or "str<4"): a condition of a side story (systems/sidequests.js) or of
+// an answer to a quest (`when`, systems/deeds.js). What the skill web adds counts.
+const CHECK = /^(str|dex|end|int|per|lck|cha)(>=|<)(\d+)$/;
+export function parseCheck(c) {
+  const m = typeof c === 'string' ? CHECK.exec(c) : null;
+  return m ? { id: m[1], op: m[2], n: Number(m[3]) } : null;
+}
+export function passesCheck(player, c) {
+  const k = parseCheck(c);
+  if (!k) return false;
+  const v = attrOf(player, k.id);
+  return k.op === '>=' ? v >= k.n : v < k.n;
+}
+
 // Points above (or below) the base: what the effects are counted from.
 export const attrBonus = (player, id) => attrOf(player, id) - BASE;
 
