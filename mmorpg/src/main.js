@@ -906,7 +906,7 @@ function stepGame(game, input, dt) {
 
 async function main() {
   const canvas = document.getElementById('game');
-  const settings = loadSettings();
+  const settings = loadSettings(undefined, navigator.languages ?? [navigator.language]); // a Russian browser starts in Russian
   const [biomes, weapons, enemyDefs, skillData, armor, accessories, questDefs, bossDefs, dungeonDefs, ammoData, relicData, campDefs, mainMap, sideStories, attrDefs, builds] = await Promise.all([
     loadJson('data/biomes.json'),
     loadJson('data/weapons.json'),

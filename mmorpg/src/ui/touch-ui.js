@@ -42,7 +42,16 @@ export function drawTouchControls(ctx, touch, state, w, h) {
       ctx.fill();
     }
     ctx.fillStyle = '#fff';
-    ctx.fillText(t('touch.' + b.id), b.x, b.y + 5);
+    // a long label (in another language) is squeezed to fit inside the button
+    const label = t('touch.' + b.id);
+    const fit = Math.min(1, (b.r * 2 - 8) / Math.max(1, ctx.measureText?.(label).width ?? 0));
+    if (fit < 1) {
+      ctx.save();
+      ctx.translate(b.x, b.y + 5);
+      ctx.scale(fit, 1);
+      ctx.fillText(label, 0, 0);
+      ctx.restore();
+    } else ctx.fillText(label, b.x, b.y + 5);
     const badge = b.id === 'skills' ? p.skillPoints : b.id === 'hero' ? p.attrPoints : 0; // points to spend
     if (badge > 0) {
       ctx.fillStyle = '#ffd54f';

@@ -4,11 +4,19 @@ import { LANGS } from '../core/i18n.js';
 export const SETTINGS_KEY = 'mmorpg-draft-settings';
 export const TOUCH_MODES = ['auto', 'on', 'off'];
 
-export const defaultSettings = () => ({ lang: 'en', fog: true, touch: 'auto' });
+// The first time, the language is the browser's if the game has it (`prefer`: navigator.languages), else English.
+export function preferredLang(prefer = []) {
+  for (const p of prefer) { // the browser's own order: the first one the game has
+    const l = String(p).toLowerCase().split('-')[0];
+    if (LANGS.includes(l)) return l;
+  }
+  return 'en';
+}
+export const defaultSettings = (prefer = []) => ({ lang: preferredLang(prefer), fog: true, touch: 'auto' });
 
 // Anything that is missing or does not fit falls back to its default.
-export function sanitizeSettings(raw) {
-  const d = defaultSettings();
+export function sanitizeSettings(raw, prefer = []) {
+  const d = defaultSettings(prefer);
   if (!raw || typeof raw !== 'object') return d;
   return {
     lang: LANGS.includes(raw.lang) ? raw.lang : d.lang,
@@ -17,11 +25,11 @@ export function sanitizeSettings(raw) {
   };
 }
 
-export function loadSettings(storage = globalThis.localStorage) {
+export function loadSettings(storage = globalThis.localStorage, prefer = []) {
   try {
-    return sanitizeSettings(JSON.parse(storage.getItem(SETTINGS_KEY)));
+    return sanitizeSettings(JSON.parse(storage.getItem(SETTINGS_KEY)), prefer);
   } catch {
-    return defaultSettings();
+    return defaultSettings(prefer);
   }
 }
 
